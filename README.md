@@ -4,11 +4,11 @@
 **Documentation synchronised:** 13 October 2026 against Architecture Update v1.1, Document 09.  
 **Project:** Terra — Intelligent Circular Construction  
 **Context:** Sime Darby Property University Hackathon 2026, PLANET sustainability track  
-**Status:** Validated local Option B seed foundation; no application server or real SDP records.
+**Status:** Validated local Option B seed foundation plus empty React and FastAPI scaffolds; no business features or real SDP records.
 
 ## Purpose
 
-Terra helps an operator identify compatible unused construction materials across projects, compare reuse and carbon outcomes, and track transfers through confirmed actual use. This repository currently contains the product, domain and implementation contracts. The owner has authorized the local Option B seed foundation. The canonical baseline and emulator tooling now exist; full application development remains a separate milestone. The owner will supply actual raw construction-document test files later; those are **out of scope for the seed task**.
+Terra helps an operator identify compatible unused construction materials across projects, compare reuse and carbon outcomes, and track transfers through confirmed actual use. This repository currently contains the product, domain and implementation contracts. The owner has authorized the local Option B seed foundation. The canonical baseline and emulator tooling now exist. Empty frontend/backend framework scaffolds have also been authorized; business features remain separate work. The owner will supply actual raw construction-document test files later; those are **out of scope for the seed task**.
 
 ## Read order for Codex
 
@@ -38,7 +38,7 @@ Terra helps an operator identify compatible unused construction materials across
 - No persistent Node backend. Node.js may support Firebase CLI/build tooling or a justified one-off Admin seed utility. Prefer Python seeding once REST read/write access is proven. Direct PostgreSQL access is not the selected fallback.
 - No login does not mean public admin access. Keep database credentials server-side; public deployment access controls and Python hosting remain undecided.
 - Seed style: **Option B — pre-populated operating system** including existing historical records and current open cases.
-- Deliver **only seed/database foundation in this implementation task**, not a finished UI or live LLM integration.
+- The seed milestone is complete. The current framework scaffold keeps the React page blank and FastAPI free of application routes; feature implementation remains separate.
 - Seed records are **entirely synthetic**; township names and document terminology can resemble real Malaysia, but no real SDP project inventory is asserted.
 - No raw construction PDFs/CSVs/XLSXs yet. `documents` and `extracted_rows` are explicitly simulated metadata/results **without pretend source files**.
 - Baseline date: **2026-10-12**, local time UTC+08:00. Never date a completed historical transfer after that baseline.
@@ -63,6 +63,32 @@ npm run emulator
 In another terminal, activate `.venv`, then run `python3 scripts/seed_terra.py seed` and `python3 scripts/seed_terra.py verify`. Stop the emulator with Ctrl-C. Restart/reseed restores the deterministic baseline. `npm run test:integration` starts/stops a separate ephemeral emulator; first stop any manually running instance.
 
 Python named administrative REST reads/writes are verified locally without cloud credentials. Ordinary client execution rejects the restricted operations. The adapter only accepts IPv4 loopback and `demo-terra-local`; cloud authentication and deployment remain unverified. The baseline uses 31 audit events to preserve complete histories, an allowed deviation from the suggested range. Concurrent operational reservation APIs are a future task, not a claim made by successful snapshot import.
+
+## Empty application frameworks
+
+[frontend/](frontend/) contains React + TypeScript, Vite build/dev tooling and Tailwind CSS. `App.tsx` returns null, so the page is intentionally blank. [backend/app/main.py](backend/app/main.py) creates the FastAPI app, with empty folders for future routes, DTOs, domain services, repositories and integrations. Only FastAPI's built-in documentation/OpenAPI routes exist. There are no database calls or frontend/backend requests yet.
+
+From the repository root, install dependencies:
+
+```sh
+npm --prefix frontend ci
+.venv/bin/python -m pip install -r backend/requirements.txt
+```
+
+Create `.venv` with `python3 -m venv .venv` first if needed. Node.js 22.12 or newer is required for the frontend tooling. Run each server in its own terminal:
+
+```sh
+npm run dev:frontend
+npm run dev:backend
+```
+
+Frontend: http://127.0.0.1:5173. FastAPI docs: http://127.0.0.1:8000/docs; `/openapi.json` has an empty `paths` object, and `/` returns 404 because no business routes are registered. Both dev servers bind to loopback. Stop each with Ctrl-C. Neither needs the Firebase emulator to start.
+
+```sh
+npm run build:frontend
+```
+
+This checks TypeScript and builds into ignored `frontend/dist`. Tailwind follows the [official Vite plugin setup](https://tailwindcss.com/docs/installation/using-vite); backend composition follows [FastAPI's entry-point pattern](https://fastapi.tiangolo.com/tutorial/first-steps/). These are empty local scaffolds, not a deployment or completed product UI/API.
 
 ## Important environmental statement
 

@@ -19,3 +19,5 @@ emulator-data/
 coverage/
 dataconnect/.dataconnect/
 dataconnect/terra/.dataconnect/
+frontend/dist/
+*.tsbuildinfo

@@ -4,7 +4,7 @@ This implementation is local-only. It uses Firebase CLI 15.33.0, SQL Connect emu
 
 ## Reproduce after cloning
 
-Use Node.js 22 or newer, npm, Python 3.11 or newer and a Unix-style shell. Tested on macOS with Node 22.23.2 and Python 3.14.6. The seed utility uses POSIX file locking; Windows users should use WSL. Dependency installation and the first emulator download need internet access; runtime database operations use loopback HTTP.
+Use Node.js 22.12 or newer, npm, Python 3.11 or newer and a Unix-style shell. Tested on macOS with Node 22.23.2 and Python 3.14.6. The seed utility uses POSIX file locking; Windows users should use WSL. Dependency installation and the first emulator download need internet access; runtime database operations use loopback HTTP.
 
 ```sh
 cd Terra
@@ -59,7 +59,7 @@ Port 9399 is the REST listener. The CLI's PGlite bridge uses local port 5432; em
 
 Official references: [emulator](https://firebase.google.com/docs/sql-connect/data-connect-emulator-suite), [administrative named query](https://firebase.google.com/docs/reference/sql-connect/rest/v1/projects.locations.services.connectors/impersonateQuery), [administrative named mutation](https://firebase.google.com/docs/reference/sql-connect/rest/v1/projects.locations.services.connectors/impersonateMutation), [directive reference](https://firebase.google.com/docs/reference/sql-connect/gql/directive).
 
-The local adapter is isolated so a future authenticated server adapter can replace it. These observed results do not establish cloud IAM, token refresh, connector deployment or production permissions. All eventual React operations still go through FastAPI; neither FastAPI nor the React application is implemented here.
+The local adapter is isolated so a future authenticated server adapter can replace it. These observed results do not establish cloud IAM, token refresh, connector deployment or production permissions. All eventual React operations still go through FastAPI. The separately authorized empty framework scaffolds are described in the root README; they do not expose database operations or implement application features.
 
 `@allow` has a bounded `maxCount: 5000` for the administrative payloads, including nested snapshot JSON. The default limit rejected the historical snapshots during integration; this explicit bound was compiled and tested. Queries cap results at 1,000, which exceeds the baseline counts but is not production pagination.
 
@@ -75,3 +75,7 @@ The local adapter is isolated so a future authenticated server adapter can repla
 - No solver, parsing/LLM pipeline, raw construction assets, public API, cloud resources, live Pantas connection, engineering certification or carbon-credit issuance was built.
 
 For future cloud migration, choose project/service/region and approved credentials, re-check Firebase syntax and prices, validate the named-operation auth path, review schema migrations and public access controls, and run cloud/concurrency tests. `terra-not-provisioned` in YAML is only a placeholder; it does not identify an existing Cloud SQL instance. Cloud provisioning/deployment requires a separate authorized task.
+
+## Empty framework development
+
+Frontend and backend startup/build commands are in [README.md](../README.md#empty-application-frameworks). These scaffolds run independently of the emulator. Backend requirements are in `backend/requirements.txt`; seed requirements remain in `requirements-dev.txt`. The existing `terra/` database utilities remain separate from thin future FastAPI routes.

@@ -6,9 +6,9 @@ Read `README.md` and every `docs/00` through `docs/09` file in order. Treat them
 
 ## Current user request boundary
 
-The owner has separately authorized two sequential tasks: implement and validate the Option B populated seed/database foundation using the local Firebase SQL Connect emulator only, then initialize Git if necessary, commit and push the validated baseline to `https://github.com/zwahoc/Terra.git` on `main`. Do not start the Git commit/push task until offline and emulator acceptance passes. Preserve history; never force-push.
+The Option B local seed/database baseline was completed, validated and pushed to GitHub. The owner subsequently authorized empty React + TypeScript + Tailwind and FastAPI scaffolds, which are now implemented and checked. The current request authorizes committing and pushing those scaffolds, their documentation and the approved `docs/TERRA_SRS_v1.0.md` to `origin/main`. Preserve history and never force-push. Leave the React page blank and register no application/business API routes; no additional feature implementation is authorized.
 
-Use `demo-terra-local`; no Firebase Cloud project, Cloud SQL provisioning, billing, deployment or cloud service-account credentials. Dependencies, local schema/connectors, PGlite emulator startup, deterministic JSON, Python validator/import/reset/adapter proof and relevant tests are authorized. Prefer Python tooling; justified one-off Node Admin utilities remain allowed. No full FastAPI API, frontend, raw document assets/parsing, LLM calls or full optimisation engine belongs in this task. Do not start additional application development afterward. Stored prompts remain reference material unless separately invoked.
+Keep the local database baseline intact. No Firebase Cloud project, Cloud SQL provisioning, billing, deployment or cloud service-account credentials. Do not add authentication, database access through HTTP routes, raw document assets/parsing, LLM calls, optimisation or carbon/transfer features. Python processing remains independent of FastAPI. Node.js is frontend/Firebase tooling only, never a separate application backend. Stored prompts remain reference material unless separately invoked.
 
 ## Confirmed application architecture
 
