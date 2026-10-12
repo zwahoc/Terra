@@ -1,0 +1,167 @@
+# Administrative connector operations. Not public application APIs.
+
+query SeedSnapshot @auth(level: NO_ACCESS) {
+  projects(limit: 1000, orderBy: {id: ASC}) { id code name township location startDate targetEndDate status managingOrganisation }
+  materials(limit: 1000, orderBy: {id: ASC}) { id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic }
+  documents(limit: 1000, orderBy: {id: ASC}) { id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated }
+  extractedRows(limit: 1000, orderBy: {id: ASC}) { id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated }
+  supplyOffers(limit: 1000, orderBy: {id: ASC}) { id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs }
+  demandRequests(limit: 1000, orderBy: {id: ASC}) { id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+  routeDistances(limit: 1000, orderBy: {id: ASC}) { id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic }
+  optimisationRuns(limit: 1000, orderBy: {id: ASC}) { id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions }
+  allocationProposals(limit: 1000, orderBy: {id: ASC}) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+  transfers(limit: 1000, orderBy: {id: ASC}) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+  transferEvents(limit: 1000, orderBy: {id: ASC}) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+  emissionFactors(limit: 1000, orderBy: {id: ASC}) { id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor }
+  impactAssessments(limit: 1000, orderBy: {id: ASC}) { id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt }
+}
+
+query ListProjects @auth(level: NO_ACCESS) {
+  projects(limit: 1000, orderBy: {id: ASC}) { id code name township location startDate targetEndDate status managingOrganisation }
+}
+
+mutation UpsertProjects($rows: [Project_Data!]! @allow(fields: "id code name township location startDate targetEndDate status managingOrganisation", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  project_upsertMany(data: $rows)
+}
+
+query ListMaterials @auth(level: NO_ACCESS) {
+  materials(limit: 1000, orderBy: {id: ASC}) { id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic }
+}
+
+mutation UpsertMaterials($rows: [Material_Data!]! @allow(fields: "id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  material_upsertMany(data: $rows)
+}
+
+query ListDocuments @auth(level: NO_ACCESS) {
+  documents(limit: 1000, orderBy: {id: ASC}) { id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated }
+}
+
+mutation UpsertDocuments($rows: [Document_Data!]! @allow(fields: "id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  document_upsertMany(data: $rows)
+}
+
+query ListExtractedRows @auth(level: NO_ACCESS) {
+  extractedRows(limit: 1000, orderBy: {id: ASC}) { id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated }
+}
+
+mutation UpsertExtractedRows($rows: [ExtractedRow_Data!]! @allow(fields: "id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  extractedRow_upsertMany(data: $rows)
+}
+
+query ListSupplyOffers @auth(level: NO_ACCESS) {
+  supplyOffers(limit: 1000, orderBy: {id: ASC}) { id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs }
+}
+
+mutation UpsertSupplyOffers($rows: [SupplyOffer_Data!]! @allow(fields: "id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  supplyOffer_upsertMany(data: $rows)
+}
+
+query ListDemandRequests @auth(level: NO_ACCESS) {
+  demandRequests(limit: 1000, orderBy: {id: ASC}) { id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+}
+
+mutation UpsertDemandRequests($rows: [DemandRequest_Data!]! @allow(fields: "id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  demandRequest_upsertMany(data: $rows)
+}
+
+query ListRouteDistances @auth(level: NO_ACCESS) {
+  routeDistances(limit: 1000, orderBy: {id: ASC}) { id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic }
+}
+
+mutation UpsertRouteDistances($rows: [RouteDistance_Data!]! @allow(fields: "id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  routeDistance_upsertMany(data: $rows)
+}
+
+query ListOptimisationRuns @auth(level: NO_ACCESS) {
+  optimisationRuns(limit: 1000, orderBy: {id: ASC}) { id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions }
+}
+
+mutation UpsertOptimisationRuns($rows: [OptimisationRun_Data!]! @allow(fields: "id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  optimisationRun_upsertMany(data: $rows)
+}
+
+query ListAllocationProposals @auth(level: NO_ACCESS) {
+  allocationProposals(limit: 1000, orderBy: {id: ASC}) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+}
+
+mutation UpsertAllocationProposals($rows: [AllocationProposal_Data!]! @allow(fields: "id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  allocationProposal_upsertMany(data: $rows)
+}
+
+query ListTransfers @auth(level: NO_ACCESS) {
+  transfers(limit: 1000, orderBy: {id: ASC}) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+}
+
+mutation UpsertTransfers($rows: [Transfer_Data!]! @allow(fields: "id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  transfer_upsertMany(data: $rows)
+}
+
+query ListTransferEvents @auth(level: NO_ACCESS) {
+  transferEvents(limit: 1000, orderBy: {id: ASC}) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+}
+
+mutation UpsertTransferEvents($rows: [TransferEvent_Data!]! @allow(fields: "id transferId eventType occurredAt actorLabel payload evidenceRef", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  transferEvent_upsertMany(data: $rows)
+}
+
+query ListEmissionFactors @auth(level: NO_ACCESS) {
+  emissionFactors(limit: 1000, orderBy: {id: ASC}) { id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor }
+}
+
+mutation UpsertEmissionFactors($rows: [EmissionFactor_Data!]! @allow(fields: "id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  emissionFactor_upsertMany(data: $rows)
+}
+
+query ListImpactAssessments @auth(level: NO_ACCESS) {
+  impactAssessments(limit: 1000, orderBy: {id: ASC}) { id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt }
+}
+
+mutation UpsertImpactAssessments($rows: [ImpactAssessment_Data!]! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  impactAssessment_upsertMany(data: $rows)
+}
+
+mutation ImportBaseline(
+  $projects: [Project_Data!]! @allow(fields: "id code name township location startDate targetEndDate status managingOrganisation", maxCount: 5000)
+  $materials: [Material_Data!]! @allow(fields: "id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic", maxCount: 5000)
+  $documents: [Document_Data!]! @allow(fields: "id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated", maxCount: 5000)
+  $extractedRows: [ExtractedRow_Data!]! @allow(fields: "id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated", maxCount: 5000)
+  $supplyOffers: [SupplyOffer_Data!]! @allow(fields: "id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs", maxCount: 5000)
+  $demandRequests: [DemandRequest_Data!]! @allow(fields: "id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed", maxCount: 5000)
+  $routeDistances: [RouteDistance_Data!]! @allow(fields: "id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic", maxCount: 5000)
+  $emissionFactors: [EmissionFactor_Data!]! @allow(fields: "id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor", maxCount: 5000)
+  $optimisationRuns: [OptimisationRun_Data!]! @allow(fields: "id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions", maxCount: 5000)
+  $allocationProposals: [AllocationProposal_Data!]! @allow(fields: "id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt", maxCount: 5000)
+  $transfers: [Transfer_Data!]! @allow(fields: "id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes", maxCount: 5000)
+  $transferEvents: [TransferEvent_Data!]! @allow(fields: "id transferId eventType occurredAt actorLabel payload evidenceRef", maxCount: 5000)
+  $impactAssessments: [ImpactAssessment_Data!]! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt", maxCount: 5000)
+) @auth(level: NO_ACCESS) @transaction {
+  project_upsertMany(data: $projects)
+  material_upsertMany(data: $materials)
+  document_upsertMany(data: $documents)
+  extractedRow_upsertMany(data: $extractedRows)
+  supplyOffer_upsertMany(data: $supplyOffers)
+  demandRequest_upsertMany(data: $demandRequests)
+  routeDistance_upsertMany(data: $routeDistances)
+  emissionFactor_upsertMany(data: $emissionFactors)
+  optimisationRun_upsertMany(data: $optimisationRuns)
+  allocationProposal_upsertMany(data: $allocationProposals)
+  transfer_upsertMany(data: $transfers)
+  transferEvent_upsertMany(data: $transferEvents)
+  impactAssessment_upsertMany(data: $impactAssessments)
+}
+
+mutation ClearBaseline @auth(level: NO_ACCESS) @transaction {
+  impactAssessment_deleteMany(all: true)
+  transferEvent_deleteMany(all: true)
+  transfer_deleteMany(all: true)
+  allocationProposal_deleteMany(all: true)
+  optimisationRun_deleteMany(all: true)
+  emissionFactor_deleteMany(all: true)
+  routeDistance_deleteMany(all: true)
+  demandRequest_deleteMany(all: true)
+  supplyOffer_deleteMany(all: true)
+  extractedRow_deleteMany(all: true)
+  document_deleteMany(all: true)
+  material_deleteMany(all: true)
+  project_deleteMany(all: true)
+}

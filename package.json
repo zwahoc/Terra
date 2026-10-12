@@ -1,0 +1,17 @@
+{
+  "name": "terra-local-database",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Firebase CLI tooling only; Terra application backend remains Python/FastAPI",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "firebase-tools": "15.33.0"
+  },
+  "scripts": {
+    "emulator": "firebase emulators:start --only dataconnect --project demo-terra-local",
+    "test:integration": "firebase emulators:exec --only dataconnect --project demo-terra-local \"TERRA_RUN_EMULATOR_TESTS=1 python3 -m unittest tests.test_emulator -v\"",
+    "test": "python3 -m unittest tests.test_seed -v"
+  }
+}

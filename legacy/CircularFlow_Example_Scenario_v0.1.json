@@ -1,0 +1,54 @@
+{
+  "_notice": "All projects, quantities, distances and factors are synthetic demo values, NOT actual Sime Darby Property project records or verified emission factors.",
+  "projects": [
+    {"id": "ELM-A", "name": "Elmina Demo Project A", "township": "City of Elmina"},
+    {"id": "BBR-B", "name": "Bukit Raja Demo Project B", "township": "Bandar Bukit Raja"},
+    {"id": "ELM-C", "name": "Elmina Demo Project C", "township": "City of Elmina"},
+    {"id": "SER-D", "name": "Serenia Demo Project D", "township": "Serenia City"}
+  ],
+  "materials": [
+    {
+      "id": "MAT-PAVER-001", "canonical_name": "Concrete paving block",
+      "category": "PAVING_BLOCK", "standard_unit": "pcs",
+      "specifications": {"length_mm": 200, "width_mm": 100, "thickness_mm": 60, "colour": "grey"},
+      "mass_kg_per_unit": 2.5
+    }
+  ],
+  "source_documents": [
+    {"id": "DOC-A-01", "project_id": "ELM-A", "document_type": "INVENTORY", "raw_description": "RECT CONC PAVER GREY 200X100X60", "quantity": 1000, "unit": "PCS"},
+    {"id": "DOC-D-01", "project_id": "SER-D", "document_type": "INVENTORY", "raw_description": "CONCRETE GREY PAVING BLOCK 200*100*60MM", "quantity": 500, "unit": "pieces"},
+    {"id": "DOC-B-01", "project_id": "BBR-B", "document_type": "DEMAND", "raw_description": "Rectangular grey concrete pavers 200 x 100 x 60 mm", "quantity": 600, "unit": "pcs"},
+    {"id": "DOC-C-01", "project_id": "ELM-C", "document_type": "DEMAND", "raw_description": "Grey 200x100x60 paving blocks", "quantity": 400, "unit": "units"}
+  ],
+  "supply_offers": [
+    {"id": "SUP-A", "source_project_id": "ELM-A", "material_id": "MAT-PAVER-001", "declared_quantity": 1000, "confirmed_quantity": 1000, "reserved_active_quantity": 0, "transferred_out_quantity": 0, "unit": "pcs", "surplus_status": "CONFIRMED", "available_from": "2026-10-20", "condition": "UNUSED"},
+    {"id": "SUP-D", "source_project_id": "SER-D", "material_id": "MAT-PAVER-001", "declared_quantity": 500, "confirmed_quantity": 500, "reserved_active_quantity": 0, "transferred_out_quantity": 0, "unit": "pcs", "surplus_status": "CONFIRMED", "available_from": "2026-10-20", "condition": "UNUSED"}
+  ],
+  "demand_requests": [
+    {"id": "DEM-B", "destination_project_id": "BBR-B", "material_id": "MAT-PAVER-001", "required_quantity": 600, "fulfilled_quantity": 0, "unit": "pcs", "needed_from": "2026-10-25", "required_by": "2026-10-30"},
+    {"id": "DEM-C", "destination_project_id": "ELM-C", "material_id": "MAT-PAVER-001", "required_quantity": 400, "fulfilled_quantity": 0, "unit": "pcs", "needed_from": "2026-10-25", "required_by": "2026-11-02"}
+  ],
+  "demo_route_distances_km": [
+    {"from": "ELM-A", "to": "BBR-B", "distance_km": 25},
+    {"from": "ELM-A", "to": "ELM-C", "distance_km": 8},
+    {"from": "SER-D", "to": "BBR-B", "distance_km": 6},
+    {"from": "SER-D", "to": "ELM-C", "distance_km": 80}
+  ],
+  "demo_emission_factors": [
+    {"factor_type": "NEW_MATERIAL_PRODUCTION", "material_id": "MAT-PAVER-001", "value": 0.75, "unit": "kgCO2e/pcs", "is_demo_factor": true},
+    {"factor_type": "TRANSPORT", "value": 0.12, "unit": "kgCO2e/t-km", "is_demo_factor": true}
+  ],
+  "example_allocation_plan": [
+    {"from_supply": "SUP-D", "to_demand": "DEM-B", "quantity": 500, "unit": "pcs"},
+    {"from_supply": "SUP-A", "to_demand": "DEM-B", "quantity": 100, "unit": "pcs"},
+    {"from_supply": "SUP-A", "to_demand": "DEM-C", "quantity": 400, "unit": "pcs"}
+  ],
+  "example_plan_metrics": {
+    "total_units_proposed": 1000,
+    "total_new_production_emissions_potentially_avoided_kgco2e": 750.0,
+    "additional_transport_emissions_estimated_kgco2e": 2.61,
+    "additional_processing_emissions_estimated_kgco2e": null,
+    "net_avoided_emissions_estimate_kgco2e": null,
+    "note": "Net is deliberately null until processing/handling boundaries and assumptions are defined. Suggested allocations are NOT already completed reuse."
+  }
+}

@@ -1,0 +1,12 @@
+specVersion: v1alpha
+serviceId: terra-local
+location: us-central1
+schema:
+  source: ./schema
+  datasource:
+    postgresql:
+      database: terra
+      cloudSql:
+        instanceId: terra-not-provisioned
+connectorDirs:
+  - ./terra
