@@ -85,3 +85,23 @@ Frontend developers can use named reads through the Python adapter or explicit o
 Local administrative REST methods differ from the ordinary client execution path. Emulator success proves neither cloud IAM nor authentication. The adapter deliberately rejects cloud hosts; a future authenticated adapter must be designed and tested separately. Admin bulk-upsert operations are not safe business workflows merely because they are transactional. Offline validation guards seed import; production domain invariants must also be enforced inside the supported reservation/write strategy.
 
 Reset is two local transactions: clear, then import. Stop other local writers first. A process interruption between them leaves an empty database, not a partially applied import. Rerun `seed` to recover. Use [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for the exact reproduction and reset commands.
+
+## Native development tooling update
+
+On 13 October 2026 the owner authorized native Windows/macOS tooling. The earlier command examples above record the original macOS seed run; current platform-independent instructions are in [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md).
+
+The seed JSON, SQL Connect schema/connectors, record counts and dataset snapshot were not changed. The tooling now uses a platform-aware file lock, native virtual-environment paths, programmatic environment settings and explicit UTF-8 text I/O. Setup installs into `.venv` without activation scripts. Git attributes keep code, JSON and GraphQL line endings consistent across checkouts.
+
+Observed on macOS:
+
+- The original missing-fcntl import regression failed before the fix and passed afterward.
+- `npm test` passed 8 Node tooling checks and 44 Python offline checks. Its 10 emulator tests were correctly skipped and then run separately.
+- Inter-process lock contention, owner termination/recovery and exception release passed. A body-level Timeout is not misreported as lock contention.
+- Windows interpreter-path selection and launcher candidates passed deterministic branch tests; these do not constitute native Windows execution.
+- UTF-8 JSON and Unicode/space-containing paths and arguments passed.
+- `npm run setup` installed requirements/frontend packages; a fresh setup without an existing `.venv` also succeeded in a temporary checkout path containing spaces.
+- `npm run test:integration` passed all 10 checks with the programmatic opt-in runner, starting/stopping a fresh local emulator.
+- `npm run build:frontend` passed. Both local dev servers started and responded; FastAPI's OpenAPI paths remained empty.
+- Seed and provider generator `--check` commands confirmed unchanged deterministic output. Offline dry-run and dependency checks passed.
+
+The [native CI matrix](../.github/workflows/local-development.yml) is configured to repeat setup, tests, build and emulator integration on Windows, macOS and Linux using checkout paths with spaces. It has not been run from this local revision; native Windows/Linux results remain pending. No cloud database or application deployment is involved. No operational reservation API was implemented or concurrently tested by this tooling change.

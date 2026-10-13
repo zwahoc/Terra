@@ -1,0 +1,40 @@
+name: Local development compatibility
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-development:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Terra Workspace
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Terra Workspace
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: npm ci
+      - run: npm run setup
+      - run: npm test
+      - run: npm run seed:validate
+      - run: npm run python -- scripts/generate_seed.py --check
+      - run: npm run python -- scripts/generate_provider.py --check
+      - run: npm run build:frontend
+      - run: npm run python -- -c "from backend.app.main import app; assert app.openapi()['paths'] == {}"
+      - run: npm run test:integration

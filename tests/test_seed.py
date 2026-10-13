@@ -21,13 +21,13 @@ class SeedTests(unittest.TestCase):
     def test_deterministic(self):self.assertEqual(build(),self.seed)
     def test_generated_schema_current(self):
         root=Path(__file__).resolve().parents[1];schema,operations=render()
-        self.assertEqual(schema,(root/'dataconnect/schema/schema.gql').read_text())
-        self.assertEqual(operations,(root/'dataconnect/terra/operations.gql').read_text())
+        self.assertEqual(schema,(root/'dataconnect/schema/schema.gql').read_text(encoding='utf-8'))
+        self.assertEqual(operations,(root/'dataconnect/terra/operations.gql').read_text(encoding='utf-8'))
         self.assertNotIn('PUBLIC',operations)
     def test_scenario_index_ids_resolve(self):
         import re
         root=Path(__file__).resolve().parents[1]
-        text=(root/'data/SCENARIOS.md').read_text()
+        text=(root/'data/SCENARIOS.md').read_text(encoding='utf-8')
         ids={row['id'] for entity in self.seed if entity!='metadata' for row in self.seed[entity]}
         for value in re.findall(r'\b(?:PRJ|MAT|DOC|ROW|SUP|DEM|RTE|RUN|ALC|TRF|EVT|EF|IMP)-\d{3}\b',text):
             self.assertIn(value,ids)
@@ -98,11 +98,11 @@ class SeedTests(unittest.TestCase):
             with self.assertRaises(ValueError):seed_local(self.seed,adapter,reset_confirmation='yes')
     def test_duplicate_json_key(self):
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d)/'bad.json';p.write_text('{"id":1,"id":2}')
+            p=Path(d)/'bad.json';p.write_text('{"id":1,"id":2}', encoding="utf-8", newline="\n")
             with self.assertRaises(ValueError):load(p)
     def test_reject_nan(self):
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d)/'bad.json';p.write_text('{"value":NaN}')
+            p=Path(d)/'bad.json';p.write_text('{"value":NaN}', encoding="utf-8", newline="\n")
             with self.assertRaises(ValueError):load(p)
 
 if __name__=='__main__':unittest.main()

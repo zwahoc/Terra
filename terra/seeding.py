@@ -1,7 +1,7 @@
 """Validated local snapshot import and explicit reset, without event replay."""
 from pathlib import Path
 from contextlib import contextmanager
-import fcntl
+from filelock import FileLock, Timeout
 from terra.validation import validate
 from terra.local_adapter import LocalDataConnect,variables,equivalent
 
@@ -10,11 +10,15 @@ ROOT=Path(__file__).resolve().parents[1]
 @contextmanager
 def seed_lock():
     directory=ROOT/'.local';directory.mkdir(exist_ok=True)
-    with (directory/'seed.lock').open('w') as handle:
-        try:fcntl.flock(handle,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        except BlockingIOError as exc:raise RuntimeError('Another local import/reset is active') from exc
-        try:yield
-        finally:fcntl.flock(handle,fcntl.LOCK_UN)
+    lock = FileLock(directory/'seed.lock', timeout=0)
+    try:
+        lock.acquire()
+    except Timeout as exc:
+        raise RuntimeError('Another local import/reset is active') from exc
+    try:
+        yield
+    finally:
+        lock.release()
 
 def verify(adapter,seed):
     actual=adapter.snapshot()

@@ -17,7 +17,7 @@ def load(path=SEED):
             if key in out: raise ValueError(f'Duplicate JSON key: {key}')
             out[key]=value
         return out
-    return json.loads(Path(path).read_text(),parse_constant=invalid,object_pairs_hook=unique)
+    return json.loads(Path(path).read_text(encoding='utf-8'),parse_constant=invalid,object_pairs_hook=unique)
 
 def require(condition,message):
     if not condition: raise ValueError(message)

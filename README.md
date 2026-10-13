@@ -50,17 +50,17 @@ The populated baseline is [data/terra_seed.json](data/terra_seed.json). Local co
 
 Read [local development commands](docs/LOCAL_DEVELOPMENT.md), [data dictionary](docs/SEED_DATA_DICTIONARY.md), [scenario index](data/SCENARIOS.md) and [validation evidence](docs/SEED_VALIDATION.md). The detailed Documents 00–09 remain the product/domain/architecture contract; these implementation documents describe the observed local baseline.
 
+Install Node.js 22.12+ and Python 3.11+, then use the same commands in Windows PowerShell/Command Prompt or macOS Terminal:
+
 ```sh
 npm ci
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements-dev.txt
-python3 scripts/seed_terra.py seed --dry-run
-python3 -m unittest tests.test_seed -v
+npm run setup
+npm run seed:validate
+npm test
 npm run emulator
 ```
 
-In another terminal, activate `.venv`, then run `python3 scripts/seed_terra.py seed` and `python3 scripts/seed_terra.py verify`. Stop the emulator with Ctrl-C. Restart/reseed restores the deterministic baseline. `npm run test:integration` starts/stops a separate ephemeral emulator; first stop any manually running instance.
+`setup` creates the native `.venv`, installs Python seed/backend requirements and installs the frontend packages. No virtual-environment activation or WSL is required. In another terminal, run `npm run seed` and `npm run seed:verify`. For an offline dry run use `npm run seed -- --dry-run`. Stop the emulator with Ctrl-C. `npm run test:integration` starts/stops a fresh emulator; first stop any manually running instance. See [local development instructions](docs/LOCAL_DEVELOPMENT.md) for reset, prerequisites and troubleshooting.
 
 Python named administrative REST reads/writes are verified locally without cloud credentials. Ordinary client execution rejects the restricted operations. The adapter only accepts IPv4 loopback and `demo-terra-local`; cloud authentication and deployment remain unverified. The baseline uses 31 audit events to preserve complete histories, an allowed deviation from the suggested range. Concurrent operational reservation APIs are a future task, not a claim made by successful snapshot import.
 
@@ -68,19 +68,14 @@ Python named administrative REST reads/writes are verified locally without cloud
 
 [frontend/](frontend/) contains React + TypeScript, Vite build/dev tooling and Tailwind CSS. `App.tsx` returns null, so the page is intentionally blank. [backend/app/main.py](backend/app/main.py) creates the FastAPI app, with empty folders for future routes, DTOs, domain services, repositories and integrations. Only FastAPI's built-in documentation/OpenAPI routes exist. There are no database calls or frontend/backend requests yet.
 
-From the repository root, install dependencies:
-
-```sh
-npm --prefix frontend ci
-.venv/bin/python -m pip install -r backend/requirements.txt
-```
-
-Create `.venv` with `python3 -m venv .venv` first if needed. Node.js 22.12 or newer is required for the frontend tooling. Run each server in its own terminal:
+After `npm ci` and `npm run setup`, run each server in its own terminal:
 
 ```sh
 npm run dev:frontend
 npm run dev:backend
 ```
+
+The Python launcher selects the native `.venv` interpreter for your OS. Startup does not depend on shell activation or a `python3` alias.
 
 Frontend: http://127.0.0.1:5173. FastAPI docs: http://127.0.0.1:8000/docs; `/openapi.json` has an empty `paths` object, and `/` returns 404 because no business routes are registered. Both dev servers bind to loopback. Stop each with Ctrl-C. Neither needs the Firebase emulator to start.
 
@@ -88,7 +83,7 @@ Frontend: http://127.0.0.1:5173. FastAPI docs: http://127.0.0.1:8000/docs; `/ope
 npm run build:frontend
 ```
 
-This checks TypeScript and builds into ignored `frontend/dist`. Tailwind follows the [official Vite plugin setup](https://tailwindcss.com/docs/installation/using-vite); backend composition follows [FastAPI's entry-point pattern](https://fastapi.tiangolo.com/tutorial/first-steps/). These are empty local scaffolds, not a deployment or completed product UI/API.
+This checks TypeScript and builds into ignored `frontend/dist`. Native Windows/macOS/Linux CI checks are defined in [.github/workflows/local-development.yml](.github/workflows/local-development.yml); an OS is verified only when its job actually passes. Tailwind follows the [official Vite plugin setup](https://tailwindcss.com/docs/installation/using-vite); backend composition follows [FastAPI's entry-point pattern](https://fastapi.tiangolo.com/tutorial/first-steps/). These are empty local scaffolds, not a deployment or completed product UI/API.
 
 ## Important environmental statement
 

@@ -11,10 +11,18 @@
   },
   "scripts": {
     "emulator": "firebase emulators:start --only dataconnect --project demo-terra-local",
-    "test:integration": "firebase emulators:exec --only dataconnect --project demo-terra-local \"TERRA_RUN_EMULATOR_TESTS=1 python3 -m unittest tests.test_emulator -v\"",
-    "test": "python3 -m unittest tests.test_seed -v",
+    "test:integration": "firebase emulators:exec --only dataconnect --project demo-terra-local \"node scripts/run_python.mjs scripts/run_emulator_tests.py\"",
+    "test": "npm run test:tooling && npm run test:python",
     "dev:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build",
-    "dev:backend": ".venv/bin/python -m uvicorn backend.app.main:app --reload --reload-dir backend --host 127.0.0.1 --port 8000"
+    "dev:backend": "node scripts/run_python.mjs -m uvicorn backend.app.main:app --reload --reload-dir backend --host 127.0.0.1 --port 8000",
+    "setup": "node scripts/setup.mjs",
+    "python": "node scripts/run_python.mjs",
+    "seed": "node scripts/run_python.mjs scripts/seed_terra.py seed",
+    "seed:validate": "node scripts/run_python.mjs scripts/seed_terra.py validate",
+    "seed:verify": "node scripts/run_python.mjs scripts/seed_terra.py verify",
+    "seed:reset": "node scripts/run_python.mjs scripts/seed_terra.py reset",
+    "test:tooling": "node --test tests/test_dev_tooling.mjs",
+    "test:python": "node scripts/run_python.mjs -m unittest discover -s tests -v"
   }
 }

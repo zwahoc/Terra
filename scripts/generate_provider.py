@@ -50,9 +50,9 @@ def render():
 if __name__=='__main__':
     a,b=render()
     if '--check' in sys.argv:
-        assert (ROOT/'dataconnect/schema/schema.gql').read_text()==a
-        assert (ROOT/'dataconnect/terra/operations.gql').read_text()==b
+        assert (ROOT/'dataconnect/schema/schema.gql').read_text(encoding='utf-8')==a
+        assert (ROOT/'dataconnect/terra/operations.gql').read_text(encoding='utf-8')==b
         print('Provider definitions match the field registry')
     else:
-        (ROOT/'dataconnect/schema/schema.gql').write_text(a)
-        (ROOT/'dataconnect/terra/operations.gql').write_text(b)
+        (ROOT/'dataconnect/schema/schema.gql').write_text(a, encoding="utf-8", newline="\n")
+        (ROOT/'dataconnect/terra/operations.gql').write_text(b, encoding="utf-8", newline="\n")

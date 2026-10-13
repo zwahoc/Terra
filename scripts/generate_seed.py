@@ -104,5 +104,5 @@ if __name__=='__main__':
     value=json.dumps(build(),indent=2,ensure_ascii=False)+'\n'
     target=ROOT/'data/terra_seed.json'
     if '--check' in sys.argv:
-        assert target.read_text()==value,'Seed differs from deterministic generation';print('Deterministic baseline matches')
-    else:target.write_text(value);print('Wrote',target)
+        assert target.read_text(encoding='utf-8')==value,'Seed differs from deterministic generation';print('Deterministic baseline matches')
+    else:target.write_text(value, encoding="utf-8", newline="\n");print('Wrote',target)

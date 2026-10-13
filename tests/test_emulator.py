@@ -5,7 +5,7 @@ from terra.seeding import seed_local,verify
 from terra.validation import load,validate
 from terra.contract import FIELDS,TYPES,camel
 
-@unittest.skipUnless(os.environ.get('TERRA_RUN_EMULATOR_TESTS')=='1','Set TERRA_RUN_EMULATOR_TESTS=1 for isolated local emulator tests')
+@unittest.skipUnless(os.environ.get('TERRA_RUN_EMULATOR_TESTS')=='1','Use npm run test:integration for isolated local emulator tests')
 class EmulatorTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
