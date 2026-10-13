@@ -35,9 +35,12 @@ class SnapshotMappingTests(unittest.TestCase):
         self.assertEqual(snapshot.incoming_transfer_ids_by_demand['DEM-003'], ('TRF-003',))
         result = evaluate_eligibility(s, d, snapshot.materials[s.material_id],
                                       snapshot.materials[d.material_id],
-                                      planning_date=snapshot.as_of_date, lead_time_days=1)
+                                      planning_date=snapshot.as_of_date,
+                                      lead_time_days=snapshot.demo_lead_time_days(s.id, d.id))
         self.assertEqual((result.compatibility_result, result.max_allocatable_quantity),
                          ('ELIGIBLE', 200))
+        self.assertEqual(result.lead_time_days, 2)
+        self.assertEqual(result.earliest_delivery_date, date(2026, 10, 14))
 
     def test_stages_and_residual_commitments(self):
         snapshot = self.map()
@@ -197,6 +200,21 @@ class SnapshotMappingTests(unittest.TestCase):
             SupplyQuantity(800)
         with self.assertRaises(TypeError):
             DemandQuantity(500)
+
+    def test_same_township_demo_policy_without_changing_seed(self):
+        self.row('projects', 'PRJ-004')['township'] = 'Elmina'
+        self.assertEqual(self.map().demo_lead_time_days('SUP-003', 'DEM-003'), 1)
+
+    def test_unknown_township_preserves_review_requirement(self):
+        self.row('projects', 'PRJ-004')['township'] = ''
+        snapshot = self.map()
+        s, d = snapshot.supplies['SUP-003'], snapshot.demands['DEM-003']
+        result = evaluate_eligibility(s, d, snapshot.materials[s.material_id],
+                                      snapshot.materials[d.material_id],
+                                      planning_date=snapshot.as_of_date,
+                                      lead_time_days=snapshot.demo_lead_time_days(s.id, d.id))
+        self.assertEqual(result.compatibility_result, 'REVIEW_REQUIRED')
+        self.assertIn('LEAD_TIME_REVIEW_REQUIRED', result.reason_codes)
 
 
 if __name__ == '__main__':

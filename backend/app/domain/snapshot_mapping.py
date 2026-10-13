@@ -13,6 +13,7 @@ from typing import Iterable, Mapping
 
 from terra.contract import MODELS, fields
 from .eligibility import Demand, DemandQuantity, Material, Supply, SupplyQuantity
+from .lead_time import demo_township_lead_time_days
 
 
 class SnapshotMappingError(ValueError):
@@ -22,10 +23,19 @@ class SnapshotMappingError(ValueError):
 @dataclass(frozen=True)
 class DomainSnapshot:
     as_of_date: date
+    project_townships: Mapping[str, str]
     materials: Mapping[str, Material]
     supplies: Mapping[str, Supply]
     demands: Mapping[str, Demand]
     incoming_transfer_ids_by_demand: Mapping[str, tuple[str, ...]]
+
+    def demo_lead_time_days(self, supply_offer_id: str, demand_request_id: str) -> int | None:
+        supply = self.supplies[supply_offer_id]
+        demand = self.demands[demand_request_id]
+        return demo_township_lead_time_days(
+            self.project_townships[supply.source_project_id],
+            self.project_townships[demand.destination_project_id],
+        )
 
 
 def _require(condition: bool, message: str) -> None:
@@ -242,7 +252,9 @@ def map_record_collections(
         for mid, row in idx['materials'].items()
     }
     return DomainSnapshot(
-        as_of_date, MappingProxyType(dict(sorted(mapped_materials.items()))),
+        as_of_date,
+        MappingProxyType({pid: row['township'] for pid, row in sorted(idx['projects'].items())}),
+        MappingProxyType(dict(sorted(mapped_materials.items()))),
         MappingProxyType(dict(sorted(mapped_supplies.items()))),
         MappingProxyType(dict(sorted(mapped_demands.items()))),
         MappingProxyType({did: tuple(sorted(incoming_ids[did])) for did in sorted(mapped_demands)}),

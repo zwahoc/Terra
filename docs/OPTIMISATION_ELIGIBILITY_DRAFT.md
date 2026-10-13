@@ -103,8 +103,10 @@ mapping agreement before HTTP integration.
 
 ### Dates and future releases
 
-planning_date and lead_time_days are explicit inputs. No wall clock or route
-speed is silently assumed. Unknown lead time produces REVIEW_REQUIRED.
+planning_date and lead_time_days are explicit inputs. The approved demo policy
+is one calendar day within the same township and two across different townships;
+see [snapshot mapping and policy](OPTIMISATION_SNAPSHOT_MAPPING.md).
+No wall clock or route speed is silently assumed. Unknown lead time produces REVIEW_REQUIRED.
 An explicit zero is permitted only as a declared same-day planning assumption.
 
 This draft treats available_until as the final dispatch date and needed_from
@@ -153,6 +155,7 @@ from datetime import date
 from backend.app.domain.eligibility import (
     Demand, DemandQuantity, Material, Supply, SupplyQuantity, evaluate_eligibility,
 )
+from backend.app.domain.lead_time import demo_township_lead_time_days
 
 material = Material("MAT-002", "PAVING_BLOCK", "pcs", {
     "material_type": "concrete", "length_mm": 200, "width_mm": 100,
@@ -171,7 +174,7 @@ demand = Demand(
 result = evaluate_eligibility(
     supply, demand, material, material,
     planning_date=date(2026, 10, 12),
-    lead_time_days=1,  # Explicit synthetic assumption, not measured transport.
+    lead_time_days=demo_township_lead_time_days("Elmina", "Nilai Impian"),
 )
 assert result.compatibility_result == "ELIGIBLE"
 assert result.max_allocatable_quantity == 200
@@ -185,7 +188,7 @@ registry at its input boundary. Run from the repo root:
 
 ```bash
 source .venv/bin/activate
-python3 -m unittest tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
+python3 -m unittest tests.test_candidates tests.test_lead_time tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
 ```
 
 The tests adapt existing fixture records at the test boundary and exercise
@@ -200,9 +203,11 @@ Before integrating this into a working allocation engine:
    reconciles counters, derives unresolved promises and converts dates. Database
    consistency and future residual-resolution/return semantics remain separate.
 2. Harmonise the draft critical-specification and date-window policies with the
-   team, and agree how lead-time assumptions are supplied and versioned.
-3. Add an allocator enforcing shared source/recipient budgets across all pairs;
-   define the MAX_REUSE objective and incomplete-carbon scoring policy.
+   team. The demo township lead-time policy is selected; replace it with agreed
+   route-specific inputs when available and preserve the assumption version.
+3. Use the implemented [candidate generator](OPTIMISATION_CANDIDATES.md), then add
+   an allocator enforcing shared source/recipient budgets. MAX_REUSE is defined
+   as allocated pcs; incomplete-carbon scoring policy still needs agreement.
 4. Integrate Member 4's forecast interface and approved deterministic tie-breaks.
 5. Add Pydantic HTTP DTO/error mapping, input snapshot hashing and named
    persistence operations for runs/proposals in a later integration task.

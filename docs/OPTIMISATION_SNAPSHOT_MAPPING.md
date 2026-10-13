@@ -84,6 +84,7 @@ and test updates. Transfer events and return transactions are not consumed here.
 
 DomainSnapshot contains as_of_date and read-only maps indexed by ID:
 
+- project_townships: existing project township labels for demo lead-time lookup.
 - materials: Material objects with detached immutable specification dictionaries.
 - supplies: Supply objects, including validated source quantity models.
 - demands: Demand objects, including derived incoming commitments.
@@ -121,11 +122,12 @@ result = evaluate_eligibility(
     supply, demand,
     snapshot.materials[supply.material_id], snapshot.materials[demand.material_id],
     planning_date=snapshot.as_of_date,
-    lead_time_days=1,  # Explicit synthetic calendar-day assumption.
+    lead_time_days=snapshot.demo_lead_time_days(supply.id, demand.id),
 )
 assert snapshot.incoming_transfer_ids_by_demand["DEM-003"] == ("TRF-003",)
 assert demand.quantity.incoming_committed_quantity == 300
 assert result.max_allocatable_quantity == 200
+assert result.lead_time_days == 2  # Elmina -> Nilai Impian.
 print(result)
 ```
 
@@ -133,7 +135,7 @@ print(result)
 
 ```bash
 source .venv/bin/activate
-python3 -m unittest tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
+python3 -m unittest tests.test_candidates tests.test_lead_time tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
 ```
 
 The mapper tests cover baseline-to-evaluator integration, lifecycle commitment
@@ -144,6 +146,43 @@ and require no emulator or cloud connection. The mapping uses the existing
 Pydantic dependency through the shared contract registry; the evaluator remains
 standard-library-only.
 
-Next implement a multi-pair allocator over these prepared inputs, keeping shared
-temporary source and recipient budgets. Database snapshot retrieval, reservation
+The implemented [candidate generator](OPTIMISATION_CANDIDATES.md) evaluates all
+cross-project pairs over these prepared inputs. Next implement a multi-pair
+allocator, keeping shared temporary source and recipient budgets. Database snapshot retrieval, reservation
 concurrency, carbon scoring and general residual resolution remain separate work.
+
+## Approved demo planning assumptions
+
+MAX_REUSE will maximise allocated material quantity in pcs, subject to source
+and recipient budgets and eligibility. It does not represent achieved reuse.
+
+The owner selected a demo lead-time policy for new plans: one calendar day for
+projects in the same township and two days for different townships. The helper
+uses existing projects.township labels, normalizing only whitespace and case.
+No separate area field, fuzzy geographic grouping or distance-based duration is
+invented. Missing/blank labels return unknown and require review.
+
+The policy is isolated in [lead_time.py](../backend/app/domain/lead_time.py),
+version demo-township-v1. DomainSnapshot.demo_lead_time_days resolves the source
+and recipient township for a pair. Pass its result into the evaluator explicitly.
+Future run assumptions should retain the policy version and synthetic label;
+route-specific durations can later replace this policy at the same boundary.
+
+All five seeded projects have distinct townships, so cross-project seed pairs
+use two days. Tests cover the same-township case with an in-memory variation;
+the canonical seed is unchanged.
+
+Historical TRF-005/TRF-006/TRF-007 dispatched on 2026-10-05 and received on
+2026-10-06, despite different townships. Those recorded one-day demo histories
+predate this policy. New planning assumptions do not rewrite or reject historical
+facts. The source windows start 2026-09-26 and recipient windows run 2026-09-27
+through 2026-10-30, so recorded receipt dates lie within those windows. No seeded
+source has a finite available_until, so the last-dispatch-date interpretation
+is covered by tests rather than a baseline finite-window example.
+
+Carbon examples are in impact_assessments: IMP-001/IMP-002 are forecasts;
+IMP-005/IMP-006 are actual-use assessments. All factors are synthetic. Forecast
+totals are not comparable on quantity alone because IMP-001 covers 600 pieces
+and IMP-002 covers 500. IMP-005 uses 550 substituted pieces but 600 transported
+pieces, with null net because handling/residual assumptions remain incomplete.
+The lead-time policy does not change route distances or any carbon value.
