@@ -61,6 +61,13 @@ The first Codex task may only create a **query/connector data path and docs**, n
 
 ### Optimisation endpoints (later)
 
+Non-persisting integration extensions are implemented at
+`POST /api/optimisation-runs/preview` and
+`POST /api/impact-assessments/forecast-preview`. See
+[IMPACT_API.md](IMPACT_API.md) for their explicit request/response contracts.
+They return temporary plans/forecasts without run/proposal/assessment IDs or
+writes. The persisted run endpoint described below is still pending.
+
 `POST /api/optimisation-runs`
 
 ```json

@@ -5,7 +5,13 @@ from typing import Literal
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse, Response
 
-from backend.app.schemas.impact import ImpactCalculationRequest
+from backend.app.schemas.impact import (
+    ImpactCalculationRequest, ForecastPreviewRequest, OptimisationPreviewRequest,
+)
+from backend.app.repositories.impact_repository import ImpactRepository, ImpactRepositoryError
+from backend.app.services.forecast_preview_service import ForecastPreviewCalculator
+from backend.app.services.optimisation_preview_service import preview_optimisation, preview_json
+from backend.app.services.transfer_read_service import load_baseline_metadata
 from backend.app.services.impact_export_service import export_csv, export_json
 from backend.app.services.impact_service import (
     ImpactCalculationInput,
@@ -17,6 +23,7 @@ from backend.app.services.impact_service import (
     calculate_impact,
     get_assessment,
     list_assessments,
+    _load,
 )
 
 
@@ -46,6 +53,37 @@ def _calculation(basis: str, entity_id: str, body: ImpactCalculationRequest):
             entity_id,
             ImpactCalculationInput(**body.model_dump()),
         )
+    except ImpactError as exc:
+        return _error(exc)
+
+
+def _preview_records():
+    try:
+        repository = ImpactRepository()
+    except ImpactRepositoryError as exc:
+        raise ImpactError('IMPACT_DATA_ERROR', 'Preview repository configuration is invalid.') from exc
+    return _load(repository)
+
+
+@router.post('/impact-assessments/forecast-preview', response_model=None)
+def forecast_preview(body: ForecastPreviewRequest):
+    """Read one emulator snapshot and calculate; never create an assessment."""
+    try:
+        calculator = ForecastPreviewCalculator(_preview_records(),
+            planning_date=body.planning_date, factor_dataset_version=body.factor_dataset_version)
+        result = calculator.assess_forecast_preview(body.supply_offer_id,
+                                                    body.demand_request_id, body.quantity)
+        return {'data': preview_json(result), 'meta': load_baseline_metadata(), 'error': None}
+    except ImpactError as exc:
+        return _error(exc)
+
+
+@router.post('/optimisation-runs/preview', response_model=None)
+def optimisation_preview(body: OptimisationPreviewRequest):
+    """Allocate and forecast on shared inputs without persisting a run/proposal."""
+    try:
+        result = preview_optimisation(_preview_records(), **body.model_dump())
+        return {'data': result, 'meta': load_baseline_metadata(), 'error': None}
     except ImpactError as exc:
         return _error(exc)
 

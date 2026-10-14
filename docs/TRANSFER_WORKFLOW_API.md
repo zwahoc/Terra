@@ -35,6 +35,14 @@ retry returns HTTP 200 with `replayed: true`; changed input with the same
 
 ## Start, reset, and common Postman settings
 
+**Open integration discrepancy:** reservation currently requires its operation
+date to be inside demand needed_from/required_by, in both the service and atomic
+connector check. Member 3 interprets that window as permitted receipt dates and
+can plan dispatch before needed_from to allow transport lead time. A feasible
+planned delivery may consequently be blocked at reservation. See the
+[reservation timing issue and example](MEMBER_3_4_CARBON_COOPERATION.md#unresolved-integration-issue-reservation-timing).
+The resolution is not agreed; existing validation remains in effect.
+
 From `D:\Terra`, use separate terminals:
 
 ```powershell
