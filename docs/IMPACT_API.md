@@ -1,5 +1,86 @@
 # Terra impact calculation and export API
 
+## Non-persisting forecast and optimisation previews (14 October 2026)
+
+Member 4 now exposes `ForecastPreviewCalculator` in
+[forecast_preview_service.py](../backend/app/services/forecast_preview_service.py).
+It accepts existing record collections, detaches one consistent input context,
+validates operational eligibility/caps, and exposes:
+
+- `assess_forecast_preview(supply_offer_id, demand_request_id, quantity)`:
+  temporary forecast components, missing data, factor snapshots and assumptions.
+- `score_linear_candidates()`: Member 3's `LinearCarbonScores` batch for all
+  eligible pairs. This explicitly guarantees fixed-context per-piece linearity;
+  proposed = moved = processed quantity, substitution ratio 1, no fixed/shared trips.
+
+Factor selection and arithmetic are shared with saved assessments through
+`calculate_context_components()` in impact_service.py. No placeholder proposals,
+impact IDs, revision heads, reservations or database writes are needed.
+Missing net is None, never zero; negative coefficients reach Member 3's agreed
+exclusion policy. Previews do not add a database basis enum.
+
+Two new **read-only-in-effect POST** extensions use Terra's `{data, meta, error}`
+envelope. Each reads the emulator snapshot once and never calls persistence:
+
+`POST /api/impact-assessments/forecast-preview`
+
+```json
+{
+  "supply_offer_id": "SUP-003",
+  "demand_request_id": "DEM-003",
+  "quantity": 200,
+  "planning_date": "2026-10-12",
+  "factor_dataset_version": "demo-v1"
+}
+```
+
+Baseline result: production 190, freight 5.19168, processing 4, net 180.80832
+kgCO2e. `data` includes `preview: true`, `persisted: false`, context/snapshot
+hashes, components, status, missing data and factor provenance. Decimal results
+are JSON **strings** to preserve precision; the frontend should parse them for
+display rather than implement carbon arithmetic.
+
+`POST /api/optimisation-runs/preview`
+
+```json
+{
+  "objective": "MAX_NET_CO2E_AVOIDED",
+  "planning_date": "2026-10-12",
+  "factor_dataset_version": "demo-v1"
+}
+```
+
+Accepts all three existing objectives. `data.plan` contains the allocator result;
+`data.forecast_previews` assesses each chosen pair at its final proposed quantity
+using the same detached context. `data.forecast_summary` distinguishes complete
+selected-plan net, known subtotal, incomplete allocations and candidate scoring
+coverage. An unscored carbon run can return an empty plan: inspect the plan's
+`carbon_scoring_available` and `incomplete_carbon`, not just its zero quantity.
+MAX_REUSE/deadline plans can have missing final forecasts despite needing no
+carbon scores for allocation. Opposing strategies should be compared separately,
+not added together.
+
+These preview extensions do **not** implement the persisted
+`POST /api/optimisation-runs` contract. No run/proposal IDs or selection/transfer
+creation are provided. They currently consider all records; project-scoped
+filtering and potential-surplus preview are not accepted request fields.
+
+Planning date must cover the timestamps of supplied live records. Baseline date
+2026-10-12 works on untouched seed data; use the applicable live planning date
+after runtime writes. Preview factor applicability uses planning_date. Existing
+saved proposal forecasts still use proposal.created_at: integration must agree
+that date and bind the same full context before claiming identical saved results.
+The allocation-input hash is separate from the future persisted full input hash.
+
+HTTP 400 rejects noneligible pairs, quantities exceeding caps and invalid
+snapshot/context records; 422 rejects malformed/unknown request fields; 503
+reports emulator unavailability without seed fallback. Missing factors/mass/routes
+produce an incomplete forecast rather than a fabricated value.
+
+Offline tests: `python3 -m unittest tests.test_forecast_preview -v`.
+
+The original persisted assessment and export APIs below retain their contracts.
+
 This milestone calculates traceable comparative impact estimates through
 framework-independent Python services and persists them through Terra's
 loopback-only SQL Connect adapter. It does not issue credits, certify factors,
