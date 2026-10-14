@@ -32,7 +32,7 @@ An LLM can classify/extract a BOQ or PO row and *suggest* its meaning; determini
 
 **F. Review and confirmation:** a single demo operator performs representative source/destination confirmation steps. Selected eligible proposal -> transfer request -> confirmations/approval -> reservation. Requests, selection and approval alone establish no stock hold; successful atomic reservation establishes the source hold and recipient incoming commitment together. No separate project-user identities are required.
 
-**G. Dispatch and receipt:** upon dispatch, issue stock out of the source while adjusting active reservation exactly once. Record actual quantity dispatched/received. Receipt is *not* equivalent to reuse; missing/damaged quantity remains an explicit discrepancy.
+**G. Dispatch and receipt:** upon dispatch, issue stock out of the source while adjusting active reservation exactly once. Record actual quantity dispatched/received. For the initial MVP API, dispatch and receipt are each one full-quantity operation; the receipt endpoint cannot record a partial or missing delivery. Existing discrepancies remain explicit and untouched pending a separately defined resolution workflow. Receipt is *not* equivalent to reuse.
 
 **H. Actual reuse:** destination confirms how much was actually incorporated or otherwise reused. Count actual use only once; never claim the whole proposed or dispatched amount was reused.
 

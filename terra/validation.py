@@ -154,7 +154,8 @@ def validate(seed,check_scenarios=True):
             require((values[event]['payload']['quantity'] if event in values else 0)==t[column],f'Event/{column} mismatch')
         require(t['delivered_at']==(values['RECEIVED']['occurred_at'] if 'RECEIVED' in values else None),'Receipt timestamp mismatch')
         require(t['reuse_confirmed_at']==(values['USED']['occurred_at'] if 'USED' in values else None),'Use timestamp mismatch')
-        require(t['reserved_quantity']==(t['approved_quantity'] if t['status']=='RESERVED' else 0),'Active hold stage mismatch')
+        expected_hold=(t['approved_quantity']-t['dispatched_quantity'] if t['status'] in ACTIVE else 0)
+        require(t['reserved_quantity']==expected_hold,'Active hold stage mismatch')
         if t['status'] not in ['REQUESTED']:
             require(t['source_confirmation_status']=='CONFIRMED' and t['destination_confirmation_status']=='CONFIRMED','Missing transfer confirmations')
         if t['dispatched_quantity']:

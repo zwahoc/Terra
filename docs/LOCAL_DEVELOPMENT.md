@@ -1,6 +1,6 @@
 # Terra local development on Windows and macOS
 
-The development tooling targets native Windows, macOS and Linux. WSL is not required. React/FastAPI remain local and empty; the database baseline runs through Firebase CLI 15.33.0, SQL Connect emulator 3.4.22 and its integrated PGlite engine. `demo-terra-local` is a local demo ID. No Firebase login, cloud credentials, Cloud SQL provisioning or credit card is required.
+The development tooling targets native Windows, macOS and Linux. WSL is not required. React/FastAPI remain local; React is blank and FastAPI has transfer lifecycle and comparative impact routes. The database baseline runs through Firebase CLI 15.33.0, SQL Connect emulator 3.4.22 and its integrated PGlite engine. `demo-terra-local` is a local demo ID. No Firebase login, cloud credentials, Cloud SQL provisioning or credit card is required.
 
 ## Prerequisites
 
@@ -54,13 +54,34 @@ npm run dev:frontend
 npm run dev:backend
 ```
 
-React serves a blank page at `http://127.0.0.1:5173`. FastAPI docs are at `http://127.0.0.1:8000/docs`; its OpenAPI `paths` object is empty and `/` returns 404. Both bind to loopback and start without the emulator. Stop each with Ctrl-C.
+React serves a blank page at `http://127.0.0.1:5173`. FastAPI docs are at `http://127.0.0.1:8000/docs`. Both bind to loopback. The backend process can start without the emulator, but its transfer reads require a running, seeded emulator and return HTTP 503 when it is unavailable. Stop each process with Ctrl-C.
+
+The implemented transfer endpoints are:
+
+- `GET /api/transfers` — executes the existing administrative `ListTransfers` named query and returns all current emulator transfer rows.
+- `GET /api/transfers/{transfer_id}` — performs an exact-ID lookup within that same operation's ordered, bounded 1,000-row result. There is no single-transfer named query in the current connector.
+- `POST /api/transfers/{transfer_id}/approve` — validates the requested transfer and linked proposal, then atomically stores approval state, one `APPROVED` event, and a replay-safe operation record. It does not reserve stock or change demand commitments.
+- `POST /api/transfers/{transfer_id}/reserve`, `/dispatch`, `/receive`, `/confirm-use`, and `/cancel` — perform guarded replay-safe post-approval transitions. Reservation, dispatch, and receipt each move the full current quantity once as an intentional MVP restriction; confirm-use supports partial/repeated increments. Cancellation is pre-dispatch only.
+- `GET /api/transfers/{transfer_id}/events`, `GET /api/supply-offers/{id}`, and `GET /api/demand-requests/{id}` — provide lifecycle and counter read-back.
+
+Provider camelCase fields are mapped through Terra's shared field registry to snake_case HTTP fields. Timestamps are normalised using the adapter's existing Asia/Kuala_Lumpur snapshot behavior. Response metadata (`dataset_version`, `synthetic`, `as_of_date`) describes the immutable baseline and is read separately from `data/terra_seed.json`; transfer records never fall back to JSON when the emulator is stopped.
+
+See [TRANSFER_APPROVAL_API.md](TRANSFER_APPROVAL_API.md) and
+[TRANSFER_WORKFLOW_API.md](TRANSFER_WORKFLOW_API.md) for request contracts,
+quantity semantics, exact Postman setup, replay checks and errors.
+
+Impact calculations are available at `POST
+/api/impact-assessments/proposals/{proposal_id}/calculate` and `POST
+/api/impact-assessments/transfers/{transfer_id}/calculate`. Current/all revision
+reads and the required `GET /api/exports/impact?basis=...&format=json|csv`
+export are also implemented. See [IMPACT_API.md](IMPACT_API.md) for boundaries,
+factor selection, revision rules, fixture arithmetic and Postman checks.
 
 ```sh
 npm run build:frontend
 ```
 
-This runs TypeScript validation and creates an ignored `frontend/dist` build. No database/client integration, business endpoints or UI features were added.
+This runs TypeScript validation and creates an ignored `frontend/dist` build. The frontend remains blank; no frontend database integration or UI features were added.
 
 ## Reset and integration tests
 
@@ -81,7 +102,7 @@ Stop any manually running emulator before:
 npm run test:integration
 ```
 
-This command starts a fresh demo emulator, sets test opt-in from Python instead of shell syntax, runs 10 destructive integration checks, and shuts down. It verifies all named entity reads, Python write/read-back, idempotency, reset/reseed, changed-state refusal, client denial, FK/enum rejection and transaction rollback. The runner refuses execution without the demo emulator context. `npm test` runs Node launcher tests and Python offline/lock/text tests; the 10 emulator tests are skipped there and run separately by `test:integration`.
+This command starts a fresh demo emulator, sets test opt-in from Python instead of shell syntax, runs 17 destructive integration checks, and shuts down. It verifies named reads/writes, reset/reseed, provider constraints and rollback, the complete transfer workflow including repeated partial use, replay conflicts, cancellation, stock/demand concurrency rejection, impact revision/retry/current selection, stale-source rejection, and JSON/CSV export. The runner refuses execution without the demo emulator context. `npm test` skips these emulator tests; `test:integration` runs them separately.
 
 For other Python commands, use the portable wrapper:
 
@@ -111,6 +132,6 @@ See [SEED_VALIDATION.md](SEED_VALIDATION.md) for dated checks and limitations. T
 
 The bounded admin payload limit is 5,000 and baseline list limit is 1,000. Quantities remain integer pcs, with Decimal arithmetic verification and a 1e-8 kgCO2e tolerance for stored Float results. FK/enum/unique/not-null constraints and offline validation protect seed shape and relationships. Bulk admin upserts are not business lifecycle APIs.
 
-Concurrent operational reservations, actual parsers/LLMs, solver, carbon/transfer services, receiver residuals, revision handling, public hosting and live Pantas/SDP integration remain outside this tooling change. Application operations will go through FastAPI. Future shared cloud database configuration needs separately approved identifiers, authentication, costs and reviewed migrations. Emulator success is not proof of cloud IAM or production connectivity.
+Partial-disposition/return handling, actual parsers/LLMs, solver, unresolved partial-use processing allocation, public hosting and live Pantas/SDP integration remain outside these local milestones. Application operations go through FastAPI. Impact estimates remain comparative and synthetic, not official inventory deductions or credits. Future shared cloud database configuration needs separately approved identifiers, authentication, costs and reviewed migrations. Emulator success is not proof of cloud IAM or production connectivity.
 
 Field meanings and fixtures: [data dictionary](SEED_DATA_DICTIONARY.md), [scenario index](../data/SCENARIOS.md), [architecture decision](09_ARCHITECTURE_UPDATE.md), [approved SRS](TERRA_SRS_v1.0.md).

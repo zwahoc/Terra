@@ -13,6 +13,8 @@ from terra.contract import FIELDS,fields,camel
 
 class AdapterError(RuntimeError):pass
 
+class AdapterUnavailableError(AdapterError):pass
+
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):raise AdapterError('Redirect refused by local adapter')
 
@@ -30,27 +32,70 @@ class LocalDataConnect:
         body=json.dumps({'operationName':operation,'variables':variables or {}},allow_nan=False).encode()
         request=Request(self.base+method,body,{'Content-Type':'application/json'})
         try:
-            with self.opener.open(request,timeout=30) as response: payload=json.loads(response.read())
+            with self.opener.open(request,timeout=30) as response: raw=response.read()
         except HTTPError as exc:
             detail=exc.read().decode(errors='replace')
             exc.close()
             raise AdapterError(f'{operation}: HTTP {exc.code}: {detail}') from exc
-        except (URLError,TimeoutError,OSError,json.JSONDecodeError) as exc:raise AdapterError(f'{operation}: emulator transport error: {exc}') from exc
+        except (URLError,TimeoutError,OSError) as exc:raise AdapterUnavailableError(f'{operation}: emulator transport error: {exc}') from exc
+        try:payload=json.loads(raw)
+        except json.JSONDecodeError as exc:raise AdapterError(f'{operation}: emulator returned invalid JSON') from exc
         if payload.get('errors'):raise AdapterError(f'{operation}: GraphQL errors: {json.dumps(payload["errors"])}')
         if 'data' not in payload or payload['data'] is None:raise AdapterError(f'{operation}: response has no data')
         return payload['data']
     def snapshot(self):
         data=self.execute('SeedSnapshot')
-        snapshot={e:[{name:row[camel(name)] for name,_,_ in fields(e)} for row in data[camel(e)]] for e in FIELDS}
-        for entity,rows in snapshot.items():
-            for row in rows:
-                for name,spec,_ in fields(entity):
-                    if spec=='timestamp' and row[name] is not None:
-                        row[name]=datetime.fromisoformat(row[name].replace('Z','+00:00')).astimezone(timezone(timedelta(hours=8))).isoformat()
-        return snapshot
+        return {entity:map_entity_rows(entity,data[camel(entity)]) for entity in FIELDS}
+
+def map_entity_rows(entity,rows):
+    """Map provider camelCase rows to Terra fields and local snapshot timestamps."""
+    if entity not in FIELDS:raise AdapterError(f'Unknown Terra entity mapping: {entity}')
+    if not isinstance(rows,list):raise AdapterError(f'{entity}: provider result is not a list')
+    mapped=[]
+    try:
+        for provider_row in rows:
+            if not isinstance(provider_row,dict):raise TypeError
+            row={name:provider_row[camel(name)] for name,_,_ in fields(entity)}
+            for name,spec,_ in fields(entity):
+                if spec=='timestamp' and row[name] is not None:
+                    row[name]=datetime.fromisoformat(row[name].replace('Z','+00:00')).astimezone(timezone(timedelta(hours=8))).isoformat()
+            mapped.append(row)
+    except (KeyError,TypeError,ValueError) as exc:raise AdapterError(f'{entity}: invalid provider record shape') from exc
+    return mapped
 
 def variables(seed):
-    return {camel(e):[{camel(name):row[name] for name,_,_ in fields(e)} for row in seed[e]] for e in FIELDS}
+    result={camel(e):[{camel(name):row[name] for name,_,_ in fields(e)} for row in seed[e]] for e in FIELDS}
+    # SQL Connect maintains this provider-only counter so reservations can check
+    # recipient capacity with a row-locked, atomic increment. The canonical JSON
+    # remains the source of truth; its value is derived from transfer histories.
+    from terra.validation import balances
+    incoming=balances(seed)[3]
+    result['demandCommitmentBalances']=[
+        {'demandRequestId':row['id'],'committedQuantity':incoming[row['id']]}
+        for row in seed['demand_requests']
+    ]
+    # Runtime carbon revisions use provider-only scope heads.  Seed assessments
+    # remain unchanged; each existing one is revision 1 for its scope, while
+    # unassessed proposals/transfers begin with an empty revision-0 head.
+    current={}
+    for assessment in seed['impact_assessments']:
+        entity_id=(assessment['proposal_id'] if assessment['basis']=='PROPOSAL_FORECAST'
+                   else assessment['transfer_id'])
+        current[f"{assessment['basis']}:{entity_id}"]=assessment
+    heads=[]
+    for basis,entity,field in (
+        ('PROPOSAL_FORECAST','allocation_proposals','proposalId'),
+        ('ACTUAL_CONFIRMED_USE','transfers','transferId'),
+    ):
+        for row in seed[entity]:
+            scope=f"{basis}:{row['id']}"; assessment=current.get(scope)
+            head={'id':scope,'basis':basis,'proposalId':None,'transferId':None,
+                  'currentAssessmentId':assessment['id'] if assessment else None,
+                  'revision':1 if assessment else 0,'inputFingerprint':None,
+                  'updatedAt':assessment['calculated_at'] if assessment else None}
+            head[field]=row['id']; heads.append(head)
+    result['impactAssessmentHeads']=heads
+    return result
 
 def normalized(snapshot):
     out={}

@@ -245,3 +245,59 @@ type ImpactAssessment @table(name: "impact_assessments", key: "id", singular: "i
   calculationStatus: CalculationStatus! @col(name: "calculation_status")
   calculatedAt: Timestamp! @col(name: "calculated_at")
 }
+
+type TransferApprovalOperation @table(name: "transfer_approval_operations", key: "id", singular: "transferApprovalOperation", plural: "transferApprovalOperations") {
+  id: String! @col(name: "id")
+  requestFingerprint: String! @col(name: "request_fingerprint")
+  transferId: String! @col(name: "transfer_id")
+  transfer: Transfer! @ref(fields: "transferId", references: "id")
+  eventId: String! @col(name: "event_id") @unique
+  approvedQuantity: Int! @col(name: "approved_quantity")
+  sourceConfirmationStatus: Confirmation! @col(name: "source_confirmation_status")
+  destinationConfirmationStatus: Confirmation! @col(name: "destination_confirmation_status")
+  actorLabel: String! @col(name: "actor_label")
+  evidenceRef: String @col(name: "evidence_ref")
+  occurredAt: Timestamp! @col(name: "occurred_at")
+}
+
+type TransferWorkflowOperation @table(name: "transfer_workflow_operations", key: "id", singular: "transferWorkflowOperation", plural: "transferWorkflowOperations") {
+  id: String! @col(name: "id")
+  operationType: String! @col(name: "operation_type")
+  requestFingerprint: String! @col(name: "request_fingerprint")
+  transferId: String! @col(name: "transfer_id")
+  transfer: Transfer! @ref(fields: "transferId", references: "id")
+  eventId: String! @col(name: "event_id") @unique
+  quantity: Int @col(name: "quantity")
+  reason: String @col(name: "reason")
+  actorLabel: String! @col(name: "actor_label")
+  evidenceRef: String @col(name: "evidence_ref")
+  occurredAt: Timestamp! @col(name: "occurred_at")
+}
+
+type DemandCommitmentBalance @table(name: "demand_commitment_balances", key: "demandRequestId", singular: "demandCommitmentBalance", plural: "demandCommitmentBalances") {
+  demandRequestId: String! @col(name: "demand_request_id")
+  demandRequest: DemandRequest! @ref(fields: "demandRequestId", references: "id")
+  committedQuantity: Int! @col(name: "committed_quantity")
+}
+
+type ImpactAssessmentHead @table(name: "impact_assessment_heads", key: "id", singular: "impactAssessmentHead", plural: "impactAssessmentHeads") {
+  id: String! @col(name: "id")
+  basis: ImpactBasis! @col(name: "basis")
+  proposalId: String @col(name: "proposal_id")
+  proposal: AllocationProposal @ref(fields: "proposalId", references: "id")
+  transferId: String @col(name: "transfer_id")
+  transfer: Transfer @ref(fields: "transferId", references: "id")
+  currentAssessmentId: String @col(name: "current_assessment_id")
+  currentAssessment: ImpactAssessment @ref(fields: "currentAssessmentId", references: "id")
+  revision: Int! @col(name: "revision")
+  inputFingerprint: String @col(name: "input_fingerprint")
+  updatedAt: Timestamp @col(name: "updated_at")
+}
+
+type ImpactCalculationOperation @table(name: "impact_calculation_operations", key: "id", singular: "impactCalculationOperation", plural: "impactCalculationOperations") {
+  id: String! @col(name: "id")
+  requestFingerprint: String! @col(name: "request_fingerprint")
+  scopeId: String! @col(name: "scope_id")
+  assessmentId: String! @col(name: "assessment_id") @unique
+  assessment: ImpactAssessment! @ref(fields: "assessmentId", references: "id")
+}

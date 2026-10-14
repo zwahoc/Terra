@@ -120,6 +120,328 @@ mutation UpsertImpactAssessments($rows: [ImpactAssessment_Data!]! @allow(fields:
   impactAssessment_upsertMany(data: $rows)
 }
 
+query GetTransferApprovalState($transferId: String!, $operationId: String!, $eventId: String!) @auth(level: NO_ACCESS) {
+  transfer(id: $transferId) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes proposal { id proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId } }
+  transferApprovalOperation(id: $operationId) { id requestFingerprint transferId eventId approvedQuantity sourceConfirmationStatus destinationConfirmationStatus actorLabel evidenceRef occurredAt }
+  transferEvent(id: $eventId) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+}
+
+mutation ApproveTransfer(
+  $transferId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $eventId: String!
+  $approvedQuantity: Int!
+  $sourceConfirmationStatus: Confirmation!
+  $destinationConfirmationStatus: Confirmation!
+  $actorLabel: String!
+  $evidenceRef: String
+  $eventPayload: Any!
+  $occurredAt: Timestamp!
+) @auth(level: NO_ACCESS) @transaction {
+  query
+    @redact
+    @check(expr: "response.query.transfer != null", message: "TRANSFER_NOT_FOUND")
+    @check(expr: "response.query.transfer.status == 'REQUESTED'", message: "TRANSFER_INVALID_STAGE")
+    @check(expr: "response.query.transfer.proposal.status == 'SELECTED' && response.query.transfer.proposal.compatibilityResult == 'ELIGIBLE'", message: "PROPOSAL_NOT_APPROVABLE")
+    @check(expr: "vars.approvedQuantity > 0 && vars.approvedQuantity <= response.query.transfer.proposal.proposedQuantity", message: "APPROVED_QUANTITY_INVALID")
+    @check(expr: "vars.sourceConfirmationStatus == 'CONFIRMED' && vars.destinationConfirmationStatus == 'CONFIRMED'", message: "CONFIRMATIONS_REQUIRED") {
+    transfer(id: $transferId) {
+      status
+      proposal { proposedQuantity compatibilityResult status }
+    }
+  }
+  transferApprovalOperation_insert(data: {
+    id: $operationId
+    requestFingerprint: $requestFingerprint
+    transferId: $transferId
+    eventId: $eventId
+    approvedQuantity: $approvedQuantity
+    sourceConfirmationStatus: $sourceConfirmationStatus
+    destinationConfirmationStatus: $destinationConfirmationStatus
+    actorLabel: $actorLabel
+    evidenceRef: $evidenceRef
+    occurredAt: $occurredAt
+  })
+  transfer_update(id: $transferId, data: {
+    approvedQuantity: $approvedQuantity
+    status: APPROVED
+    sourceConfirmationStatus: $sourceConfirmationStatus
+    destinationConfirmationStatus: $destinationConfirmationStatus
+  })
+  transferEvent_insert(data: {
+    id: $eventId
+    transferId: $transferId
+    eventType: APPROVED
+    occurredAt: $occurredAt
+    actorLabel: $actorLabel
+    payload: $eventPayload
+    evidenceRef: $evidenceRef
+  })
+}
+
+query GetTransferWorkflowState($transferId: String!, $operationId: String!, $eventId: String!) @auth(level: NO_ACCESS) {
+  transfer(id: $transferId) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes proposal { id proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId supplyOffer { id sourceProjectId materialId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil } demandRequest { id destinationProjectId materialId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed } } }
+  transferWorkflowOperation(id: $operationId) { id operationType requestFingerprint transferId eventId quantity reason actorLabel evidenceRef occurredAt }
+  transferEvent(id: $eventId) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+}
+
+query GetTransferEvents($transferId: String!) @auth(level: NO_ACCESS) {
+  transferEvents(where: {transferId: {eq: $transferId}}, orderBy: {occurredAt: ASC}, limit: 1000) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+}
+
+query GetSupplyOffer($id: String!) @auth(level: NO_ACCESS) {
+  supplyOffer(id: $id) { id sourceProjectId materialId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil }
+}
+
+query GetDemandRequest($id: String!) @auth(level: NO_ACCESS) {
+  demandRequest(id: $id) { id destinationProjectId materialId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+  demandCommitmentBalance(key: {demandRequestId: $id}) { demandRequestId committedQuantity }
+}
+
+query ListDemandCommitmentBalances @auth(level: NO_ACCESS) {
+  demandCommitmentBalances(limit: 1000, orderBy: {demandRequestId: ASC}) { demandRequestId committedQuantity }
+}
+
+query ListImpactAssessmentHeads @auth(level: NO_ACCESS) {
+  impactAssessmentHeads(limit: 1000, orderBy: {id: ASC}) { id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt }
+}
+
+query GetImpactPersistenceState($scopeId: String!, $operationId: String!) @auth(level: NO_ACCESS) {
+  impactAssessmentHead(id: $scopeId) { id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt }
+  impactCalculationOperation(id: $operationId) { id requestFingerprint scopeId assessmentId assessment { id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt } }
+}
+
+mutation PersistForecastImpactAssessment(
+  $scopeId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $assessmentId: String!
+  $expectedRevision: Int!
+  $newRevision: Int!
+  $inputFingerprint: String!
+  $calculatedAt: Timestamp!
+  $assessment: ImpactAssessment_Data! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt")
+  $proposalId: String!
+  $expectedQuantity: Int!
+  $expectedUnit: Unit!
+) @auth(level: NO_ACCESS) @transaction {
+  allocationProposal_updateMany(where: {id: {eq: $proposalId} proposedQuantity: {eq: $expectedQuantity} unit: {eq: $expectedUnit}}, data: {proposedQuantity: $expectedQuantity}) @check(expr: "this == 1", message: "IMPACT_SOURCE_STALE")
+  impactAssessment_insert(data: $assessment)
+  impactAssessmentHead_updateMany(where: {id: {eq: $scopeId} revision: {eq: $expectedRevision}}, data: {currentAssessmentId: $assessmentId revision: $newRevision inputFingerprint: $inputFingerprint updatedAt: $calculatedAt}) @check(expr: "this == 1", message: "IMPACT_REVISION_STALE")
+  impactCalculationOperation_insert(data: {id: $operationId requestFingerprint: $requestFingerprint scopeId: $scopeId assessmentId: $assessmentId})
+}
+
+mutation PersistActualImpactAssessment(
+  $scopeId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $assessmentId: String!
+  $expectedRevision: Int!
+  $newRevision: Int!
+  $inputFingerprint: String!
+  $calculatedAt: Timestamp!
+  $assessment: ImpactAssessment_Data! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt")
+  $transferId: String!
+  $expectedUsedQuantity: Int!
+  $expectedDispatchedQuantity: Int!
+  $expectedReceivedQuantity: Int!
+  $expectedReuseConfirmedAt: Timestamp!
+) @auth(level: NO_ACCESS) @transaction {
+  transfer_updateMany(where: {id: {eq: $transferId} actuallyUsedQuantity: {eq: $expectedUsedQuantity} dispatchedQuantity: {eq: $expectedDispatchedQuantity} receivedQuantity: {eq: $expectedReceivedQuantity} reuseConfirmedAt: {eq: $expectedReuseConfirmedAt}}, data: {actuallyUsedQuantity: $expectedUsedQuantity}) @check(expr: "this == 1", message: "IMPACT_SOURCE_STALE")
+  impactAssessment_insert(data: $assessment)
+  impactAssessmentHead_updateMany(where: {id: {eq: $scopeId} revision: {eq: $expectedRevision}}, data: {currentAssessmentId: $assessmentId revision: $newRevision inputFingerprint: $inputFingerprint updatedAt: $calculatedAt}) @check(expr: "this == 1", message: "IMPACT_REVISION_STALE")
+  impactCalculationOperation_insert(data: {id: $operationId requestFingerprint: $requestFingerprint scopeId: $scopeId assessmentId: $assessmentId})
+}
+
+mutation ReserveTransfer(
+  $transferId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $eventId: String!
+  $quantity: Int!
+  $actorLabel: String!
+  $evidenceRef: String
+  $eventPayload: Any!
+  $occurredAt: Timestamp!
+  $operationDate: Date!
+  $supplyOfferId: String!
+  $demandRequestId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  transferWorkflowOperation_insert(data: {
+    id: $operationId operationType: "RESERVE" requestFingerprint: $requestFingerprint
+    transferId: $transferId eventId: $eventId quantity: $quantity
+    actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
+  })
+  transfer_updateMany(where: {id: {eq: $transferId} status: {eq: APPROVED}}, data: {reservedQuantity: $quantity status: RESERVED}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  supplyOffer_update(id: $supplyOfferId, data: {reservedActiveQuantity_update: {inc: $quantity}}) @check(expr: "this != null", message: "SUPPLY_NOT_FOUND")
+  demandCommitmentBalance_update(key: {demandRequestId: $demandRequestId}, data: {committedQuantity_update: {inc: $quantity}}) @check(expr: "this != null", message: "DEMAND_BALANCE_NOT_FOUND")
+  query @redact
+    @check(expr: "response.query.transfer.status == 'RESERVED'", message: "TRANSFER_INVALID_STAGE")
+    @check(expr: "response.query.transfer.sourceConfirmationStatus == 'CONFIRMED' && response.query.transfer.destinationConfirmationStatus == 'CONFIRMED'", message: "CONFIRMATIONS_REQUIRED")
+    @check(expr: "response.query.transfer.approvedQuantity == vars.quantity && response.query.transfer.reservedQuantity == vars.quantity && response.query.transfer.dispatchedQuantity == 0", message: "RESERVATION_QUANTITY_INVALID")
+    @check(expr: "response.query.transfer.proposal.status == 'SELECTED' && response.query.transfer.proposal.compatibilityResult == 'ELIGIBLE' && response.query.transfer.proposal.supplyOfferId == vars.supplyOfferId && response.query.transfer.proposal.demandRequestId == vars.demandRequestId", message: "PROPOSAL_NOT_RESERVABLE")
+    @check(expr: "response.query.supplyOffer.materialId == response.query.demandRequest.materialId && response.query.supplyOffer.unit == response.query.demandRequest.unit && response.query.supplyOffer.unit == response.query.transfer.proposal.unit", message: "MATERIAL_UNIT_MISMATCH")
+    @check(expr: "response.query.supplyOffer.surplusStatus == 'CONFIRMED' && response.query.supplyOffer.condition == 'UNUSED' && response.query.supplyOffer.confirmedQuantity != null && response.query.supplyOffer.reservedActiveQuantity + response.query.supplyOffer.transferredOutQuantity <= response.query.supplyOffer.confirmedQuantity", message: "SOURCE_STOCK_UNAVAILABLE")
+    @check(expr: "response.query.demandRequest.requestStatus == 'OPEN' && response.query.demandRequest.isOutstandingNeedConfirmed && response.query.demandRequest.fulfilledQuantity + response.query.demandCommitmentBalance.committedQuantity <= response.query.demandRequest.requiredQuantity", message: "DEMAND_UNAVAILABLE")
+    @check(expr: "response.query.supplyOffer.availableFrom <= vars.operationDate && (response.query.supplyOffer.availableUntil == null || response.query.supplyOffer.availableUntil >= vars.operationDate) && response.query.demandRequest.neededFrom <= vars.operationDate && response.query.demandRequest.requiredBy >= vars.operationDate", message: "TRANSFER_DATE_INELIGIBLE") {
+    transfer(id: $transferId) { status approvedQuantity reservedQuantity dispatchedQuantity sourceConfirmationStatus destinationConfirmationStatus proposal { unit status compatibilityResult supplyOfferId demandRequestId } }
+    supplyOffer(id: $supplyOfferId) { materialId unit surplusStatus condition confirmedQuantity reservedActiveQuantity transferredOutQuantity availableFrom availableUntil }
+    demandRequest(id: $demandRequestId) { materialId unit requiredQuantity fulfilledQuantity neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+    demandCommitmentBalance(key: {demandRequestId: $demandRequestId}) { committedQuantity }
+  }
+  transferEvent_insert(data: {
+    id: $eventId transferId: $transferId eventType: RESERVED occurredAt: $occurredAt
+    actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
+  })
+}
+
+mutation DispatchTransfer(
+  $transferId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $eventId: String!
+  $quantity: Int!
+  $actorLabel: String!
+  $evidenceRef: String
+  $eventPayload: Any!
+  $occurredAt: Timestamp!
+  $operationDate: Date!
+  $supplyOfferId: String!
+  $demandRequestId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  transferWorkflowOperation_insert(data: {
+    id: $operationId operationType: "DISPATCH" requestFingerprint: $requestFingerprint
+    transferId: $transferId eventId: $eventId quantity: $quantity
+    actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
+  })
+  transfer_updateMany(where: {id: {eq: $transferId} status: {eq: RESERVED} reservedQuantity: {eq: $quantity} dispatchedQuantity: {eq: 0} sourceConfirmationStatus: {eq: CONFIRMED} destinationConfirmationStatus: {eq: CONFIRMED}}, data: {reservedQuantity: 0 dispatchedQuantity: $quantity status: IN_TRANSIT}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  supplyOffer_update(id: $supplyOfferId, data: {reservedActiveQuantity_update: {dec: $quantity} transferredOutQuantity_update: {inc: $quantity}}) @check(expr: "this != null", message: "SUPPLY_NOT_FOUND")
+  query @redact
+    @check(expr: "response.query.transfer.status == 'IN_TRANSIT' && response.query.transfer.sourceConfirmationStatus == 'CONFIRMED' && response.query.transfer.destinationConfirmationStatus == 'CONFIRMED' && response.query.transfer.proposal.status == 'SELECTED' && response.query.transfer.proposal.compatibilityResult == 'ELIGIBLE' && response.query.transfer.proposal.supplyOfferId == vars.supplyOfferId && response.query.transfer.proposal.demandRequestId == vars.demandRequestId", message: "TRANSFER_INVALID_STAGE")
+    @check(expr: "vars.quantity > 0 && response.query.transfer.approvedQuantity == vars.quantity && response.query.transfer.reservedQuantity == 0 && response.query.transfer.dispatchedQuantity == vars.quantity", message: "DISPATCH_QUANTITY_INVALID")
+    @check(expr: "response.query.supplyOffer.confirmedQuantity != null && response.query.supplyOffer.reservedActiveQuantity >= 0 && response.query.supplyOffer.transferredOutQuantity >= 0 && response.query.supplyOffer.reservedActiveQuantity + response.query.supplyOffer.transferredOutQuantity <= response.query.supplyOffer.confirmedQuantity", message: "SOURCE_COUNTER_INVALID")
+    @check(expr: "response.query.supplyOffer.availableFrom <= vars.operationDate && (response.query.supplyOffer.availableUntil == null || response.query.supplyOffer.availableUntil >= vars.operationDate)", message: "TRANSFER_DATE_INELIGIBLE") {
+    transfer(id: $transferId) { status approvedQuantity reservedQuantity dispatchedQuantity sourceConfirmationStatus destinationConfirmationStatus proposal { status compatibilityResult supplyOfferId demandRequestId } }
+    supplyOffer(id: $supplyOfferId) { confirmedQuantity reservedActiveQuantity transferredOutQuantity availableFrom availableUntil }
+  }
+  transferEvent_insert(data: {
+    id: $eventId transferId: $transferId eventType: DISPATCHED occurredAt: $occurredAt
+    actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
+  })
+}
+
+mutation ReceiveTransfer(
+  $transferId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $eventId: String!
+  $quantity: Int!
+  $actorLabel: String!
+  $evidenceRef: String
+  $eventPayload: Any!
+  $occurredAt: Timestamp!
+  $operationDate: Date!
+  $supplyOfferId: String!
+  $demandRequestId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  transferWorkflowOperation_insert(data: {
+    id: $operationId operationType: "RECEIVE" requestFingerprint: $requestFingerprint
+    transferId: $transferId eventId: $eventId quantity: $quantity
+    actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
+  })
+  transfer_updateMany(where: {id: {eq: $transferId} status: {eq: IN_TRANSIT} dispatchedQuantity: {eq: $quantity} reservedQuantity: {eq: 0} receivedQuantity: {eq: 0} actuallyUsedQuantity: {eq: 0}}, data: {receivedQuantity: $quantity status: RECEIVED deliveredAt: $occurredAt}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  query @redact
+    @check(expr: "response.query.transfer.status == 'RECEIVED' && response.query.transfer.proposal.supplyOfferId == vars.supplyOfferId && response.query.transfer.proposal.demandRequestId == vars.demandRequestId", message: "TRANSFER_INVALID_STAGE")
+    @check(expr: "vars.quantity > 0 && response.query.transfer.reservedQuantity == 0 && response.query.transfer.receivedQuantity == vars.quantity && response.query.transfer.dispatchedQuantity == vars.quantity && response.query.transfer.actuallyUsedQuantity == 0", message: "RECEIPT_QUANTITY_INVALID")
+    @check(expr: "response.query.demandRequest.neededFrom <= vars.operationDate && response.query.demandRequest.requiredBy >= vars.operationDate", message: "TRANSFER_DATE_INELIGIBLE") {
+    transfer(id: $transferId) { status reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity proposal { supplyOfferId demandRequestId } }
+    demandRequest(id: $demandRequestId) { neededFrom requiredBy }
+  }
+  transferEvent_insert(data: {
+    id: $eventId transferId: $transferId eventType: RECEIVED occurredAt: $occurredAt
+    actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
+  })
+}
+
+mutation ConfirmTransferUse(
+  $transferId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $eventId: String!
+  $quantity: Int!
+  $actorLabel: String!
+  $evidenceRef: String
+  $eventPayload: Any!
+  $occurredAt: Timestamp!
+  $operationDate: Date!
+  $supplyOfferId: String!
+  $demandRequestId: String!
+  $notes: String
+  $demandStatus: RequestStatus!
+  $previousUsedQuantity: Int!
+  $newUsedQuantity: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  transferWorkflowOperation_insert(data: {
+    id: $operationId operationType: "CONFIRM_USE" requestFingerprint: $requestFingerprint
+    transferId: $transferId eventId: $eventId quantity: $quantity
+    actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
+  })
+  transfer_updateMany(where: {id: {eq: $transferId} status: {in: [RECEIVED, REUSED]} actuallyUsedQuantity: {eq: $previousUsedQuantity} receivedQuantity: {ge: $newUsedQuantity}}, data: {actuallyUsedQuantity: $newUsedQuantity status: REUSED reuseConfirmedAt: $occurredAt notes: $notes}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  demandRequest_update(id: $demandRequestId, data: {fulfilledQuantity_update: {inc: $quantity} requestStatus: $demandStatus}) @check(expr: "this != null", message: "DEMAND_NOT_FOUND")
+  demandCommitmentBalance_update(key: {demandRequestId: $demandRequestId}, data: {committedQuantity_update: {dec: $quantity}}) @check(expr: "this != null", message: "DEMAND_BALANCE_NOT_FOUND")
+  query @redact
+    @check(expr: "response.query.transfer.status == 'REUSED' && response.query.transfer.proposal.supplyOfferId == vars.supplyOfferId && response.query.transfer.proposal.demandRequestId == vars.demandRequestId", message: "TRANSFER_INVALID_STAGE")
+    @check(expr: "vars.quantity > 0 && vars.newUsedQuantity == vars.previousUsedQuantity + vars.quantity && response.query.transfer.actuallyUsedQuantity == vars.newUsedQuantity && vars.newUsedQuantity <= response.query.transfer.receivedQuantity", message: "USE_QUANTITY_INVALID")
+    @check(expr: "response.query.demandRequest.fulfilledQuantity <= response.query.demandRequest.requiredQuantity && response.query.demandCommitmentBalance.committedQuantity >= 0 && ((response.query.demandRequest.fulfilledQuantity == response.query.demandRequest.requiredQuantity && vars.demandStatus == 'FULFILLED') || (response.query.demandRequest.fulfilledQuantity < response.query.demandRequest.requiredQuantity && vars.demandStatus == 'OPEN'))", message: "DEMAND_COUNTER_INVALID") {
+    transfer(id: $transferId) { status receivedQuantity actuallyUsedQuantity proposal { supplyOfferId demandRequestId } }
+    demandRequest(id: $demandRequestId) { requiredQuantity fulfilledQuantity requestStatus }
+    demandCommitmentBalance(key: {demandRequestId: $demandRequestId}) { committedQuantity }
+  }
+  transferEvent_insert(data: {
+    id: $eventId transferId: $transferId eventType: USED occurredAt: $occurredAt
+    actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
+  })
+}
+
+mutation CancelTransfer(
+  $transferId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $eventId: String!
+  $quantity: Int!
+  $actorLabel: String!
+  $evidenceRef: String
+  $eventPayload: Any!
+  $occurredAt: Timestamp!
+  $operationDate: Date!
+  $supplyOfferId: String!
+  $demandRequestId: String!
+  $reason: String!
+  $notes: String
+) @auth(level: NO_ACCESS) @transaction {
+  transferWorkflowOperation_insert(data: {
+    id: $operationId operationType: "CANCEL" requestFingerprint: $requestFingerprint
+    transferId: $transferId eventId: $eventId quantity: $quantity reason: $reason
+    actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
+  })
+  transfer_updateMany(where: {id: {eq: $transferId} status: {in: [APPROVED, RESERVED]} dispatchedQuantity: {eq: 0} reservedQuantity: {eq: $quantity}}, data: {reservedQuantity: 0 status: CANCELLED notes: $notes}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  supplyOffer_update(id: $supplyOfferId, data: {reservedActiveQuantity_update: {dec: $quantity}}) @check(expr: "this != null", message: "SUPPLY_NOT_FOUND")
+  demandCommitmentBalance_update(key: {demandRequestId: $demandRequestId}, data: {committedQuantity_update: {dec: $quantity}}) @check(expr: "this != null", message: "DEMAND_BALANCE_NOT_FOUND")
+  query @redact
+    @check(expr: "response.query.transfer.status == 'CANCELLED' && response.query.transfer.dispatchedQuantity == 0 && response.query.transfer.proposal.supplyOfferId == vars.supplyOfferId && response.query.transfer.proposal.demandRequestId == vars.demandRequestId", message: "TRANSFER_INVALID_STAGE")
+    @check(expr: "response.query.transfer.reservedQuantity == 0", message: "CANCELLATION_RELEASE_INVALID")
+    @check(expr: "response.query.supplyOffer.reservedActiveQuantity >= 0 && response.query.demandCommitmentBalance.committedQuantity >= 0", message: "COMMITMENT_COUNTER_INVALID") {
+    transfer(id: $transferId) { status reservedQuantity dispatchedQuantity proposal { supplyOfferId demandRequestId } }
+    supplyOffer(id: $supplyOfferId) { reservedActiveQuantity }
+    demandCommitmentBalance(key: {demandRequestId: $demandRequestId}) { committedQuantity }
+  }
+  transferEvent_insert(data: {
+    id: $eventId transferId: $transferId eventType: CANCELLED occurredAt: $occurredAt
+    actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
+  })
+}
+
 mutation ImportBaseline(
   $projects: [Project_Data!]! @allow(fields: "id code name township location startDate targetEndDate status managingOrganisation", maxCount: 5000)
   $materials: [Material_Data!]! @allow(fields: "id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic", maxCount: 5000)
@@ -134,6 +456,8 @@ mutation ImportBaseline(
   $transfers: [Transfer_Data!]! @allow(fields: "id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes", maxCount: 5000)
   $transferEvents: [TransferEvent_Data!]! @allow(fields: "id transferId eventType occurredAt actorLabel payload evidenceRef", maxCount: 5000)
   $impactAssessments: [ImpactAssessment_Data!]! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt", maxCount: 5000)
+  $demandCommitmentBalances: [DemandCommitmentBalance_Data!]! @allow(fields: "demandRequestId committedQuantity", maxCount: 5000)
+  $impactAssessmentHeads: [ImpactAssessmentHead_Data!]! @allow(fields: "id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt", maxCount: 5000)
 ) @auth(level: NO_ACCESS) @transaction {
   project_upsertMany(data: $projects)
   material_upsertMany(data: $materials)
@@ -148,9 +472,16 @@ mutation ImportBaseline(
   transfer_upsertMany(data: $transfers)
   transferEvent_upsertMany(data: $transferEvents)
   impactAssessment_upsertMany(data: $impactAssessments)
+  demandCommitmentBalance_upsertMany(data: $demandCommitmentBalances)
+  impactAssessmentHead_upsertMany(data: $impactAssessmentHeads)
 }
 
 mutation ClearBaseline @auth(level: NO_ACCESS) @transaction {
+  impactCalculationOperation_deleteMany(all: true)
+  impactAssessmentHead_deleteMany(all: true)
+  transferApprovalOperation_deleteMany(all: true)
+  transferWorkflowOperation_deleteMany(all: true)
+  demandCommitmentBalance_deleteMany(all: true)
   impactAssessment_deleteMany(all: true)
   transferEvent_deleteMany(all: true)
   transfer_deleteMany(all: true)
