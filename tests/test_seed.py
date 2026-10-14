@@ -72,7 +72,8 @@ class SeedTests(unittest.TestCase):
         self.assertEqual(summary(self.seed)['newly_allocatable_demand_pcs_by_id']['DEM-003'],100)
     def test_a11_partial_stage_quantities(self):
         t=next(t for t in self.seed['transfers'] if t['id']=='TRF-006')
-        t.update(approved_quantity=580,dispatched_quantity=570,received_quantity=550,actually_used_quantity=500)
+        t.update(approved_quantity=580,reserved_quantity=10,dispatched_quantity=570,received_quantity=550,actually_used_quantity=500)
+        self.seed['supply_offers'][0]['reserved_active_quantity']=10
         self.seed['supply_offers'][0]['transferred_out_quantity']=970
         self.seed['demand_requests'][0]['fulfilled_quantity']=500
         for e in self.seed['transfer_events']:

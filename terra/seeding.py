@@ -1,6 +1,7 @@
 """Validated local snapshot import and explicit reset, without event replay."""
 from pathlib import Path
 from contextlib import contextmanager
+from datetime import datetime
 from filelock import FileLock, Timeout
 from terra.validation import validate
 from terra.local_adapter import LocalDataConnect,variables,equivalent
@@ -23,6 +24,18 @@ def seed_lock():
 def verify(adapter,seed):
     actual=adapter.snapshot()
     if not equivalent(actual,seed):raise ValueError('Read-back state differs from canonical baseline')
+    expected=variables(seed)['demandCommitmentBalances']
+    balances=adapter.execute('ListDemandCommitmentBalances')['demandCommitmentBalances']
+    if balances!=expected:raise ValueError('Demand commitment balances differ from transfer histories')
+    expected_heads=variables(seed)['impactAssessmentHeads']
+    actual_heads=adapter.execute('ListImpactAssessmentHeads')['impactAssessmentHeads']
+    for rows in (expected_heads,actual_heads):
+        for row in rows:
+            if row['updatedAt'] is not None:
+                row['updatedAt']=datetime.fromisoformat(
+                    row['updatedAt'].replace('Z','+00:00')).timestamp()
+        rows.sort(key=lambda row:row['id'])
+    if actual_heads!=expected_heads:raise ValueError('Impact assessment heads differ from baseline scopes')
     return {entity:len(rows) for entity,rows in actual.items()}
 
 def seed_local(seed,adapter=None,reset_confirmation=None):

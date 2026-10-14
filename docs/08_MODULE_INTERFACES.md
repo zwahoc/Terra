@@ -80,9 +80,17 @@ Response includes `run_id`, objective, `input_snapshot_hash`, solver status, pro
 `POST /api/transfers/{id}/approve` — record source/destination confirmation status and approved quantity; no stock/demand hold yet.  
 `POST /api/transfers/{id}/reserve` — **transactional, idempotent** stock and incoming demand commitment check.  
 `POST /api/transfers/{id}/dispatch` — record quantity dispatched and decrement active reservation.  
-`POST /api/transfers/{id}/receive` — record actual received quantity; no confirmed reuse.  
+`POST /api/transfers/{id}/receive` — intentional MVP restriction: confirm the complete dispatched quantity arrived in one operation; no request quantity, partial/missing delivery, or confirmed reuse.
 `POST /api/transfers/{id}/confirm-use` — record quantity actually used and update demand fulfilled counters.  
 `POST /api/transfers/{id}/cancel` — cancel before dispatch with a reason and atomic release of remaining holds/commitments; post-dispatch exception handling remains an open contract.  
+`POST /api/impact-assessments/proposals/{proposal_id}/calculate` — append a `PROPOSAL_FORECAST` assessment revision.
+
+`POST /api/impact-assessments/transfers/{transfer_id}/calculate` — append an `ACTUAL_CONFIRMED_USE` assessment revision after confirmed use.
+
+`GET /api/impact-assessments?basis={basis}&current_only=true|false` — read one current head per scope by default, or immutable revision history.
+
+`GET /api/impact-assessments/{assessment_id}` — read one traceable assessment revision.
+
 `GET /api/exports/impact?basis=ACTUAL_CONFIRMED_USE&format=json|csv` — controlled ESG export.
 
 For any mutating route, require `idempotency_key` or equivalent replay-safe operation ID; duplicate requests must not double-apply quantity. Return updated transfer state and inventory snapshot.
