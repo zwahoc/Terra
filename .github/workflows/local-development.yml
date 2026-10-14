@@ -36,5 +36,11 @@ jobs:
       - run: npm run python -- scripts/generate_seed.py --check
       - run: npm run python -- scripts/generate_provider.py --check
       - run: npm run build:frontend
-      - run: npm run python -- -c "from backend.app.main import app; assert app.openapi()['paths'] == {}"
+      - name: Smoke test FastAPI application
+        run: >-
+          npm run python -- -c
+          "from backend.app.main import app;
+          schema = app.openapi();
+          assert schema['info']['title'] == 'Terra API';
+          assert isinstance(schema['paths'], dict)"
       - run: npm run test:integration
