@@ -74,6 +74,11 @@ The first Codex task may only create a **query/connector data path and docs**, n
 
 Response includes `run_id`, objective, `input_snapshot_hash`, solver status, proposed allocations with reason codes, and a separate incomplete-carbon flag. Previewing potential surplus must **never make it reservable**.
 
+For the current MAX_REUSE implementation, the latest user-requested priority is
+maximum allocated pcs, earliest demand `required_by`, earliest feasible delivery,
+shorter route and stable IDs. See SRS Section 12.1 for the amendment and provenance.
+This changes the internal plan preference policy, not the endpoint or DTO fields.
+
 ### Transfer workflow endpoints (later)
 
 `POST /api/allocation-proposals/{id}/transfers` — create request (no reserve yet).  
