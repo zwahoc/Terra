@@ -7,6 +7,7 @@ come from the shared Terra registry, not independent DTO definitions.
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from math import isfinite
 from types import MappingProxyType
 from typing import Iterable, Mapping
@@ -21,6 +22,13 @@ class SnapshotMappingError(ValueError):
 
 
 @dataclass(frozen=True)
+class RouteDistance:
+    id: str
+    distance_km: Decimal
+    is_synthetic: bool
+
+
+@dataclass(frozen=True)
 class DomainSnapshot:
     as_of_date: date
     project_townships: Mapping[str, str]
@@ -28,6 +36,7 @@ class DomainSnapshot:
     supplies: Mapping[str, Supply]
     demands: Mapping[str, Demand]
     incoming_transfer_ids_by_demand: Mapping[str, tuple[str, ...]]
+    route_distances: Mapping[tuple[str, str], RouteDistance]
 
     def demo_lead_time_days(self, supply_offer_id: str, demand_request_id: str) -> int | None:
         supply = self.supplies[supply_offer_id]
@@ -169,6 +178,7 @@ def map_record_collections(
     optimisation_runs: Iterable[Mapping],
     allocation_proposals: Iterable[Mapping],
     transfers: Iterable[Mapping],
+    route_distances: Iterable[Mapping] = (),
 ) -> DomainSnapshot:
     """Validate and map complete collections; preserves external field contracts.
 
@@ -183,6 +193,7 @@ def map_record_collections(
         'extracted_rows': extracted_rows, 'supply_offers': supply_offers,
         'demand_requests': demand_requests, 'optimisation_runs': optimisation_runs,
         'allocation_proposals': allocation_proposals, 'transfers': transfers,
+        'route_distances': route_distances,
     }
     idx = {name: _index(name, records, as_of_date) for name, records in collections.items()}
     for entity, records in idx.items():
@@ -251,6 +262,13 @@ def map_record_collections(
         mid: Material(mid, row['category'], row['standard_unit'], _freeze(row['specifications']))
         for mid, row in idx['materials'].items()
     }
+    mapped_routes = {}
+    for row in idx['route_distances'].values():
+        pair = tuple(sorted((row['from_project_id'], row['to_project_id'])))
+        _require(pair[0] != pair[1], f"{row['id']}: self-project route")
+        _require(pair not in mapped_routes, f"{row['id']}: duplicate undirected route pair")
+        _require(row['distance_km'] > 0, f"{row['id']}: route distance must be positive")
+        mapped_routes[pair] = RouteDistance(row['id'], Decimal(str(row['distance_km'])), row['is_synthetic'])
     return DomainSnapshot(
         as_of_date,
         MappingProxyType({pid: row['township'] for pid, row in sorted(idx['projects'].items())}),
@@ -258,4 +276,5 @@ def map_record_collections(
         MappingProxyType(dict(sorted(mapped_supplies.items()))),
         MappingProxyType(dict(sorted(mapped_demands.items()))),
         MappingProxyType({did: tuple(sorted(incoming_ids[did])) for did in sorted(mapped_demands)}),
+        MappingProxyType(dict(sorted(mapped_routes.items()))),
     )

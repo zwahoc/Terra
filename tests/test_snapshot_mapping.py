@@ -9,7 +9,7 @@ from terra.validation import load
 
 
 COLLECTIONS = ('projects', 'materials', 'documents', 'extracted_rows', 'supply_offers',
-               'demand_requests', 'optimisation_runs', 'allocation_proposals', 'transfers')
+               'demand_requests', 'optimisation_runs', 'allocation_proposals', 'transfers', 'route_distances')
 
 
 class SnapshotMappingTests(unittest.TestCase):
@@ -215,6 +215,24 @@ class SnapshotMappingTests(unittest.TestCase):
                                       lead_time_days=snapshot.demo_lead_time_days(s.id, d.id))
         self.assertEqual(result.compatibility_result, 'REVIEW_REQUIRED')
         self.assertIn('LEAD_TIME_REVIEW_REQUIRED', result.reason_codes)
+
+    def test_route_mapping_and_missing_routes(self):
+        route = self.map().route_distances['PRJ-001', 'PRJ-004']
+        self.assertEqual(route.distance_km, 65)
+        self.assertEqual(route.id, 'RTE-003')
+        self.seed['route_distances'] = []
+        self.assertEqual(dict(self.map().route_distances), {})
+
+    def test_invalid_or_duplicate_route_is_rejected(self):
+        self.row('route_distances', 'RTE-003')['distance_km'] = 0
+        with self.assertRaises(SnapshotMappingError):
+            self.map()
+        self.seed = load()
+        route = copy.deepcopy(self.row('route_distances', 'RTE-003'))
+        route.update(id='RTE-011', from_project_id='PRJ-004', to_project_id='PRJ-001')
+        self.seed['route_distances'].append(route)
+        with self.assertRaisesRegex(SnapshotMappingError, 'duplicate undirected route'):
+            self.map()
 
 
 if __name__ == '__main__':

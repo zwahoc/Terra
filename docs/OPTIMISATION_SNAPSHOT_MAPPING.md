@@ -26,6 +26,13 @@ collections, using their existing full snake_case records:
 | allocation_proposals | Link transfers to supply and demand |
 | transfers | Reconcile stock/use and derive unresolved incoming promises |
 
+An optional tenth collection, route_distances, supplies the allocator's distance
+tie-break. Pass existing full records when available. Omitted/missing routes stay
+unknown; the selected MAX_REUSE policy keeps otherwise eligible pairs with a flag.
+Mapped routes use Decimal distances and unordered keys under the symmetric demo
+assumption. Duplicate undirected pairs, self-project routes and nonpositive
+distances are rejected.
+
 Lists, tuples and other iterables of record mappings are accepted. Records are
 validated using terra.contract.MODELS, so field names, required fields, nullable
 fields and enum values remain those of the shared dictionary. There are no
@@ -89,6 +96,7 @@ DomainSnapshot contains as_of_date and read-only maps indexed by ID:
 - supplies: Supply objects, including validated source quantity models.
 - demands: Demand objects, including derived incoming commitments.
 - incoming_transfer_ids_by_demand: contributing transfer IDs for explanation.
+- route_distances: immutable unordered project-pair lookup for route IDs/distances.
 
 These internal Python maps do not replace database tables or HTTP DTOs. Output
 order is deterministic by ID. Input records are not mutated, and changes to the
@@ -111,6 +119,7 @@ records = load()
 names = (
     "projects", "materials", "documents", "extracted_rows", "supply_offers",
     "demand_requests", "optimisation_runs", "allocation_proposals", "transfers",
+    "route_distances",
 )
 snapshot = map_record_collections(
     as_of_date=date.fromisoformat(records["metadata"]["as_of_date"]),
@@ -135,7 +144,7 @@ print(result)
 
 ```bash
 source .venv/bin/activate
-python3 -m unittest tests.test_candidates tests.test_lead_time tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
+python3 -m unittest tests.test_allocator tests.test_candidates tests.test_lead_time tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
 ```
 
 The mapper tests cover baseline-to-evaluator integration, lifecycle commitment
@@ -147,8 +156,8 @@ Pydantic dependency through the shared contract registry; the evaluator remains
 standard-library-only.
 
 The implemented [candidate generator](OPTIMISATION_CANDIDATES.md) evaluates all
-cross-project pairs over these prepared inputs. Next implement a multi-pair
-allocator, keeping shared temporary source and recipient budgets. Database snapshot retrieval, reservation
+cross-project pairs and the [MAX_REUSE allocator](OPTIMISATION_ALLOCATOR.md) chooses
+quantities under shared source/recipient budgets. Database snapshot retrieval, reservation
 concurrency, carbon scoring and general residual resolution remain separate work.
 
 ## Approved demo planning assumptions

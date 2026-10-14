@@ -11,7 +11,7 @@ from terra.validation import load
 
 
 COLLECTIONS = ('projects', 'materials', 'documents', 'extracted_rows', 'supply_offers',
-               'demand_requests', 'optimisation_runs', 'allocation_proposals', 'transfers')
+               'demand_requests', 'optimisation_runs', 'allocation_proposals', 'transfers', 'route_distances')
 
 
 class CandidateTests(unittest.TestCase):

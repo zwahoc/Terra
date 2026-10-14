@@ -188,7 +188,7 @@ registry at its input boundary. Run from the repo root:
 
 ```bash
 source .venv/bin/activate
-python3 -m unittest tests.test_candidates tests.test_lead_time tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
+python3 -m unittest tests.test_allocator tests.test_candidates tests.test_lead_time tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
 ```
 
 The tests adapt existing fixture records at the test boundary and exercise
@@ -205,9 +205,10 @@ Before integrating this into a working allocation engine:
 2. Harmonise the draft critical-specification and date-window policies with the
    team. The demo township lead-time policy is selected; replace it with agreed
    route-specific inputs when available and preserve the assumption version.
-3. Use the implemented [candidate generator](OPTIMISATION_CANDIDATES.md), then add
-   an allocator enforcing shared source/recipient budgets. MAX_REUSE is defined
-   as allocated pcs; incomplete-carbon scoring policy still needs agreement.
+3. The implemented [candidate generator](OPTIMISATION_CANDIDATES.md) and
+   [MAX_REUSE allocator](OPTIMISATION_ALLOCATOR.md) produce a maximum-quantity plan
+   under shared budgets. Incomplete-carbon scoring policy still needs agreement
+   before the separate carbon strategy.
 4. Integrate Member 4's forecast interface and approved deterministic tie-breaks.
 5. Add Pydantic HTTP DTO/error mapping, input snapshot hashing and named
    persistence operations for runs/proposals in a later integration task.

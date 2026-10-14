@@ -65,7 +65,7 @@ Selected pair limits illustrate the inputs to the future allocator:
 | SUP-010 | DEM-009 | 150 | Operational match despite missing carbon data |
 
 Pair caps are independent upper bounds. Do not sum them as a feasible plan, write
-them as reservations, or report them as actual reuse. A future allocator must
+them as reservations, or report them as actual reuse. The downstream allocator must
 deduct chosen quantities from temporary budgets for both source and recipient.
 The selected MAX_REUSE objective will maximise total allocated pcs under those
 constraints; this generator does not optimise the objective.
@@ -85,6 +85,7 @@ records = load()
 names = (
     "projects", "materials", "documents", "extracted_rows", "supply_offers",
     "demand_requests", "optimisation_runs", "allocation_proposals", "transfers",
+    "route_distances",
 )
 snapshot = map_record_collections(
     as_of_date=date.fromisoformat(records["metadata"]["as_of_date"]),
@@ -105,7 +106,7 @@ assert len(result.eligible) == 15
 
 ```bash
 source .venv/bin/activate
-python3 -m unittest tests.test_candidates tests.test_lead_time tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
+python3 -m unittest tests.test_allocator tests.test_candidates tests.test_lead_time tests.test_snapshot_mapping tests.test_eligibility tests.test_seed -v
 ```
 
 Tests cover exhaustive cross-project pairing, no duplicates, existing status
@@ -118,4 +119,6 @@ Candidate evaluation takes O(number of supplies * number of demands) time and
 stores every evaluated result for explanation. This is deliberately simple for
 the baseline; larger datasets may need indexed filtering or bounded explanations
 while preserving rejection semantics. Consistent database retrieval, route-specific
-timing, multi-pair optimisation, carbon scoring and reservations remain separate.
+timing, carbon scoring and reservations remain separate. The implemented
+[MAX_REUSE allocator](OPTIMISATION_ALLOCATOR.md) consumes eligible pairs and
+resolves their shared budgets without changing this generator's results.

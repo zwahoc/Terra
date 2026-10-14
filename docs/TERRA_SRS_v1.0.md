@@ -149,7 +149,7 @@ Example: stock 1,000 pcs − independently verified remaining site need 700 pcs 
 | SRS-FR-20 | P0-MVP | Compare at least reuse-maximising and carbon-aware optimisation objectives on the same input snapshot. |
 | SRS-FR-21 | P0-SEED + MVP | Retain optimisation run objective, assumptions, input/factor version, plan and reason codes; proposed plans never reserve stock automatically. |
 
-**Tie-break rule (OD-05):** After feasibility constraints and the chosen primary optimisation objective, equal-ranked alternatives are ordered by **earliest feasible delivery**; then **shorter applicable transport distance**; then **stable project ID** for reproducibility. Actual delivery-time data must not be fabricated; if unavailable, the system may use validated availability dates as a stated proxy or leave the tie unresolved with a deterministic ID fallback.
+**Tie-break rule (OD-05, latest allocator amendment in Section 12.1):** For MAX_REUSE, after feasibility constraints and maximum allocated quantity, equal-ranked alternatives are ordered by **earliest demand deadline (`required_by`)**; then **earliest feasible delivery**; then **shorter applicable transport distance**; then **stable project ID** for reproducibility. The deadline is required receipt timing, not material expiry. Actual delivery-time data must not be fabricated; demo lead-time assumptions must be explicit. Other objectives require their own primary scoring policy before implementation.
 
 ### 3.5 Carbon and environmental comparisons
 
@@ -383,7 +383,7 @@ The UI should give clear progress/working/error feedback when an LLM call or int
 | SRS-BR-12 | Net environmental impact is incomplete when required factors or boundaries are undefined. |
 | SRS-BR-13 | No carbon credit, official GHG deduction, official waste diversion or Pantas live connection can be inferred from a reuse entry. |
 | SRS-BR-14 | Real AI extraction requires human review; high-confidence values are not silently auto-published. |
-| SRS-BR-15 | Equal-objective feasible options use earliest feasible delivery, then shorter route, then stable ID. |
+| SRS-BR-15 | MAX_REUSE preserves maximum quantity, then prioritises earliest demand deadline, earliest feasible delivery, shorter route and stable ID; see Section 12.1. |
 | SRS-BR-16 | App is local/single-user; shared data across teammates arrives only when the cloud database integration milestone is configured. |
 
 ---
@@ -406,7 +406,7 @@ The UI should give clear progress/working/error feedback when an LLM call or int
 | SRS-AT-12 | Required handling factor missing | Net is `INSUFFICIENT_DATA`, not a fabricated zero. |
 | SRS-AT-13 | Two revisions of one impact basis | Preserve both; dashboard uses latest reviewed authoritative version, counted once. |
 | SRS-AT-14 | High-confidence extracted record | Remains subject to explicit review; supported bulk review works. |
-| SRS-AT-15 | Equal-score feasible allocations | Earlier feasible delivery, then shorter distance, then stable ID decides order. |
+| SRS-AT-15 | Maximum-quantity feasible allocations | Earlier demand deadline, then earlier feasible delivery, shorter distance and stable ID decides order without reducing the maximum quantity. |
 | SRS-AT-16 | Re-upload same source row / repeated action | No duplicate published supply, reservations, events or impact. |
 | SRS-AT-17 | Dashboard forecast and actual assessment | Never sums both as actual achievement. |
 | SRS-AT-18 | Local development fresh checkout | Can initialise emulator and load reproducible seed without cloud credentials. |
@@ -459,7 +459,7 @@ These choices resolve the eight questions left open in the earlier draft. They a
 | OD-02 | Partial-use carbon | **A:** Only actually reused units support production-substitution estimate; transport uses the quantity physically transported. |
 | OD-03 | Carbon recalculation | **A:** Version/review new assessments; retain prior results, report latest reviewed authoritative result per basis. |
 | OD-04 | Extraction review | **A:** Human review all extracted rows, with bulk acceptance and uncertainty highlighting; no confidence-based auto-accept. |
-| OD-05 | Solver tie-break | **A:** Earliest feasible delivery, then shortest distance, then stable project ID. |
+| OD-05 | Solver tie-break | **Original A:** Earliest feasible delivery, then shortest distance, then stable project ID. **MAX_REUSE amendment:** deadline before delivery; see Section 12.1. |
 | OD-06 | App exposure | **Local-only** single-user application; do not host frontend/backend publicly. Future cloud DB is for shared data only. |
 | OD-07 | Development environment | **Local Data Connect emulator until full-system integration**, then plan a shared Firebase Cloud database. |
 | OD-08 | Performance | **A:** Initial targets: dashboard 2 s; small CSV/XLSX 30 s; text PDF 45 s; baseline solver 10 s; reserve/approve 2 s. |
@@ -475,5 +475,29 @@ The decisions above settle business intent; implementation must still specify (a
 **Approved baseline:** The owner has accepted the SRS draft and confirmed decisions OD-01–OD-08. The document defines a *student-team hackathon prototype*, not SDP engineering/procurement policy or an official sustainability reporting methodology.
 
 Any future requirement change should record: ID, changed text, reason, affected modules/data contracts, updated acceptance test and effective date. Changes to the architecture or reporting boundary must also be synchronised with existing Terra handoff documents.
+
+### 12.1 Allocator priority amendment requested on 13 October 2026
+
+**Change:** The user requested MAX_REUSE priority to be maximum quantity ->
+earliest demand deadline -> earliest feasible delivery -> shorter distance ->
+stable IDs. This supersedes the earlier delivery-first secondary ordering for
+the MAX_REUSE implementation. Its quantity objective remains total allocated pcs.
+
+**Reason:** Prioritise urgent recipient requirements among plans that achieve
+the same maximum quantity. The implementation uses individual-pair priority,
+preserving the quantity optimum before fixing each preferred pair's quantity.
+
+**Affected requirements:** OD-05, SRS-BR-15 and SRS-AT-15. **Affected modules:**
+Member 3's allocator and its planning explanations. Existing data fields,
+statuses, database schema and HTTP envelope remain unchanged. Member 4's carbon
+objective and the separate EARLIEST_DEADLINE objective are not implemented by
+this amendment.
+
+**Acceptance:** An earlier deadline wins over an earlier delivery/shorter route
+when the maximum quantity is equal; equal deadlines retain delivery/distance/ID
+ordering; deadline preference must never reduce the maximum allocated quantity.
+The original approved OD-05 wording is retained in Section 11 for provenance.
+This entry records the current user's implementation instruction on the working
+branch; it does not assert a separate team-leader review or approval.
 
 **End of Terra SRS v1.0.**
