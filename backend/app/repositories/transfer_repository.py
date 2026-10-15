@@ -1,5 +1,7 @@
 """Read and mutate transfers through Terra's local SQL Connect adapter."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any

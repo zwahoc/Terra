@@ -10,6 +10,7 @@ from decimal import Decimal
 from typing import Any, Callable
 
 from backend.app.domain.carbon import (
+    CarbonResult,
     PROCESSING_UNITS,
     PRODUCTION_UNITS,
     TRANSPORT_UNIT,
@@ -219,17 +220,15 @@ def _context(
     }
 
 
-def _build_assessment(
+def calculate_context_components(
     context: dict[str, Any],
     factors: list[dict[str, Any]],
-    *,
-    assessment_id: str,
-    calculated_at: str,
-    revision: int,
-    previous_assessment_id: str | None,
-    revision_reason: str,
-    actor_label: str,
-) -> tuple[dict[str, Any], str]:
+) -> tuple[CarbonResult, list[dict[str, Any]]]:
+    """Shared non-persisting arithmetic for previews and stored assessments.
+
+    Context supplies explicit activity date, quantities, material, route and
+    factor version. This function does not read repositories or assign IDs.
+    """
     material = context["material"]
     activity_date = datetime.fromisoformat(
         context["activity_at"].replace("Z", "+00:00")
@@ -307,6 +306,22 @@ def _build_assessment(
         ),
         missing_data=initial_missing,
     )
+    return result, selected_factors
+
+
+def _build_assessment(
+    context: dict[str, Any],
+    factors: list[dict[str, Any]],
+    *,
+    assessment_id: str,
+    calculated_at: str,
+    revision: int,
+    previous_assessment_id: str | None,
+    revision_reason: str,
+    actor_label: str,
+) -> tuple[dict[str, Any], str]:
+    material = context["material"]
+    result, selected_factors = calculate_context_components(context, factors)
     source_input = {
         "basis": context["basis"],
         "proposal_id": context["proposal"]["id"],

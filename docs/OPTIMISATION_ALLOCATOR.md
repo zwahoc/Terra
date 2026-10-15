@@ -277,7 +277,10 @@ target for this pure flow, but do not establish full API/database/carbon perform
 or guarantees for larger datasets. The command reports environment and timings
 so teammates can reproduce it on their machines.
 
-Next: connect Member 4's actual scoring/final-assessment service to the agreed
-linear input boundary, then create/persist reproducible run/proposal DTOs through
-the shared repository and FastAPI. No database, API, seed or README changes were
-made by the objective implementation.
+Member 4's non-persisting forecast engine is now connected through
+[optimisation_preview_service.py](../backend/app/services/optimisation_preview_service.py).
+The [preview APIs](IMPACT_API.md) return one temporary plan with forecasts for
+chosen quantities. Next: implement paired comparison and create/persist
+reproducible run/proposal DTOs with matching context through the shared repository.
+The objective implementation itself changed no database, API, seed or README;
+the subsequent preview integration adds explicit non-persisting HTTP extensions.

@@ -77,6 +77,14 @@ reads and the required `GET /api/exports/impact?basis=...&format=json|csv`
 export are also implemented. See [IMPACT_API.md](IMPACT_API.md) for boundaries,
 factor selection, revision rules, fixture arithmetic and Postman checks.
 
+Non-persisting connections are available at
+`POST /api/impact-assessments/forecast-preview` and
+`POST /api/optimisation-runs/preview`. They read current emulator records once,
+return temporary results, and create no run, proposal, assessment, reservation or
+transfer. The optimisation preview connects Member 4's carbon scoring engine to
+Member 3's objective selector. Request `planning_date` must cover live record
+timestamps; see IMPACT_API.md for payloads and decimal-string response values.
+
 ```sh
 npm run build:frontend
 ```

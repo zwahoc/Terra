@@ -123,6 +123,13 @@ window. This dispatch/receipt interpretation is an explicit draft assumption to
 harmonise with Member 4's transfer/scheduling contract. Dates are calendar days;
 business calendars, partial-day cutoffs and route capacity are not modelled.
 
+**Open integration discrepancy (14 October 2026):** Member 4's reservation
+service and connector require reservation inside the demand window, which can
+prevent a pre-needed_from dispatch needed for timely receipt. See the
+[reservation timing issue and example](MEMBER_3_4_CARBON_COOPERATION.md#unresolved-integration-issue-reservation-timing).
+This receipt-window interpretation is not yet harmonised with reservation;
+planning eligibility alone does not guarantee execution by the transfer API.
+
 Confirmed future supply can be ELIGIBLE for planning if it meets the deadline.
 source_reservable_quantity_on_planning_date is still zero before release.
 That field is a source balance estimate, not permission to reserve this pair.
