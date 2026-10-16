@@ -27,7 +27,8 @@ def _index(rows):
 
 
 def impact_export_records(
-    basis: str, repository: ImpactRepository | None = None
+    basis: str, repository: ImpactRepository | None = None,
+    project_id: str | None = None, transfer_id: str | None = None,
 ) -> list[dict[str, Any]]:
     repository = repository or ImpactRepository()
     snapshot = _load(repository)
@@ -126,14 +127,17 @@ def impact_export_records(
                 "disclaimer": DISCLAIMER,
             }
         )
-    return records
+    return [record for record in records if (
+        (transfer_id is None or record["transfer_id"] == transfer_id)
+        and (project_id is None or project_id in (record["source_project_id"], record["destination_project_id"]))
+    )]
 
 
-def export_json(basis: str, repository: ImpactRepository | None = None):
+def export_json(basis: str, repository: ImpactRepository | None = None, project_id: str | None = None, transfer_id: str | None = None):
     return {
         "data": {
             "basis": basis,
-            "records": impact_export_records(basis, repository),
+            "records": impact_export_records(basis, repository, project_id, transfer_id),
             "aggregation": None,
             "disclaimer": DISCLAIMER,
         },
@@ -142,8 +146,8 @@ def export_json(basis: str, repository: ImpactRepository | None = None):
     }
 
 
-def export_csv(basis: str, repository: ImpactRepository | None = None) -> str:
-    records = impact_export_records(basis, repository)
+def export_csv(basis: str, repository: ImpactRepository | None = None, project_id: str | None = None, transfer_id: str | None = None) -> str:
+    records = impact_export_records(basis, repository, project_id, transfer_id)
     fields = [
         "assessment_id", "basis", "proposal_id", "transfer_id",
         "source_project_id", "source_project_name", "destination_project_id",

@@ -127,6 +127,39 @@ class ForecastPreviewTests(unittest.TestCase):
                                  Decimal(response['forecast_summary']['net_avoided_kgco2e']))
         self.assertEqual(self.records, before)
 
+    def test_matching_coverage_uses_this_runs_proposed_quantity(self):
+        response = preview_optimisation(
+            self.records, objective='MAX_REUSE', planning_date=date(2026, 10, 12),
+            factor_dataset_version='demo-v1',
+        )
+        coverage = response['matching_coverage_by_demand']['DEM-003']
+        self.assertEqual(coverage['required_quantity'], 500)
+        self.assertEqual(coverage['proposed_quantity'], 200)
+        self.assertEqual(coverage['status'], 'PARTIALLY_COVERED')
+
+    def test_destination_project_scope_limits_allocations_on_the_backend(self):
+        response = preview_optimisation(
+            self.records,
+            objective='MAX_REUSE',
+            planning_date=date(2026, 10, 12),
+            factor_dataset_version='demo-v1',
+            destination_project_id='PRJ-001',
+        )
+        demand_project = {row['id']: row['destination_project_id']
+                          for row in self.records['demand_requests']}
+        self.assertEqual(response['destination_project_id'], 'PRJ-001')
+        self.assertTrue(response['plan']['allocations'])
+        self.assertTrue(all(demand_project[line['demand_request_id']] == 'PRJ-001'
+                            for line in response['plan']['allocations']))
+        with self.assertRaises(ImpactInvalid):
+            preview_optimisation(
+                self.records,
+                objective='MAX_REUSE',
+                planning_date=date(2026, 10, 12),
+                factor_dataset_version='demo-v1',
+                destination_project_id='PRJ-unknown',
+            )
+
     def test_missing_forecasts_not_labelled_complete_total(self):
         records = copy.deepcopy(self.records)
         records['emission_factors'] = []
@@ -149,6 +182,15 @@ class ForecastPreviewTests(unittest.TestCase):
             status, _, body = asyncio.run(request('POST', '/api/impact-assessments/forecast-preview', body=forecast))
         self.assertEqual(status, 200, body)
         self.assertEqual(Decimal(json.loads(body)['data']['net_avoided_kgco2e']), Decimal('180.80832'))
+        self.assertEqual(repo.reads, 1)
+
+        repo.reads = 0
+        with patch('backend.app.routes.impact.ImpactRepository', return_value=repo):
+            status, _, body = asyncio.run(request('POST', '/api/optimisation-runs/preview', body={
+                'objective': 'MAX_REUSE', 'planning_date': '2026-10-12',
+                'factor_dataset_version': 'demo-v1', 'destination_project_id': 'PRJ-001'}))
+        self.assertEqual(status, 200, body)
+        self.assertEqual(json.loads(body)['data']['destination_project_id'], 'PRJ-001')
         self.assertEqual(repo.reads, 1)
         repo.reads = 0
         with patch('backend.app.routes.impact.ImpactRepository', return_value=repo):

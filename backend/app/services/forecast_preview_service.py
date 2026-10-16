@@ -1,7 +1,9 @@
 """Member 4 non-persisting forecast calculations on detached shared inputs."""
 from copy import deepcopy
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
+from types import MappingProxyType
 
 from backend.app.domain.allocator import LinearCarbonScores, allocation_snapshot_hash
 from backend.app.domain.candidates import generate_candidate_pairs
@@ -26,7 +28,8 @@ class ForecastPreviewCalculator:
     explicitly guarantees per-piece linearity throughout eligible pair caps.
     Inputs are detached from the caller; methods never change them.
     """
-    def __init__(self, records, *, planning_date: date, factor_dataset_version: str):
+    def __init__(self, records, *, planning_date: date, factor_dataset_version: str,
+                 destination_project_id: str | None = None):
         if type(planning_date) is not date or not isinstance(factor_dataset_version, str) or not factor_dataset_version.strip():
             raise ImpactInvalid('FORECAST_INPUT_INVALID', 'Planning date and factor version are required.')
         self._records = deepcopy(records)
@@ -41,6 +44,25 @@ class ForecastPreviewCalculator:
                 raise ValueError('Invalid factor value')
         except (SnapshotMappingError, KeyError, ValueError, TypeError) as exc:
             raise ImpactInvalid('FORECAST_INPUT_INVALID', 'Forecast records failed validation.') from exc
+        if destination_project_id is not None:
+            if destination_project_id not in self.snapshot.project_townships:
+                raise ImpactInvalid(
+                    'DESTINATION_PROJECT_NOT_FOUND',
+                    f"Destination project '{destination_project_id}' is not present in the current emulator snapshot.",
+                )
+            scoped_demands = {
+                demand_id: demand for demand_id, demand in self.snapshot.demands.items()
+                if demand.destination_project_id == destination_project_id
+            }
+            scoped_commitments = {
+                demand_id: transfer_ids for demand_id, transfer_ids in self.snapshot.incoming_transfer_ids_by_demand.items()
+                if demand_id in scoped_demands
+            }
+            self.snapshot = replace(
+                self.snapshot,
+                demands=MappingProxyType(scoped_demands),
+                incoming_transfer_ids_by_demand=MappingProxyType(scoped_commitments),
+            )
         self.factor_dataset_version = factor_dataset_version
         self._pairs = {(p.supply_offer_id, p.demand_request_id): p
                        for p in generate_candidate_pairs(self.snapshot).pairs}

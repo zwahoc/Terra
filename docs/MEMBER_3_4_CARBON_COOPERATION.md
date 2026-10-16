@@ -61,7 +61,7 @@ flowchart TD
 | Carbon preview/scoring integration | ForecastPreviewCalculator supplies temporary forecasts and LinearCarbonScores without persistence |
 | Seed emission_factors | Eight synthetic versioned factors, not verified Malaysian factors |
 | Seed impact_assessments | Eight stored example outcomes, not a live scoring function for arbitrary candidates |
-| Run/proposal/forecast persistence and HTTP integration | Preview HTTP endpoints implemented; new run/proposal persistence still pending; Member 4 saved assessment APIs exist |
+| Run/proposal/forecast persistence and HTTP integration | Preview endpoints and persisted selected/eligible optimisation runs are implemented; proposal forecasts and Member 4 saved assessment APIs remain separate |
 
 The current generator is [candidates.py](../backend/app/domain/candidates.py).
 Use result.eligible; do not treat all result.pairs as allocatable.
@@ -447,5 +447,5 @@ Member 1: display the comparison
 - Both runs start with the same data. Proposals do not reserve stock.
 - Member 4's non-persisting forecast engine now connects to all three strategies through the preview orchestration service.
 - POST /api/optimisation-runs/preview returns one temporary plan and matching quantity forecasts; POST /api/impact-assessments/forecast-preview assesses one eligible pair.
-- Paired comparison, selection and new-run/proposal persistence are still pending. See [preview API contracts](IMPACT_API.md).
+- Paired comparison remains pending. `POST /api/optimisation-runs` persists one selected/eligible matching plan and its proposals, but creates no transfer or reservation; proposal approval is a separate operator action. See [API contracts](IMPACT_API.md).
 - Reservation timing remains unresolved: a valid future receipt may require reservation before needed_from, which the current transfer workflow rejects.

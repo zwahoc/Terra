@@ -85,6 +85,13 @@ transfer. The optimisation preview connects Member 4's carbon scoring engine to
 Member 3's objective selector. Request `planning_date` must cover live record
 timestamps; see IMPACT_API.md for payloads and decimal-string response values.
 
+`POST /api/optimisation-runs` persists one chosen matching calculation and its
+`SELECTED`/`ELIGIBLE` proposals in one SQL Connect transaction. It requires an
+idempotency key and actor label, and deliberately creates no transfer,
+reservation, stock mutation, demand commitment, dispatch, receipt, or reuse.
+Use `GET /api/optimisation-runs/{run_id}` to read the persisted run and its
+proposals.
+
 ```sh
 npm run build:frontend
 ```

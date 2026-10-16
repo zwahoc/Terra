@@ -71,7 +71,7 @@ class TransferWorkflowValidationTests(unittest.TestCase):
         self.assert_code(TransferWorkflowNotFound, "TRANSFER_NOT_FOUND", "reserve",
                          missing, self.request())
         self.assert_code(TransferWorkflowConflict, "TRANSFER_INVALID_STAGE", "reserve",
-                         self.state("REQUESTED"), self.request())
+                         self.state("CANCELLED"), self.request())
         with self.assertRaises(TransferWorkflowUnavailable):
             run_transfer_workflow("TRF-001", "reserve", self.request(),
                                   FakeRepository(None, unavailable=True), NOW)

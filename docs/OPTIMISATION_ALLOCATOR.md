@@ -270,7 +270,7 @@ no mutation. The existing domain/seed regressions also pass.
 
 Observed on local WSL2 x86_64, Linux 5.15.153.1, glibc 2.35, Python 3.12.15:
 five runs of JSON reading + mapping + candidate generation + MAX_REUSE allocation
-had median 0.0150 s and maximum 0.0433 s for 22 supplies/22 demands after the
+had median 0.0150 s and maximum 0.0433 s for the earlier 22-supply/22-demand baseline after the
 deadline-first amendment. Module imports
 occur before the timer. These measurements are below the 10-second baseline
 target for this pure flow, but do not establish full API/database/carbon performance

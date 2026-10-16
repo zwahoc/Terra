@@ -122,7 +122,7 @@ For seeded `POTENTIAL` offers, `confirmed_quantity=null` and active reservation/
 | `request_status` | enum | `OPEN`, `FULFILLED`, `CANCELLED` |
 | `is_outstanding_need_confirmed` | bool | BOQ-only estimates false until reviewed |
 
-For planning, subtract not only fulfilled quantity but **active incoming committed** transfers, established at reservation and retained until use or explicit resolution. Requested/approved-only transfers do not hold demand. Seed `fulfilled_quantity` reconciles to transfer actual-use quantities; `FULFILLED` requires `fulfilled_quantity=required_quantity`. Alternative procurement fulfilment records are outside this seed model. Cancelled demands are not available for fresh allocations; cancellation must not silently discard an active incoming commitment.
+For planning, subtract not only fulfilled quantity but **active incoming committed** transfers, established at reservation and retained until use or explicit resolution. A requested transfer created by proposal approval does not hold demand. `APPROVED` is retained only for historical seed compatibility and likewise does not hold demand. Seed `fulfilled_quantity` reconciles to transfer actual-use quantities; `FULFILLED` requires `fulfilled_quantity=required_quantity`. Alternative procurement fulfilment records are outside this seed model. Cancelled demands are not available for fresh allocations; cancellation must not silently discard an active incoming commitment.
 
 ### `route_distances` — 10 unordered inter-project pairs for 5 projects
 

@@ -1,0 +1,15 @@
+/* Eight real columns on desktop; a concise four-column reading on small screens. */
+.terra-top-shell .terra-inventory-table-wrap { overflow: hidden; }
+.terra-top-shell .terra-inventory-table { width: 100%; min-width: 0; table-layout: fixed; }
+.terra-top-shell .terra-inventory-table th,
+.terra-top-shell .terra-inventory-table td { box-sizing: border-box; }
+.terra-top-shell .terra-inventory-table th:nth-child(1), .terra-top-shell .terra-inventory-table td:nth-child(1) { width: 25%; }
+.terra-top-shell .terra-inventory-table th:nth-child(2), .terra-top-shell .terra-inventory-table td:nth-child(2) { width: 10%; }
+.terra-top-shell .terra-inventory-table th:nth-child(3), .terra-top-shell .terra-inventory-table td:nth-child(3) { width: 15%; }
+.terra-top-shell .terra-inventory-table th:nth-child(4), .terra-top-shell .terra-inventory-table td:nth-child(4) { width: 10%; }
+.terra-top-shell .terra-inventory-table th:nth-child(5), .terra-top-shell .terra-inventory-table td:nth-child(5) { width: 9%; }
+.terra-top-shell .terra-inventory-table th:nth-child(6), .terra-top-shell .terra-inventory-table td:nth-child(6) { width: 8%; }
+.terra-top-shell .terra-inventory-table th:nth-child(7), .terra-top-shell .terra-inventory-table td:nth-child(7) { width: 10%; }
+.terra-top-shell .terra-inventory-table th:last-child, .terra-top-shell .terra-inventory-table td:last-child { width: 13%; background: #eef4ec; }
+.terra-top-shell .terra-inventory-table thead th:last-child { background: #e6efe4; }
+@media (max-width: 760px) { .terra-top-shell .terra-inventory-table-scroll { min-width: 0; } .terra-top-shell .terra-inventory-table th:nth-child(2),.terra-top-shell .terra-inventory-table td:nth-child(2),.terra-top-shell .terra-inventory-table th:nth-child(3),.terra-top-shell .terra-inventory-table td:nth-child(3),.terra-top-shell .terra-inventory-table th:nth-child(4),.terra-top-shell .terra-inventory-table td:nth-child(4),.terra-top-shell .terra-inventory-table th:nth-child(6),.terra-top-shell .terra-inventory-table td:nth-child(6){display:none}.terra-top-shell .terra-inventory-table th:nth-child(1),.terra-top-shell .terra-inventory-table td:nth-child(1){width:45%}.terra-top-shell .terra-inventory-table th:nth-child(5),.terra-top-shell .terra-inventory-table td:nth-child(5){width:15%}.terra-top-shell .terra-inventory-table th:nth-child(7),.terra-top-shell .terra-inventory-table td:nth-child(7){width:18%}.terra-top-shell .terra-inventory-table th:last-child,.terra-top-shell .terra-inventory-table td:last-child{width:22%}.terra-top-shell .terra-inventory-table th,.terra-top-shell .terra-inventory-table td{padding-right:.55rem;padding-left:.55rem}.terra-top-shell .terra-inventory-table .status{max-width:100%;overflow:hidden;text-overflow:ellipsis}}

@@ -43,7 +43,7 @@ def build():
     demands=[(2,1,600),(3,1,400),(4,2,500),(5,3,400),(4,15,300),(1,9,300),(4,15,400),(1,17,200),(1,11,250),(5,18,250),(1,5,350),(2,6,300),(3,7,250),(4,8,350),(5,10,500),(1,12,400),(2,13,250),(3,14,700),(4,19,150),(5,20,220),(5,1,800),(3,9,400)]
     for i,(prj,mat,q) in enumerate(demands,1):
         origin=row((prj-1)*3+2,mat,q,'OUTSTANDING_DEMAND',raw='Grey Concrete Paving Block 200 x 100 x 60 mm' if i==1 else None)
-        s['demand_requests'].append(dict(id=ident('DEM',i),destination_project_id=ident('PRJ',prj),material_id=ident('MAT',mat),origin_document_row_id=origin,required_quantity=q,fulfilled_quantity=0,unit='pcs',needed_from='2026-09-27',required_by='2026-10-18' if i==8 else '2026-10-30',request_status='CANCELLED' if i==13 else 'OPEN',is_outstanding_need_confirmed=True))
+        s['demand_requests'].append(dict(id=ident('DEM',i),destination_project_id=ident('PRJ',prj),material_id=ident('MAT',mat),origin_document_row_id=origin,required_quantity=q,fulfilled_quantity=0,unit='pcs',needed_from='2026-09-27',required_by='2026-10-18' if i == 8 else '2026-10-30',request_status='CANCELLED' if i==13 else 'OPEN',is_outstanding_need_confirmed=True))
     row(3,1,2000,'PLANNED_REQUIREMENT','PENDING')
     row(6,1,1800,'PURCHASE_ORDER','ACCEPTED')
     row(1,1,500,'ON_HAND_INVENTORY','PENDING')

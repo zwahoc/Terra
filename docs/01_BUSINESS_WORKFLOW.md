@@ -75,9 +75,9 @@ All coupled changes (`transfers`, `supply_offers`, `demand_requests`, `transfer_
 
 ## 5. Allowed example transition path
 
-`REQUESTED -> APPROVED -> RESERVED -> IN_TRANSIT -> RECEIVED -> REUSED`.
+`PROPOSAL -> (operator approval) -> REQUESTED -> RESERVED -> IN_TRANSIT -> RECEIVED -> REUSED`.
 
-Before reservation, approvals are represented as demo confirmations without real authenticated identities. The operator may reject a request or cancel before dispatch with recorded reason; once dispatched, cancellation/restock must not silently roll back physical movement. Keep append-only event timestamps logically ordered. Dispatch, receipt and use remain required stages in the API and seed histories.
+Approving a proposal creates the `REQUESTED` transfer with demo confirmations, without real authenticated identities. The operator may cancel a request before dispatch with recorded reason; once dispatched, cancellation/restock must not silently roll back physical movement. Keep append-only event timestamps logically ordered. `APPROVED` remains only for historical seed compatibility, not the new transition path. Dispatch, receipt and use remain required stages in the API and seed histories.
 
 ## 6. Compatibility rules for three starter categories
 

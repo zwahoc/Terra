@@ -46,7 +46,8 @@ display rather than implement carbon arithmetic.
 {
   "objective": "MAX_NET_CO2E_AVOIDED",
   "planning_date": "2026-10-12",
-  "factor_dataset_version": "demo-v1"
+  "factor_dataset_version": "demo-v1",
+  "destination_project_id": "PRJ-002"
 }
 ```
 
@@ -60,17 +61,27 @@ MAX_REUSE/deadline plans can have missing final forecasts despite needing no
 carbon scores for allocation. Opposing strategies should be compared separately,
 not added together.
 
-These preview extensions do **not** implement the persisted
-`POST /api/optimisation-runs` contract. No run/proposal IDs or selection/transfer
-creation are provided. They currently consider all records; project-scoped
-filtering and potential-surplus preview are not accepted request fields.
+The preview endpoint deliberately does **not** persist anything. To save the
+chosen matching calculation, call `POST /api/optimisation-runs` with the same
+calculation fields plus a required `idempotency_key` and `actor_label`. It
+recalculates from one current database snapshot, then atomically inserts an
+optimisation run and its `SELECTED`/`ELIGIBLE` allocation proposals. It does not
+create a transfer, reservation, stock mutation, demand commitment, or any
+physical-delivery event. `GET /api/optimisation-runs/{run_id}` retrieves the
+persisted run and proposals. `destination_project_id` is optional for backward
+compatibility; when supplied, the optimiser considers only confirmed demand for
+that destination while retaining cross-project supply candidates. The browser
+must send this scope to FastAPI rather than filtering a global plan locally.
+Potential-surplus preview is not accepted.
 
 Planning date must cover the timestamps of supplied live records. Baseline date
 2026-10-12 works on untouched seed data; use the applicable live planning date
 after runtime writes. Preview factor applicability uses planning_date. Existing
 saved proposal forecasts still use proposal.created_at: integration must agree
 that date and bind the same full context before claiming identical saved results.
-The allocation-input hash is separate from the future persisted full input hash.
+The allocation-input hash is stored as the persisted run's input snapshot hash;
+it fingerprints mapped allocation inputs rather than a complete source-document
+or engineering-certification record.
 
 HTTP 400 rejects noneligible pairs, quantities exceeding caps and invalid
 snapshot/context records; 422 rejects malformed/unknown request fields; 503

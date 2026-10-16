@@ -1,0 +1,91 @@
+/* Shared operational colour language: colour confirms meaning, never decoration. */
+.terra-top-shell {
+  --terra-ink: #143f34;
+  --terra-muted: #496b5d;
+  --terra-action: #1f5a48;
+  --terra-confirmed: #1e6647;
+  --terra-confirmed-surface: #dcefdc;
+  --terra-progress: #245f69;
+  --terra-progress-surface: #dbecef;
+  --terra-caution: #765414;
+  --terra-caution-surface: #f6ebc7;
+  --terra-risk: #8a4038;
+  --terra-risk-surface: #f4deda;
+}
+
+.terra-top-shell .status {
+  gap: 7px;
+  border: 0;
+  border-radius: 0;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.terra-top-shell .status--positive { background: var(--terra-confirmed-surface); color: var(--terra-confirmed); }
+.terra-top-shell .status--progress { background: var(--terra-progress-surface); color: var(--terra-progress); }
+.terra-top-shell .status--caution { background: var(--terra-caution-surface); color: var(--terra-caution); }
+.terra-top-shell .status--negative { background: var(--terra-risk-surface); color: var(--terra-risk); }
+.terra-top-shell .status--neutral { background: #e8eeea; color: #45675a; }
+
+/* Strong figures and active workflow values use full ink; explanatory copy stays quieter. */
+.terra-top-shell .terra-inventory-table .is-ready,
+.terra-top-shell .terra-metric strong,
+.terra-top-shell .terra-quantities b,
+.terra-top-shell .terra-impact > article:not(.terra-actual-report) dd,
+.terra-top-shell .terra-reporting-card dd { color: var(--terra-confirmed); }
+
+/* A confirmed value on a dark operational card needs a light foreground,
+   never the confirmed-green status colour. */
+.terra-top-shell .terra-inventory-summary article:nth-child(2) :is(span, b, small) {
+  color: #fffefa;
+}
+
+.terra-top-shell .terra-inventory-table tbody tr:hover td { background: #dcebd9; }
+.terra-top-shell .terra-inventory-table .is-ready { background: #e2f0e0; }
+.terra-top-shell .terra-category-chip { background: #e8f0e6; color: var(--terra-ink); }
+
+/* Matching is proposed work, so it receives an attention field instead of a success signal. */
+.terra-top-shell .terra-simple-matching-list > article.is-open > button,
+.terra-top-shell .terra-match-choice,
+.terra-top-shell .terra-no-feasible-matches { background: var(--terra-caution-surface); color: var(--terra-caution); }
+.terra-top-shell .terra-simple-matching-list > article > button > em,
+.terra-top-shell .terra-demand-queue button > em { background: var(--terra-caution-surface); color: var(--terra-caution); }
+.terra-top-shell .terra-simple-matching-list > article > button > em.is-ready,
+.terra-top-shell .terra-demand-queue button > em.is-ready { background: var(--terra-confirmed-surface); color: var(--terra-confirmed); }
+
+/* Delivery is an active hand-off rather than a completed reuse claim. */
+.terra-top-shell .terra-transfer .terra-rail .is-complete i,
+.terra-top-shell .terra-transfer .terra-rail .is-current i { background: var(--terra-progress); }
+.terra-top-shell .terra-transfer .terra-rail span.is-complete::before,
+.terra-top-shell .terra-transfer .terra-rail span.is-current::before { background: #4d8c83; }
+.terra-top-shell .terra-transfer .terra-quantities span:nth-child(5) { background: var(--terra-progress); color: #fff; }
+
+/* Explicit decisions deserve the highest contrast, with rejection visually contained. */
+.terra-top-shell .terra-approval-actions .is-primary,
+.terra-top-shell .terra-primary-button,
+.terra-top-shell .terra-primary { background: var(--terra-action); color: #fff; }
+.terra-top-shell .terra-approval-actions .is-primary:hover,
+.terra-top-shell .terra-primary-button:hover:not(:disabled),
+.terra-top-shell .terra-primary:hover { background: #103f34; }
+.terra-top-shell .terra-approval-actions .is-danger { background: var(--terra-risk-surface); color: var(--terra-risk); }
+.terra-top-shell .terra-approval-notice,
+.terra-top-shell .terra-validation-message.is-ready { background: var(--terra-confirmed-surface); color: var(--terra-confirmed); }
+.terra-top-shell .terra-validation-message { background: var(--terra-caution-surface); color: var(--terra-caution); }
+
+/* Reported impact remains clearly estimated until it is backed by confirmed actual use. */
+.terra-top-shell .terra-impact article:not(.terra-actual-report):has(.status--caution) { background: #fbf5df; }
+.terra-top-shell .terra-impact article:not(.terra-actual-report):has(.status--positive) { background: #e5f0e2; }
+.terra-top-shell .terra-impact > article:not(.terra-actual-report) dd { font-weight: 800; }
+.terra-top-shell .terra-impact > article:not(.terra-actual-report) dd:last-child { color: var(--terra-confirmed); }
+
+.terra-top-shell .terra-empty,
+.terra-top-shell .terra-upload-note { color: var(--terra-muted); }
+.terra-top-shell .terra-empty { background: #edf3eb; border-left-color: #6b9b74; }
+
+@media (prefers-reduced-motion: reduce) {
+  .terra-top-shell .status,
+  .terra-top-shell .terra-primary-button,
+  .terra-top-shell .terra-primary { transition: none; }
+}

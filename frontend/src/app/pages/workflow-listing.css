@@ -1,0 +1,304 @@
+/* Shared three-step operational workflow. Matching, approvals and deliveries
+   use the same project-first reading order: record ID, subject, context, action. */
+.terra-top-shell .matching-flow__steps,
+.terra-top-shell .terra-approval-steps,
+.terra-top-shell .terra-delivery-steps {
+  display: none !important;
+}
+
+.terra-top-shell .terra-approval-page,
+.terra-top-shell .terra-delivery-workflow {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: clamp(10px, 1.8vw, 26px);
+  background: #f1f5ef;
+}
+
+.terra-top-shell .terra-approval-steps,
+.terra-top-shell .terra-delivery-steps {
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  background: transparent;
+}
+
+.terra-top-shell .terra-approval-steps li,
+.terra-top-shell .terra-delivery-steps li {
+  min-height: 3.35rem;
+  padding: .8rem 1rem;
+  background: #e3ece0;
+  color: #526f60;
+}
+
+.terra-top-shell .terra-approval-steps .is-current,
+.terra-top-shell .terra-delivery-steps .is-current {
+  background: #d0e4cb;
+  color: #173f34;
+}
+
+.terra-top-shell .terra-approval-steps .is-complete,
+.terra-top-shell .terra-delivery-steps .is-complete {
+  background: #e8f0e5;
+  color: #2d624e;
+}
+
+.terra-top-shell .terra-approval-workbench,
+.terra-top-shell .terra-delivery-workbench {
+  margin: 0;
+  background: #f9fbf8;
+}
+
+.terra-top-shell .terra-approval-workbench > header,
+.terra-top-shell .terra-delivery-workbench > header {
+  padding: clamp(1.6rem, 3.7vw, 3.2rem) clamp(1.25rem, 3vw, 2.8rem);
+  background: #e4eee1;
+}
+
+.terra-top-shell .terra-approval-workbench > header h2,
+.terra-top-shell .terra-delivery-workbench > header h2 {
+  max-width: 20ch;
+  font-size: clamp(1.85rem, 3.3vw, 3.65rem);
+  letter-spacing: -.07em;
+}
+
+.terra-top-shell .terra-approval-workbench > header span,
+.terra-top-shell .terra-delivery-workbench > header span {
+  max-width: 48rem;
+  color: #315e4d;
+  font-size: 1rem;
+}
+
+/* Once a project is chosen, retain its identity without spending a whole
+   screen height on a second page heading. */
+.terra-top-shell .terra-approval-workbench > header:has(.terra-approval-back),
+.terra-top-shell .terra-delivery-workbench > header:has(.terra-delivery-back) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 1.1rem;
+  align-items: center;
+  padding: .9rem clamp(1.25rem, 3vw, 2.8rem);
+  background: #dbe9d8;
+}
+
+.terra-top-shell .terra-approval-workbench > header:has(.terra-approval-back) > :not(button),
+.terra-top-shell .terra-delivery-workbench > header:has(.terra-delivery-back) > :not(button) {
+  grid-column: 2;
+}
+
+.terra-top-shell .terra-approval-workbench > header:has(.terra-approval-back) h2,
+.terra-top-shell .terra-delivery-workbench > header:has(.terra-delivery-back) h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.1vw, 2rem);
+  letter-spacing: -.045em;
+}
+
+.terra-top-shell .terra-approval-workbench > header:has(.terra-approval-back) p,
+.terra-top-shell .terra-delivery-workbench > header:has(.terra-delivery-back) p {
+  margin: 0 0 .18rem;
+  color: #517262;
+}
+
+.terra-top-shell .terra-approval-workbench > header:has(.terra-approval-back) span,
+.terra-top-shell .terra-delivery-workbench > header:has(.terra-delivery-back) span {
+  margin-top: .18rem;
+  font-size: .86rem;
+}
+
+.terra-top-shell .terra-approval-workbench > .terra-approval-list,
+.terra-top-shell .terra-delivery-project-list,
+.terra-top-shell .terra-delivery-list {
+  display: block;
+  padding: 0;
+  background: #f9fbf8;
+}
+
+.terra-top-shell .terra-approval-workbench > .terra-approval-list > button,
+.terra-top-shell .terra-delivery-project-list > button,
+.terra-top-shell .terra-delivery-list > button {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr) minmax(12rem, .62fr) auto;
+  align-items: center;
+  gap: 1.4rem;
+  width: 100%;
+  min-height: 5.35rem;
+  margin: 0;
+  padding: 1.05rem clamp(1.25rem, 3vw, 2.8rem);
+  border: 0;
+  border-left: 0;
+  background: #f9fbf8;
+  color: #173f34;
+  text-align: left;
+  transition: background .18s ease, transform .18s ease;
+}
+
+.terra-top-shell .terra-approval-workbench > .terra-approval-list > button:nth-child(even),
+.terra-top-shell .terra-delivery-project-list > button:nth-child(even),
+.terra-top-shell .terra-delivery-list > button:nth-child(even) {
+  background: #edf3ea;
+}
+
+.terra-top-shell .terra-approval-workbench > .terra-approval-list > button:hover,
+.terra-top-shell .terra-approval-workbench > .terra-approval-list > button:focus-visible,
+.terra-top-shell .terra-delivery-project-list > button:hover,
+.terra-top-shell .terra-delivery-project-list > button:focus-visible,
+.terra-top-shell .terra-delivery-list > button:hover,
+.terra-top-shell .terra-delivery-list > button:focus-visible {
+  border-left: 0;
+  background: #dcebd8;
+  outline: 0;
+  transform: translateX(4px);
+}
+
+.terra-top-shell .terra-approval-list > button > div,
+.terra-top-shell .terra-delivery-project-list > button > div { display: contents; }
+
+.terra-top-shell .terra-approval-list > button span,
+.terra-top-shell .terra-delivery-project-list > button span,
+.terra-top-shell .terra-delivery-list > button span {
+  grid-column: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #527364;
+  font-size: .82rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terra-top-shell .terra-approval-list > button strong,
+.terra-top-shell .terra-delivery-project-list > button strong,
+.terra-top-shell .terra-delivery-list > button strong {
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
+  color: #173f34;
+  font-size: 1.12rem;
+  letter-spacing: -.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terra-top-shell .terra-approval-list > button small,
+.terra-top-shell .terra-delivery-project-list > button small,
+.terra-top-shell .terra-delivery-list > button small {
+  grid-column: 3;
+  min-width: 0;
+  overflow: hidden;
+  color: #557466;
+  font-size: .9rem;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terra-top-shell .terra-approval-list > button b,
+.terra-top-shell .terra-delivery-project-list > button b,
+.terra-top-shell .terra-delivery-list > button b {
+  grid-column: 4;
+  grid-row: 1;
+  width: auto;
+  padding: 0;
+  background: transparent;
+  color: #1d614b;
+  font-size: .82rem;
+  white-space: nowrap;
+}
+
+.terra-top-shell .terra-approval-back,
+.terra-top-shell .terra-delivery-back,
+.terra-top-shell .matching-back-link {
+  justify-self: start;
+  align-self: start;
+  width: auto !important;
+  min-height: 2.25rem;
+  border: 0 !important;
+  padding: .25rem 0 !important;
+  background: transparent !important;
+  color: #1d614b;
+  font-size: .9rem;
+  text-align: left !important;
+}
+
+.terra-top-shell .terra-approval-back:hover,
+.terra-top-shell .terra-approval-back:focus-visible,
+.terra-top-shell .terra-delivery-back:hover,
+.terra-top-shell .terra-delivery-back:focus-visible {
+  background: transparent;
+  color: #123d30;
+  outline: 2px solid #1d614b;
+  outline-offset: 4px;
+  text-decoration: underline;
+  text-underline-offset: .22em;
+}
+
+/* A delivery detail is a workspace, not a nested card.  Keep its return
+   action at the left edge and let the record use the full content width. */
+.terra-top-shell .terra-delivery-detail {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.terra-top-shell .terra-delivery-detail > header {
+  justify-items: start;
+  width: 100%;
+}
+
+.terra-top-shell .terra-delivery-detail > header > .terra-delivery-back {
+  justify-self: start;
+  width: auto !important;
+  border: 0 !important;
+  outline: 0;
+  text-align: left !important;
+}
+
+@media (max-width: 760px) {
+  .terra-top-shell .terra-approval-workbench > .terra-approval-list > button,
+  .terra-top-shell .terra-delivery-project-list > button,
+  .terra-top-shell .terra-delivery-list > button {
+    grid-template-columns: 1fr;
+    gap: .5rem;
+    min-height: 0;
+  }
+
+  .terra-top-shell .terra-approval-list > button span,
+  .terra-top-shell .terra-approval-list > button strong,
+  .terra-top-shell .terra-approval-list > button small,
+  .terra-top-shell .terra-delivery-project-list > button span,
+  .terra-top-shell .terra-delivery-project-list > button strong,
+  .terra-top-shell .terra-delivery-project-list > button small,
+  .terra-top-shell .terra-delivery-list > button span,
+  .terra-top-shell .terra-delivery-list > button strong,
+  .terra-top-shell .terra-delivery-list > button small,
+  .terra-top-shell .terra-approval-list > button b,
+  .terra-top-shell .terra-delivery-project-list > button b,
+  .terra-top-shell .terra-delivery-list > button b {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .terra-top-shell .terra-approval-list > button span,
+  .terra-top-shell .terra-approval-list > button strong,
+  .terra-top-shell .terra-approval-list > button small,
+  .terra-top-shell .terra-delivery-project-list > button span,
+  .terra-top-shell .terra-delivery-project-list > button strong,
+  .terra-top-shell .terra-delivery-project-list > button small,
+  .terra-top-shell .terra-delivery-list > button span,
+  .terra-top-shell .terra-delivery-list > button strong,
+  .terra-top-shell .terra-delivery-list > button small {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .terra-top-shell .terra-approval-workbench > .terra-approval-list > button:hover,
+  .terra-top-shell .terra-delivery-project-list > button:hover,
+  .terra-top-shell .terra-delivery-list > button:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terra-top-shell .terra-approval-workbench > .terra-approval-list > button,
+  .terra-top-shell .terra-delivery-project-list > button,
+  .terra-top-shell .terra-delivery-list > button { transition: none; }
+}

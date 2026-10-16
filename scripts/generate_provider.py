@@ -57,6 +57,28 @@ def render():
   occurredAt: Timestamp! @col(name: "occurred_at")
 }
 
+"""Replay guard for creation of a REQUESTED transfer from one proposal."""
+type TransferRequestOperation @table(name: "transfer_request_operations", key: "id", singular: "transferRequestOperation", plural: "transferRequestOperations") {
+  id: String! @col(name: "id")
+  requestFingerprint: String! @col(name: "request_fingerprint")
+  proposalId: String! @col(name: "proposal_id")
+  proposal: AllocationProposal! @ref(fields: "proposalId", references: "id")
+  transferId: String! @col(name: "transfer_id")
+  transfer: Transfer! @ref(fields: "transferId", references: "id")
+  eventId: String! @col(name: "event_id")
+  event: TransferEvent! @ref(fields: "eventId", references: "id")
+  actorLabel: String! @col(name: "actor_label")
+  evidenceRef: String @col(name: "evidence_ref")
+  occurredAt: Timestamp! @col(name: "occurred_at")
+}
+
+type OptimisationRunOperation @table(name: "optimisation_run_operations", key: "id", singular: "optimisationRunOperation", plural: "optimisationRunOperations") {
+  id: String! @col(name: "id")
+  requestFingerprint: String! @col(name: "request_fingerprint")
+  runId: String! @col(name: "run_id") @unique
+  run: OptimisationRun! @ref(fields: "runId", references: "id")
+}
+
 type DemandCommitmentBalance @table(name: "demand_commitment_balances", key: "demandRequestId", singular: "demandCommitmentBalance", plural: "demandCommitmentBalances") {
   demandRequestId: String! @col(name: "demand_request_id")
   demandRequest: DemandRequest! @ref(fields: "demandRequestId", references: "id")
@@ -102,6 +124,68 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
   transfer(id: $transferId) {{ {approval_fields} proposal {{ id proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId }} }}
   transferApprovalOperation(id: $operationId) {{ id requestFingerprint transferId eventId approvedQuantity sourceConfirmationStatus destinationConfirmationStatus actorLabel evidenceRef occurredAt }}
   transferEvent(id: $eventId) {{ id transferId eventType occurredAt actorLabel payload evidenceRef }}
+}}''')
+    operations.append(f'''query GetTransferRequestState($proposalId: String!, $operationId: String!, $transferId: String!, $eventId: String!) @auth(level: NO_ACCESS) {{
+  allocationProposal(id: $proposalId) {{ id proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId }}
+  transfers(where: {{proposalId: {{eq: $proposalId}}}}, limit: 2) {{ {approval_fields} }}
+  transferRequestOperation(id: $operationId) {{ id requestFingerprint proposalId transferId eventId actorLabel evidenceRef occurredAt }}
+  transfer(id: $transferId) {{ {approval_fields} }}
+  transferEvent(id: $eventId) {{ id transferId eventType occurredAt actorLabel payload evidenceRef }}
+}}''')
+    operations.append('''mutation CreateTransferRequest(
+  $proposalId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $transferId: String!
+  $eventId: String!
+  $actorLabel: String!
+  $evidenceRef: String
+  $notes: String
+  $approvedQuantity: Int!
+  $eventPayload: Any!
+  $occurredAt: Timestamp!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact
+    @check(expr: "response.query.allocationProposal != null", message: "PROPOSAL_NOT_FOUND")
+    @check(expr: "response.query.allocationProposal.status == 'SELECTED' && response.query.allocationProposal.compatibilityResult == 'ELIGIBLE'", message: "PROPOSAL_NOT_REQUESTABLE") {
+    allocationProposal(id: $proposalId) { status compatibilityResult }
+  }
+  transfer_insert(data: {
+    id: $transferId proposalId: $proposalId
+    approvedQuantity: $approvedQuantity reservedQuantity: 0 dispatchedQuantity: 0 receivedQuantity: 0 actuallyUsedQuantity: 0
+    status: REQUESTED sourceConfirmationStatus: CONFIRMED destinationConfirmationStatus: CONFIRMED
+    requestedAt: $occurredAt deliveredAt: null reuseConfirmedAt: null notes: $notes
+  })
+  transferEvent_insert(data: {
+    id: $eventId transferId: $transferId eventType: REQUESTED occurredAt: $occurredAt
+    actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
+  })
+  transferRequestOperation_insert(data: {
+    id: $operationId requestFingerprint: $requestFingerprint proposalId: $proposalId
+    transferId: $transferId eventId: $eventId actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
+  })
+}''')
+    run_fields='id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions'
+    proposal_fields='id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt'
+    operations.append(f'''query GetOptimisationRunPersistenceState($runId: String!, $operationId: String!) @auth(level: NO_ACCESS) {{
+  optimisationRun(id: $runId) {{ {run_fields} }}
+  optimisationRunOperation(id: $operationId) {{ id requestFingerprint runId }}
+  allocationProposals(where: {{runId: {{eq: $runId}}}}, orderBy: {{id: ASC}}, limit: 1000) {{ {proposal_fields} }}
+}}''')
+    operations.append(f'''query GetOptimisationRun($runId: String!) @auth(level: NO_ACCESS) {{
+  optimisationRun(id: $runId) {{ {run_fields} }}
+  allocationProposals(where: {{runId: {{eq: $runId}}}}, orderBy: {{id: ASC}}, limit: 1000) {{ {proposal_fields} }}
+}}''')
+    operations.append(f'''mutation PersistOptimisationRun(
+  $operationId: String!
+  $runId: String!
+  $requestFingerprint: String!
+  $run: OptimisationRun_Data! @allow(fields: "{run_fields}")
+  $proposals: [AllocationProposal_Data!]! @allow(fields: "{proposal_fields}", maxCount: 1000)
+) @auth(level: NO_ACCESS) @transaction {{
+  optimisationRun_insert(data: $run)
+  allocationProposal_insertMany(data: $proposals)
+  optimisationRunOperation_insert(data: {{id: $operationId requestFingerprint: $requestFingerprint runId: $runId}})
 }}''')
     operations.append('''mutation ApproveTransfer(
   $transferId: String!
@@ -245,7 +329,7 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
     operations.append(f'''mutation ReserveTransfer({common_vars}
 ) @auth(level: NO_ACCESS) @transaction {{
   {reserve_insert}
-  transfer_updateMany(where: {{id: {{eq: $transferId}} status: {{eq: APPROVED}}}}, data: {{reservedQuantity: $quantity status: RESERVED}}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  transfer_updateMany(where: {{id: {{eq: $transferId}} status: {{in: [REQUESTED, APPROVED]}}}}, data: {{reservedQuantity: $quantity status: RESERVED}}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
   supplyOffer_update(id: $supplyOfferId, data: {{reservedActiveQuantity_update: {{inc: $quantity}}}}) @check(expr: "this != null", message: "SUPPLY_NOT_FOUND")
   demandCommitmentBalance_update(key: {{demandRequestId: $demandRequestId}}, data: {{committedQuantity_update: {{inc: $quantity}}}}) @check(expr: "this != null", message: "DEMAND_BALANCE_NOT_FOUND")
   query @redact
@@ -325,7 +409,7 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
   $notes: String
 ) @auth(level: NO_ACCESS) @transaction {{
   {cancel_insert}
-  transfer_updateMany(where: {{id: {{eq: $transferId}} status: {{in: [APPROVED, RESERVED]}} dispatchedQuantity: {{eq: 0}} reservedQuantity: {{eq: $quantity}}}}, data: {{reservedQuantity: 0 status: CANCELLED notes: $notes}}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  transfer_updateMany(where: {{id: {{eq: $transferId}} status: {{in: [REQUESTED, APPROVED, RESERVED]}} dispatchedQuantity: {{eq: 0}} reservedQuantity: {{eq: $quantity}}}}, data: {{reservedQuantity: 0 status: CANCELLED notes: $notes}}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
   supplyOffer_update(id: $supplyOfferId, data: {{reservedActiveQuantity_update: {{dec: $quantity}}}}) @check(expr: "this != null", message: "SUPPLY_NOT_FOUND")
   demandCommitmentBalance_update(key: {{demandRequestId: $demandRequestId}}, data: {{committedQuantity_update: {{dec: $quantity}}}}) @check(expr: "this != null", message: "DEMAND_BALANCE_NOT_FOUND")
   query @redact
@@ -347,6 +431,8 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
     operations.append('mutation ImportBaseline(\n  '+'\n  '.join(variables)+'\n) @auth(level: NO_ACCESS) @transaction {\n'+'\n'.join(writes)+'\n}')
     deletes.insert(0, '  demandCommitmentBalance_deleteMany(all: true)')
     deletes.insert(0, '  transferWorkflowOperation_deleteMany(all: true)')
+    deletes.insert(0, '  transferRequestOperation_deleteMany(all: true)')
+    deletes.insert(0, '  optimisationRunOperation_deleteMany(all: true)')
     deletes.insert(0, '  transferApprovalOperation_deleteMany(all: true)')
     deletes.insert(0, '  impactAssessmentHead_deleteMany(all: true)')
     deletes.insert(0, '  impactCalculationOperation_deleteMany(all: true)')
