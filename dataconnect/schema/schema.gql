@@ -274,6 +274,28 @@ type TransferWorkflowOperation @table(name: "transfer_workflow_operations", key:
   occurredAt: Timestamp! @col(name: "occurred_at")
 }
 
+"""Replay guard for creation of a REQUESTED transfer from one proposal."""
+type TransferRequestOperation @table(name: "transfer_request_operations", key: "id", singular: "transferRequestOperation", plural: "transferRequestOperations") {
+  id: String! @col(name: "id")
+  requestFingerprint: String! @col(name: "request_fingerprint")
+  proposalId: String! @col(name: "proposal_id")
+  proposal: AllocationProposal! @ref(fields: "proposalId", references: "id")
+  transferId: String! @col(name: "transfer_id")
+  transfer: Transfer! @ref(fields: "transferId", references: "id")
+  eventId: String! @col(name: "event_id")
+  event: TransferEvent! @ref(fields: "eventId", references: "id")
+  actorLabel: String! @col(name: "actor_label")
+  evidenceRef: String @col(name: "evidence_ref")
+  occurredAt: Timestamp! @col(name: "occurred_at")
+}
+
+type OptimisationRunOperation @table(name: "optimisation_run_operations", key: "id", singular: "optimisationRunOperation", plural: "optimisationRunOperations") {
+  id: String! @col(name: "id")
+  requestFingerprint: String! @col(name: "request_fingerprint")
+  runId: String! @col(name: "run_id") @unique
+  run: OptimisationRun! @ref(fields: "runId", references: "id")
+}
+
 type DemandCommitmentBalance @table(name: "demand_commitment_balances", key: "demandRequestId", singular: "demandCommitmentBalance", plural: "demandCommitmentBalances") {
   demandRequestId: String! @col(name: "demand_request_id")
   demandRequest: DemandRequest! @ref(fields: "demandRequestId", references: "id")

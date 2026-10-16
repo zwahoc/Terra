@@ -27,3 +27,11 @@ class OptimisationPreviewRequest(BaseModel):
     objective: Literal['MAX_REUSE', 'EARLIEST_DEADLINE', 'MAX_NET_CO2E_AVOIDED']
     planning_date: date
     factor_dataset_version: str = Field(min_length=1, max_length=128)
+    destination_project_id: str | None = Field(default=None, min_length=1, max_length=128)
+
+
+class OptimisationRunCreateRequest(OptimisationPreviewRequest):
+    """Persist a selected optimisation calculation without creating a transfer."""
+
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    actor_label: str = Field(min_length=1, max_length=200)

@@ -59,37 +59,47 @@ The first Codex task may only create a **query/connector data path and docs**, n
 - `POST /api/extracted-rows/{id}/publish` — idempotent conversion after business validation.
 - `GET /api/materials?query=...` — canonical lookup and mapping suggestions, also supporting the category filter above.
 
-### Optimisation endpoints (later)
+### Optimisation endpoints
 
 Non-persisting integration extensions are implemented at
 `POST /api/optimisation-runs/preview` and
 `POST /api/impact-assessments/forecast-preview`. See
 [IMPACT_API.md](IMPACT_API.md) for their explicit request/response contracts.
 They return temporary plans/forecasts without run/proposal/assessment IDs or
-writes. The persisted run endpoint described below is still pending.
+writes.
 
 `POST /api/optimisation-runs`
 
 ```json
 {
   "objective": "MAX_NET_CO2E_AVOIDED",
-  "project_ids": ["PRJ-001", "PRJ-002", "PRJ-003"],
-  "include_potential_surplus_for_preview": false,
-  "factor_dataset_version": "demo-v1"
+  "planning_date": "2026-10-12",
+  "factor_dataset_version": "demo-v1",
+  "destination_project_id": "PRJ-002",
+  "idempotency_key": "optimise-2026-10-12-prj-002",
+  "actor_label": "Demo operator"
 }
 ```
 
-Response includes `run_id`, objective, `input_snapshot_hash`, solver status, proposed allocations with reason codes, and a separate incomplete-carbon flag. Previewing potential surplus must **never make it reservable**.
+This computes the same eligible matching calculation from one database snapshot,
+then atomically creates an immutable `optimisation_run`, its `SELECTED` and
+`ELIGIBLE` allocation proposals, and an idempotency operation record. The
+response returns `data.run` and `data.proposals`; `GET
+/api/optimisation-runs/{run_id}` returns that persisted run and its proposals.
+The endpoint creates no transfer, reservation, stock mutation, demand
+commitment, dispatch, receipt, or reuse. Repeating the same idempotency key and
+payload returns the original result; reusing it with different input returns a
+conflict. Previewing potential surplus must **never make it reservable**.
 
 For the current MAX_REUSE implementation, the latest user-requested priority is
 maximum allocated pcs, earliest demand `required_by`, earliest feasible delivery,
 shorter route and stable IDs. See SRS Section 12.1 for the amendment and provenance.
 This changes the internal plan preference policy, not the endpoint or DTO fields.
 
-### Transfer workflow endpoints (later)
+### Transfer workflow endpoints
 
-`POST /api/allocation-proposals/{id}/transfers` — create request (no reserve yet).  
-`POST /api/transfers/{id}/approve` — record source/destination confirmation status and approved quantity; no stock/demand hold yet.  
+`POST /api/allocation-proposals/{id}/approve` — approve a matching proposal, then atomically create its `REQUESTED` transfer and `REQUESTED` event. It accepts `actor_label`, `idempotency_key`, optional `evidence_ref`, and optional `notes`. The proposal must be `SELECTED` and `ELIGIBLE`; duplicate requests for a proposal return a conflict. Its requested quantity equals the proposal quantity. It creates no reservation, stock mutation, demand commitment, dispatch, receipt, or reuse.
+`POST /api/transfers/{id}/approve` — legacy compatibility for existing synthetic baseline records only; new proposal approvals use the endpoint above.
 `POST /api/transfers/{id}/reserve` — **transactional, idempotent** stock and incoming demand commitment check.  
 `POST /api/transfers/{id}/dispatch` — record quantity dispatched and decrement active reservation.  
 `POST /api/transfers/{id}/receive` — intentional MVP restriction: confirm the complete dispatched quantity arrived in one operation; no request quantity, partial/missing delivery, or confirmed reuse.

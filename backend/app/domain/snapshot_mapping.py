@@ -139,8 +139,12 @@ def _check_transfer(t: dict, p: dict, s: dict, d: dict) -> None:
         _require(issued == 0, f"{rid}: post-dispatch cancellation requires an explicit return/residual contract")
         _require(held == 0, f"{rid}: cancelled transfer retains a source hold")
     elif status == 'REQUESTED':
-        _require(approved == held == issued == received == used == 0,
-                 f"{rid}: requested transfer already has approval or stock effects")
+        _require(held == issued == received == used == 0,
+                 f"{rid}: requested transfer already has stock effects")
+        _require((approved == 0) or (
+            approved > 0 and t['source_confirmation_status'] == 'CONFIRMED'
+            and t['destination_confirmation_status'] == 'CONFIRMED'
+        ), f"{rid}: requested transfer approval/confirmations are invalid")
     else:
         _require(approved > 0 and t['source_confirmation_status'] == 'CONFIRMED'
                  and t['destination_confirmation_status'] == 'CONFIRMED',

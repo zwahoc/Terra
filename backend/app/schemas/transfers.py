@@ -21,6 +21,17 @@ class TransferApprovalRequest(BaseModel):
     evidence_ref: str | None = Field(default=None, max_length=500)
 
 
+class TransferRequestCreateRequest(BaseModel):
+    """Create a review request only; this cannot reserve stock."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    actor_label: str = Field(min_length=1, max_length=200)
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    evidence_ref: str | None = Field(default=None, max_length=500)
+    notes: str | None = Field(default=None, max_length=1000)
+
+
 class TransferRecord(BaseModel):
     id: str
     proposal_id: str
@@ -63,6 +74,19 @@ class DatasetMeta(BaseModel):
 
 class TransferApprovalResponse(BaseModel):
     data: TransferApprovalData
+    meta: DatasetMeta
+    error: None = None
+
+
+class TransferRequestCreateData(BaseModel):
+    transfer: TransferRecord
+    event: TransferEventRecord
+    idempotency_key: str
+    replayed: bool
+
+
+class TransferRequestCreateResponse(BaseModel):
+    data: TransferRequestCreateData
     meta: DatasetMeta
     error: None = None
 

@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from backend.app.schemas.transfers import (
     TransferApprovalRequest,
     TransferApprovalResponse,
+    TransferRequestCreateRequest,
+    TransferRequestCreateResponse,
     TransferCancelRequest,
     TransferDispatchRequest,
     TransferQuantityRequest,
@@ -23,6 +25,11 @@ from backend.app.services.transfer_approval_service import (
     TransferApprovalNotFound,
     TransferApprovalUnavailable,
     approve_transfer,
+)
+from backend.app.services.transfer_request_service import (
+    TransferRequestConflict, TransferRequestError, TransferRequestInput,
+    TransferRequestInvalid, TransferRequestNotFound, TransferRequestUnavailable,
+    create_transfer_request,
 )
 from backend.app.services.transfer_read_service import (
     RelatedRecordNotFound,
@@ -158,6 +165,35 @@ def approve_transfer_by_id(
     except TransferApprovalUnavailable as exc:
         return _envelope_error(503, exc.code, exc.message, exc.details)
     except TransferApprovalError as exc:
+        return _envelope_error(500, exc.code, exc.message, exc.details)
+
+
+@router.post(
+    "/allocation-proposals/{proposal_id}/approve",
+    response_model=TransferRequestCreateResponse,
+    status_code=201,
+    summary="Approve a matching proposal and create its transfer request",
+    description=(
+        "Approves one selected eligible matching proposal and atomically creates its "
+        "REQUESTED transfer and REQUESTED audit event. The requested quantity equals "
+        "the proposal quantity; no stock is reserved and no incoming demand commitment "
+        "is created."
+    ),
+)
+def create_transfer_request_for_proposal(
+    proposal_id: str, body: TransferRequestCreateRequest
+) -> dict[str, Any] | JSONResponse:
+    try:
+        return create_transfer_request(proposal_id, TransferRequestInput(**body.model_dump()))
+    except TransferRequestNotFound as exc:
+        return _envelope_error(404, exc.code, exc.message, exc.details)
+    except TransferRequestInvalid as exc:
+        return _envelope_error(400, exc.code, exc.message, exc.details)
+    except TransferRequestConflict as exc:
+        return _envelope_error(409, exc.code, exc.message, exc.details)
+    except TransferRequestUnavailable as exc:
+        return _envelope_error(503, exc.code, exc.message, exc.details)
+    except TransferRequestError as exc:
         return _envelope_error(500, exc.code, exc.message, exc.details)
 
 

@@ -6,11 +6,15 @@ from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse, Response
 
 from backend.app.schemas.impact import (
-    ImpactCalculationRequest, ForecastPreviewRequest, OptimisationPreviewRequest,
+    ImpactCalculationRequest, ForecastPreviewRequest, OptimisationPreviewRequest, OptimisationRunCreateRequest,
 )
 from backend.app.repositories.impact_repository import ImpactRepository, ImpactRepositoryError
 from backend.app.services.forecast_preview_service import ForecastPreviewCalculator
 from backend.app.services.optimisation_preview_service import preview_optimisation, preview_json
+from backend.app.services.optimisation_run_service import (
+    OptimisationRunConflict, OptimisationRunError, OptimisationRunInput, OptimisationRunInvalid,
+    OptimisationRunNotFound, OptimisationRunUnavailable, get_optimisation_run, persist_optimisation_run,
+)
 from backend.app.services.transfer_read_service import load_baseline_metadata
 from backend.app.services.impact_export_service import export_csv, export_json
 from backend.app.services.impact_service import (
@@ -88,6 +92,28 @@ def optimisation_preview(body: OptimisationPreviewRequest):
         return _error(exc)
 
 
+def _optimisation_error(exc: OptimisationRunError):
+    status = 404 if isinstance(exc, OptimisationRunNotFound) else 400 if isinstance(exc, OptimisationRunInvalid) else 409 if isinstance(exc, OptimisationRunConflict) else 503 if isinstance(exc, OptimisationRunUnavailable) else 500
+    return JSONResponse(status_code=status, content={"data": None, "meta": None, "error": {"code": exc.code, "message": exc.message, "details": exc.details}})
+
+
+@router.post('/optimisation-runs', status_code=201, response_model=None)
+def persist_optimisation(body: OptimisationRunCreateRequest):
+    """Persist an eligible selected plan; does not create transfers or reservations."""
+    try:
+        return persist_optimisation_run(OptimisationRunInput(**body.model_dump()))
+    except OptimisationRunError as exc:
+        return _optimisation_error(exc)
+
+
+@router.get('/optimisation-runs/{run_id}', response_model=None)
+def read_optimisation_run(run_id: str):
+    try:
+        return get_optimisation_run(run_id)
+    except OptimisationRunError as exc:
+        return _optimisation_error(exc)
+
+
 @router.post("/impact-assessments/proposals/{proposal_id}/calculate", response_model=None)
 def calculate_forecast(proposal_id: str, body: ImpactCalculationRequest):
     return _calculation("PROPOSAL_FORECAST", proposal_id, body)
@@ -118,12 +144,13 @@ def read_assessment(assessment_id: str):
 
 @router.get("/exports/impact", response_model=None)
 def impact_export(
-    basis: Basis = Query(...), format: Literal["json", "csv"] = Query(...)
+    basis: Basis = Query(...), format: Literal["json", "csv"] = Query(...),
+    project_id: str | None = Query(default=None), transfer_id: str | None = Query(default=None),
 ):
     try:
         if format == "json":
-            return export_json(basis)
-        content = export_csv(basis)
+            return export_json(basis, project_id=project_id, transfer_id=transfer_id)
+        content = export_csv(basis, project_id=project_id, transfer_id=transfer_id)
         return Response(
             content=content,
             media_type="text/csv; charset=utf-8",

@@ -126,6 +126,71 @@ query GetTransferApprovalState($transferId: String!, $operationId: String!, $eve
   transferEvent(id: $eventId) { id transferId eventType occurredAt actorLabel payload evidenceRef }
 }
 
+query GetTransferRequestState($proposalId: String!, $operationId: String!, $transferId: String!, $eventId: String!) @auth(level: NO_ACCESS) {
+  allocationProposal(id: $proposalId) { id proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId }
+  transfers(where: {proposalId: {eq: $proposalId}}, limit: 2) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+  transferRequestOperation(id: $operationId) { id requestFingerprint proposalId transferId eventId actorLabel evidenceRef occurredAt }
+  transfer(id: $transferId) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+  transferEvent(id: $eventId) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+}
+
+mutation CreateTransferRequest(
+  $proposalId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $transferId: String!
+  $eventId: String!
+  $actorLabel: String!
+  $evidenceRef: String
+  $notes: String
+  $approvedQuantity: Int!
+  $eventPayload: Any!
+  $occurredAt: Timestamp!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact
+    @check(expr: "response.query.allocationProposal != null", message: "PROPOSAL_NOT_FOUND")
+    @check(expr: "response.query.allocationProposal.status == 'SELECTED' && response.query.allocationProposal.compatibilityResult == 'ELIGIBLE'", message: "PROPOSAL_NOT_REQUESTABLE") {
+    allocationProposal(id: $proposalId) { status compatibilityResult }
+  }
+  transfer_insert(data: {
+    id: $transferId proposalId: $proposalId
+    approvedQuantity: $approvedQuantity reservedQuantity: 0 dispatchedQuantity: 0 receivedQuantity: 0 actuallyUsedQuantity: 0
+    status: REQUESTED sourceConfirmationStatus: CONFIRMED destinationConfirmationStatus: CONFIRMED
+    requestedAt: $occurredAt deliveredAt: null reuseConfirmedAt: null notes: $notes
+  })
+  transferEvent_insert(data: {
+    id: $eventId transferId: $transferId eventType: REQUESTED occurredAt: $occurredAt
+    actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
+  })
+  transferRequestOperation_insert(data: {
+    id: $operationId requestFingerprint: $requestFingerprint proposalId: $proposalId
+    transferId: $transferId eventId: $eventId actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
+  })
+}
+
+query GetOptimisationRunPersistenceState($runId: String!, $operationId: String!) @auth(level: NO_ACCESS) {
+  optimisationRun(id: $runId) { id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions }
+  optimisationRunOperation(id: $operationId) { id requestFingerprint runId }
+  allocationProposals(where: {runId: {eq: $runId}}, orderBy: {id: ASC}, limit: 1000) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+}
+
+query GetOptimisationRun($runId: String!) @auth(level: NO_ACCESS) {
+  optimisationRun(id: $runId) { id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions }
+  allocationProposals(where: {runId: {eq: $runId}}, orderBy: {id: ASC}, limit: 1000) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+}
+
+mutation PersistOptimisationRun(
+  $operationId: String!
+  $runId: String!
+  $requestFingerprint: String!
+  $run: OptimisationRun_Data! @allow(fields: "id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions")
+  $proposals: [AllocationProposal_Data!]! @allow(fields: "id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt", maxCount: 1000)
+) @auth(level: NO_ACCESS) @transaction {
+  optimisationRun_insert(data: $run)
+  allocationProposal_insertMany(data: $proposals)
+  optimisationRunOperation_insert(data: {id: $operationId requestFingerprint: $requestFingerprint runId: $runId})
+}
+
 mutation ApproveTransfer(
   $transferId: String!
   $operationId: String!
@@ -273,7 +338,7 @@ mutation ReserveTransfer(
     transferId: $transferId eventId: $eventId quantity: $quantity
     actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
   })
-  transfer_updateMany(where: {id: {eq: $transferId} status: {eq: APPROVED}}, data: {reservedQuantity: $quantity status: RESERVED}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  transfer_updateMany(where: {id: {eq: $transferId} status: {in: [REQUESTED, APPROVED]}}, data: {reservedQuantity: $quantity status: RESERVED}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
   supplyOffer_update(id: $supplyOfferId, data: {reservedActiveQuantity_update: {inc: $quantity}}) @check(expr: "this != null", message: "SUPPLY_NOT_FOUND")
   demandCommitmentBalance_update(key: {demandRequestId: $demandRequestId}, data: {committedQuantity_update: {inc: $quantity}}) @check(expr: "this != null", message: "DEMAND_BALANCE_NOT_FOUND")
   query @redact
@@ -425,7 +490,7 @@ mutation CancelTransfer(
     transferId: $transferId eventId: $eventId quantity: $quantity reason: $reason
     actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt
   })
-  transfer_updateMany(where: {id: {eq: $transferId} status: {in: [APPROVED, RESERVED]} dispatchedQuantity: {eq: 0} reservedQuantity: {eq: $quantity}}, data: {reservedQuantity: 0 status: CANCELLED notes: $notes}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
+  transfer_updateMany(where: {id: {eq: $transferId} status: {in: [REQUESTED, APPROVED, RESERVED]} dispatchedQuantity: {eq: 0} reservedQuantity: {eq: $quantity}}, data: {reservedQuantity: 0 status: CANCELLED notes: $notes}) @check(expr: "this == 1", message: "TRANSFER_INVALID_STAGE")
   supplyOffer_update(id: $supplyOfferId, data: {reservedActiveQuantity_update: {dec: $quantity}}) @check(expr: "this != null", message: "SUPPLY_NOT_FOUND")
   demandCommitmentBalance_update(key: {demandRequestId: $demandRequestId}, data: {committedQuantity_update: {dec: $quantity}}) @check(expr: "this != null", message: "DEMAND_BALANCE_NOT_FOUND")
   query @redact
@@ -480,6 +545,8 @@ mutation ClearBaseline @auth(level: NO_ACCESS) @transaction {
   impactCalculationOperation_deleteMany(all: true)
   impactAssessmentHead_deleteMany(all: true)
   transferApprovalOperation_deleteMany(all: true)
+  optimisationRunOperation_deleteMany(all: true)
+  transferRequestOperation_deleteMany(all: true)
   transferWorkflowOperation_deleteMany(all: true)
   demandCommitmentBalance_deleteMany(all: true)
   impactAssessment_deleteMany(all: true)

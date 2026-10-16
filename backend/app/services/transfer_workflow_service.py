@@ -1,4 +1,4 @@
-"""Framework-independent transfer workflow after approval.
+"""Framework-independent transfer workflow after a proposal is approved.
 
 Reservation, dispatch, and receipt are full-quantity, one-time transitions.
 Confirmed use retains its positive partial/repeated quantity contract. Partial use
@@ -44,11 +44,11 @@ class TransferWorkflowUnavailable(TransferWorkflowError): pass
 
 
 _CONFIG = {
-    "reserve": ("APPROVED", "ReserveTransfer", "RESERVED"),
+    "reserve": (("REQUESTED", "APPROVED"), "ReserveTransfer", "RESERVED"),
     "dispatch": ("RESERVED", "DispatchTransfer", "DISPATCHED"),
     "receive": ("IN_TRANSIT", "ReceiveTransfer", "RECEIVED"),
     "confirm_use": (("RECEIVED", "REUSED"), "ConfirmTransferUse", "USED"),
-    "cancel": (("APPROVED", "RESERVED"), "CancelTransfer", "CANCELLED"),
+    "cancel": (("REQUESTED", "APPROVED", "RESERVED"), "CancelTransfer", "CANCELLED"),
 }
 
 

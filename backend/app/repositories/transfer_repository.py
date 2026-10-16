@@ -31,6 +31,10 @@ class TransferWorkflowMutationError(TransferRepositoryError):
     """The provider rejected or could not complete a workflow transaction."""
 
 
+class TransferRequestMutationError(TransferRepositoryError):
+    """The provider rejected or could not create a requested transfer."""
+
+
 @dataclass(frozen=True)
 class TransferApprovalState:
     """Current records needed to validate or replay an approval."""
@@ -53,6 +57,17 @@ class TransferWorkflowState:
     event: dict[str, Any] | None
 
 
+@dataclass(frozen=True)
+class TransferRequestState:
+    """Records needed to create or replay a requested transfer."""
+
+    proposal: dict[str, Any] | None
+    transfers_for_proposal: list[dict[str, Any]]
+    operation: dict[str, Any] | None
+    transfer: dict[str, Any] | None
+    event: dict[str, Any] | None
+
+
 class TransferRepository:
     """Read transfers with the existing bounded ``ListTransfers`` operation.
 
@@ -65,6 +80,8 @@ class TransferRepository:
     APPROVAL_STATE_OPERATION = "GetTransferApprovalState"
     APPROVE_OPERATION = "ApproveTransfer"
     WORKFLOW_STATE_OPERATION = "GetTransferWorkflowState"
+    REQUEST_STATE_OPERATION = "GetTransferRequestState"
+    CREATE_REQUEST_OPERATION = "CreateTransferRequest"
     ENTITY = "transfers"
 
     def __init__(self, adapter: LocalDataConnect | None = None) -> None:
@@ -213,6 +230,56 @@ class TransferRepository:
             raise TransferApprovalMutationError(
                 "The SQL Connect approval transaction was rejected."
             ) from exc
+
+    @staticmethod
+    def _map_proposal(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "proposed_quantity": row["proposedQuantity"],
+            "unit": row["unit"], "compatibility_result": row["compatibilityResult"],
+            "status": row["status"], "supply_offer_id": row["supplyOfferId"],
+            "demand_request_id": row["demandRequestId"],
+        }
+
+    def get_request_state(self, proposal_id: str, operation_id: str,
+                          transfer_id: str, event_id: str) -> TransferRequestState:
+        try:
+            result = self._adapter.execute(self.REQUEST_STATE_OPERATION, {
+                "proposalId": proposal_id, "operationId": operation_id,
+                "transferId": transfer_id, "eventId": event_id,
+            })
+            proposal = result["allocationProposal"]
+            operation_row = result["transferRequestOperation"]
+            return TransferRequestState(
+                self._map_proposal(proposal) if proposal is not None else None,
+                map_entity_rows("transfers", result["transfers"]),
+                None if operation_row is None else {
+                    "id": operation_row["id"], "request_fingerprint": operation_row["requestFingerprint"],
+                    "proposal_id": operation_row["proposalId"], "transfer_id": operation_row["transferId"],
+                    "event_id": operation_row["eventId"],
+                },
+                None if result["transfer"] is None else map_entity_rows("transfers", [result["transfer"]])[0],
+                None if result["transferEvent"] is None else map_entity_rows("transfer_events", [result["transferEvent"]])[0],
+            )
+        except AdapterUnavailableError as exc:
+            raise TransferRepositoryUnavailable("The local SQL Connect emulator is unavailable.") from exc
+        except (AdapterError, KeyError, TypeError, ValueError) as exc:
+            raise TransferRepositoryError("The SQL Connect request-state response is invalid.") from exc
+
+    def create_request(self, command: dict[str, Any]) -> None:
+        variables = {
+            "proposalId": command["proposal_id"], "operationId": command["operation_id"],
+            "requestFingerprint": command["request_fingerprint"], "transferId": command["transfer_id"],
+            "eventId": command["event_id"], "actorLabel": command["actor_label"],
+            "evidenceRef": command["evidence_ref"], "notes": command["notes"],
+            "approvedQuantity": command["approved_quantity"],
+            "eventPayload": command["event_payload"], "occurredAt": command["occurred_at"],
+        }
+        try:
+            self._adapter.execute(self.CREATE_REQUEST_OPERATION, variables, write=True)
+        except AdapterUnavailableError as exc:
+            raise TransferRepositoryUnavailable("The local SQL Connect emulator is unavailable.") from exc
+        except AdapterError as exc:
+            raise TransferRequestMutationError("The SQL Connect transfer-request transaction was rejected.") from exc
 
     @staticmethod
     def _map_supply(row: dict[str, Any]) -> dict[str, Any]:
