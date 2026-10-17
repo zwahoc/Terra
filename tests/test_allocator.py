@@ -121,7 +121,7 @@ class AllocatorTests(unittest.TestCase):
         snapshot = small_snapshot()
         demands = dict(snapshot.demands)
         # D1 can receive earlier and has a shorter route, but D2 is more urgent.
-        demands['DEM-2'] = replace(demands['DEM-2'], needed_from=date(2026, 10, 15),
+        demands['DEM-2'] = replace(demands['DEM-2'], needed_from=date(2026, 10, 14),
                                    required_by=date(2026, 10, 16))
         snapshot = replace(snapshot, supplies={'SUP-1': snapshot.supplies['SUP-1']}, demands=demands)
         plan = allocate_max_reuse(snapshot)

@@ -229,9 +229,10 @@ def evaluate_eligibility(
         review.append("LEAD_TIME_REVIEW_REQUIRED")
     else:
         lead = timedelta(days=lead_time_days)
-        # Hold at source until departure can arrive within the recipient window.
-        # available_until is treated as the last permitted dispatch date.
-        dispatch = max(planning_date, supply.available_from, demand.needed_from - lead)
+        # Reservation cannot precede the recipient window (Member 4 policy).
+        # Reserve at the earliest feasible source/demand date, then dispatch.
+        # available_until remains the last permitted dispatch date.
+        dispatch = max(planning_date, supply.available_from, demand.needed_from)
         delivery = dispatch + lead
         if (delivery > demand.required_by
                 or supply.available_until is not None and dispatch > supply.available_until):

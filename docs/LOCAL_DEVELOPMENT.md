@@ -1,6 +1,6 @@
 # Terra local development on Windows and macOS
 
-The development tooling targets native Windows, macOS and Linux. WSL is not required. React/FastAPI remain local; React is blank and FastAPI has transfer lifecycle and comparative impact routes. The database baseline runs through Firebase CLI 15.33.0, SQL Connect emulator 3.4.22 and its integrated PGlite engine. `demo-terra-local` is a local demo ID. No Firebase login, cloud credentials, Cloud SQL provisioning or credit card is required.
+The development tooling targets native Windows, macOS and Linux. WSL is not required. React/FastAPI remain local; Member 1's frontend integrates matching/transfer APIs and FastAPI also exposes paired comparison and impact routes. The database baseline runs through Firebase CLI 15.33.0, SQL Connect emulator 3.4.22 and its integrated PGlite engine. `demo-terra-local` is a local demo ID. No Firebase login, cloud credentials, Cloud SQL provisioning or credit card is required.
 
 ## Prerequisites
 
@@ -86,17 +86,23 @@ Member 3's objective selector. Request `planning_date` must cover live record
 timestamps; see IMPACT_API.md for payloads and decimal-string response values.
 
 `POST /api/optimisation-runs` persists one chosen matching calculation and its
-`SELECTED`/`ELIGIBLE` proposals in one SQL Connect transaction. It requires an
+`SELECTED`/`ELIGIBLE` proposals plus linked initial forecasts/revision heads in one SQL Connect transaction. It requires an
 idempotency key and actor label, and deliberately creates no transfer,
 reservation, stock mutation, demand commitment, dispatch, receipt, or reuse.
 Use `GET /api/optimisation-runs/{run_id}` to read the persisted run and its
-proposals.
+proposals and assessments. Shared-snapshot comparison preview and atomic saving
+are available at `/api/optimisation-comparisons/preview` and
+`/api/optimisation-comparisons`; see [comparison contracts](OPTIMISATION_COMPARISON_API.md).
+Comparison proposals remain PROPOSED until the existing proposal approval API
+selects one and creates its unreserved transfer request.
 
 ```sh
 npm run build:frontend
 ```
 
-This runs TypeScript validation and creates an ignored `frontend/dist` build. The frontend remains blank; no frontend database integration or UI features were added.
+This runs TypeScript validation and creates an ignored `frontend/dist` build.
+Member 1's merged frontend now integrates the single-run matching/approval and
+delivery APIs. The new paired-comparison UI remains a separate integration task.
 
 ## Reset and integration tests
 

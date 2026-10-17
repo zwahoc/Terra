@@ -284,3 +284,8 @@ chosen quantities. Next: implement paired comparison and create/persist
 reproducible run/proposal DTOs with matching context through the shared repository.
 The objective implementation itself changed no database, API, seed or README;
 the subsequent preview integration adds explicit non-persisting HTTP extensions.
+
+17 October 2026: planning now waits until needed_from before dispatch, following
+Member 4's existing reservation rule. Shared-snapshot comparison and atomic
+run/proposal/initial-forecast saving are implemented; see
+[the comparison integration guide](OPTIMISATION_COMPARISON_API.md).

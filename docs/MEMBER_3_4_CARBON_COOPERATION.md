@@ -4,8 +4,9 @@ Prepared on 14 October 2026, Asia/Kuala_Lumpur. This is an integration
 guide for Shawn (Member 3), Weixuan (Member 4), and their coding agents. It explains
 how one shared carbon calculation service can support optimisation and final
 forecast assessments. The non-persisting preview boundary is now implemented;
-paired comparison and new-run persistence remain planned. No database schema
-or SRS amendment is introduced by the preview connection.
+shared-snapshot comparison and linked initial-forecast persistence were added
+on 17 October 2026. See [the implemented API contracts](OPTIMISATION_COMPARISON_API.md).
+Later live forecast context/date alignment and partial-use boundaries remain deferred.
 
 ## The short explanation
 
@@ -61,7 +62,7 @@ flowchart TD
 | Carbon preview/scoring integration | ForecastPreviewCalculator supplies temporary forecasts and LinearCarbonScores without persistence |
 | Seed emission_factors | Eight synthetic versioned factors, not verified Malaysian factors |
 | Seed impact_assessments | Eight stored example outcomes, not a live scoring function for arbitrary candidates |
-| Run/proposal/forecast persistence and HTTP integration | Preview endpoints and persisted selected/eligible optimisation runs are implemented; proposal forecasts and Member 4 saved assessment APIs remain separate |
+| Run/proposal/forecast persistence and HTTP integration | Single/paired run saving includes linked initial forecasts and revision heads atomically; paired proposals require explicit selection |
 
 The current generator is [candidates.py](../backend/app/domain/candidates.py).
 Use result.eligible; do not treat all result.pairs as allocatable.
@@ -74,8 +75,8 @@ The current allocator is [allocator.py](../backend/app/domain/allocator.py).
 allocate_max_reuse(snapshot) remains supported. The new allocate(snapshot,
 objective=...) selector supports all three dictionary objective names and
 generates candidates internally. The carbon strategy consumes LinearCarbonScores;
-the non-persisting service connection now exists. Saving new runs/proposals and
-binding their final assessment context still need integration work.
+the service connection and initial linked-forecast saving now exist. Binding
+later live recalculation to the original forecast context remains deferred.
 See [allocator policies and examples](OPTIMISATION_ALLOCATOR.md).
 
 ## Responsibilities
@@ -122,10 +123,9 @@ parallel execution. MAX_REUSE can be calculated while carbon inputs are being
 prepared, but no separate processes or background infrastructure are required.
 
 Document 08's proposed POST /api/optimisation-runs currently accepts one objective.
-The dictionary already permits multiple runs with the same input snapshot/hash,
-but a single public comparison request/response needs an agreed API addition or
-snapshot-bound orchestration of two single-objective requests. This guide does
-not introduce a comparison endpoint or change the existing request contract.
+The dictionary permits multiple runs with the same input snapshot/hash.
+The implemented /api/optimisation-comparisons endpoints now provide paired
+preview and atomic saving; the original single-objective endpoint remains.
 
 ## Step 1 Prepare shared inputs
 
@@ -303,10 +303,13 @@ optimisation_runs.id
         -> impact_assessments.proposal_id
 ```
 
-Each strategy has its own run and uses the same comparison snapshot. Proposal
-records retain PROPOSED status; no transfer/reservation is created automatically.
-Actual persistence ordering/transaction and retry handling must be designed at
-integration time; do not claim a safe persistence operation already exists.
+Each strategy has its own run and uses the same comparison snapshot. Comparison
+proposals retain PROPOSED status. The existing explicit single-plan save path
+retains Member 1's SELECTED status behaviour. Neither saving path creates a
+transfer/reservation automatically.
+Atomic named operations now save runs, proposals, initial forecasts and heads
+together with replay records. Explicit proposal selection/request creation is
+a separate transaction. See the comparison API guide for state semantics.
 
 For a stored forecast assessment, preserve the dictionary fields:
 
@@ -369,10 +372,14 @@ The agreed architecture remains one React/FastAPI application with independent
 Python services and repositories using Firebase SQL Connect. This guide creates
 no new endpoints, schema fields, statuses or database operations.
 
-## Unresolved integration issue: reservation timing
+## Reservation timing resolved on 17 October 2026
 
-Recorded on 14 October 2026. The individual date rules exist in documentation
-and code, but their conflict was not previously stated explicitly.
+Originally recorded on 14 October 2026. The user resolved this on 17 October:
+Member 3 follows Member 4's existing restriction. Reservation may not occur
+before needed_from; planning now uses dispatch = max(planning_date,
+available_from, needed_from), then delivery = dispatch + lead time.
+Member 4's reservation rules remain unchanged. The original mismatch below is
+retained as historical context.
 
 Member 3 treats demand_requests.needed_from as the earliest permitted **receipt**
 date and required_by as the receipt deadline. With lead time L, planning allows
@@ -400,17 +407,14 @@ Waiting until 20 October to reserve would prevent delivery on that deadline
 under the same two-day planning assumption. The allocator's eligible result is
 therefore not a guarantee that the current transfer workflow can execute it.
 
-**Decision required with Member 4:** confirm whether needed_from is solely a
-receipt constraint, and whether reservation may occur earlier when the source
-is currently reservable and a feasible future dispatch/receipt exists. This is
-a proposed resolution, not an approved rule change. Preserve stock/demand,
-confirmation, suitability and concurrency checks. Any agreed change must update
-the Python validation, atomic connector checks, generator and relevant tests
-together; removing only the Python check would leave database rejection intact.
+**Resolution:** the narrow-window example is now INELIGIBLE in Member 3's
+planner. A 20–22 October window can reserve/dispatch on the 20th and receive on
+the 22nd. Member 3's eligibility and tests changed; Member 4's service and
+atomic reservation checks retain their existing protections.
 
 Test a narrow receipt window with positive lead time, an unavailable source,
 expired demand and the existing stock/commitment concurrency cases before
-claiming that the mismatch is resolved. No implementation changed for this note.
+claiming execution readiness. Planning is not a reservation or future stock guarantee.
 
 This issue is separate from aligning preview and saved carbon assessment inputs
 and activity dates: one concerns transfer scheduling, the other reproducible
@@ -447,5 +451,5 @@ Member 1: display the comparison
 - Both runs start with the same data. Proposals do not reserve stock.
 - Member 4's non-persisting forecast engine now connects to all three strategies through the preview orchestration service.
 - POST /api/optimisation-runs/preview returns one temporary plan and matching quantity forecasts; POST /api/impact-assessments/forecast-preview assesses one eligible pair.
-- Paired comparison remains pending. `POST /api/optimisation-runs` persists one selected/eligible matching plan and its proposals, but creates no transfer or reservation; proposal approval is a separate operator action. See [API contracts](IMPACT_API.md).
-- Reservation timing remains unresolved: a valid future receipt may require reservation before needed_from, which the current transfer workflow rejects.
+- Backend paired comparison, atomic run/proposal/initial-assessment saving and explicit proposal selection/request creation are implemented. See [comparison integration](OPTIMISATION_COMPARISON_API.md).
+- Reservation timing is resolved: our planner waits until needed_from before dispatch. Later live carbon context/date alignment and partial-use processing remain deferred.

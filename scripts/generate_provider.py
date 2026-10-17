@@ -147,14 +147,20 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
 ) @auth(level: NO_ACCESS) @transaction {
   query @redact
     @check(expr: "response.query.allocationProposal != null", message: "PROPOSAL_NOT_FOUND")
-    @check(expr: "response.query.allocationProposal.status == 'SELECTED' && response.query.allocationProposal.compatibilityResult == 'ELIGIBLE'", message: "PROPOSAL_NOT_REQUESTABLE") {
+    @check(expr: "(response.query.allocationProposal.status == 'PROPOSED' || response.query.allocationProposal.status == 'SELECTED') && response.query.allocationProposal.compatibilityResult == 'ELIGIBLE'", message: "PROPOSAL_NOT_REQUESTABLE") {
     allocationProposal(id: $proposalId) { status compatibilityResult }
   }
+  allocationProposal_updateMany(where: {id: {eq: $proposalId} status: {in: [PROPOSED, SELECTED]} compatibilityResult: {eq: ELIGIBLE} proposedQuantity: {eq: $approvedQuantity}}, data: {status: SELECTED}) @check(expr: "this == 1", message: "PROPOSAL_NOT_REQUESTABLE")
   transfer_insert(data: {
     id: $transferId proposalId: $proposalId
     approvedQuantity: $approvedQuantity reservedQuantity: 0 dispatchedQuantity: 0 receivedQuantity: 0 actuallyUsedQuantity: 0
     status: REQUESTED sourceConfirmationStatus: CONFIRMED destinationConfirmationStatus: CONFIRMED
     requestedAt: $occurredAt deliveredAt: null reuseConfirmedAt: null notes: $notes
+  })
+  impactAssessmentHead_insert(data: {
+    id_expr: "'ACTUAL_CONFIRMED_USE:' + vars.transferId"
+    basis: ACTUAL_CONFIRMED_USE proposalId: null transferId: $transferId
+    currentAssessmentId: null revision: 0 inputFingerprint: null updatedAt: null
   })
   transferEvent_insert(data: {
     id: $eventId transferId: $transferId eventType: REQUESTED occurredAt: $occurredAt
@@ -167,14 +173,18 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
 }''')
     run_fields='id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions'
     proposal_fields='id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt'
+    saved_impact_fields='id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt'
+    head_fields='id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt'
     operations.append(f'''query GetOptimisationRunPersistenceState($runId: String!, $operationId: String!) @auth(level: NO_ACCESS) {{
   optimisationRun(id: $runId) {{ {run_fields} }}
   optimisationRunOperation(id: $operationId) {{ id requestFingerprint runId }}
   allocationProposals(where: {{runId: {{eq: $runId}}}}, orderBy: {{id: ASC}}, limit: 1000) {{ {proposal_fields} }}
+  impactAssessments(where: {{proposal: {{runId: {{eq: $runId}}}}}}, orderBy: {{id: ASC}}, limit: 1000) {{ {saved_impact_fields} }}
 }}''')
     operations.append(f'''query GetOptimisationRun($runId: String!) @auth(level: NO_ACCESS) {{
   optimisationRun(id: $runId) {{ {run_fields} }}
   allocationProposals(where: {{runId: {{eq: $runId}}}}, orderBy: {{id: ASC}}, limit: 1000) {{ {proposal_fields} }}
+  impactAssessments(where: {{proposal: {{runId: {{eq: $runId}}}}}}, orderBy: {{id: ASC}}, limit: 1000) {{ {saved_impact_fields} }}
 }}''')
     operations.append(f'''mutation PersistOptimisationRun(
   $operationId: String!
@@ -182,10 +192,27 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
   $requestFingerprint: String!
   $run: OptimisationRun_Data! @allow(fields: "{run_fields}")
   $proposals: [AllocationProposal_Data!]! @allow(fields: "{proposal_fields}", maxCount: 1000)
+  $assessments: [ImpactAssessment_Data!]! @allow(fields: "{saved_impact_fields}", maxCount: 1000)
+  $heads: [ImpactAssessmentHead_Data!]! @allow(fields: "{head_fields}", maxCount: 1000)
 ) @auth(level: NO_ACCESS) @transaction {{
   optimisationRun_insert(data: $run)
   allocationProposal_insertMany(data: $proposals)
+  impactAssessment_insertMany(data: $assessments)
+  impactAssessmentHead_insertMany(data: $heads)
   optimisationRunOperation_insert(data: {{id: $operationId requestFingerprint: $requestFingerprint runId: $runId}})
+}}''')
+    operations.append(f'''mutation PersistOptimisationComparison(
+  $runs: [OptimisationRun_Data!]! @allow(fields: "{run_fields}", maxCount: 5000)
+  $proposals: [AllocationProposal_Data!]! @allow(fields: "{proposal_fields}", maxCount: 1000)
+  $assessments: [ImpactAssessment_Data!]! @allow(fields: "{saved_impact_fields}", maxCount: 1000)
+  $heads: [ImpactAssessmentHead_Data!]! @allow(fields: "{head_fields}", maxCount: 1000)
+  $operations: [OptimisationRunOperation_Data!]! @allow(fields: "id requestFingerprint runId", maxCount: 2)
+) @auth(level: NO_ACCESS) @transaction {{
+  optimisationRun_insertMany(data: $runs)
+  allocationProposal_insertMany(data: $proposals)
+  impactAssessment_insertMany(data: $assessments)
+  impactAssessmentHead_insertMany(data: $heads)
+  optimisationRunOperation_insertMany(data: $operations)
 }}''')
     operations.append('''mutation ApproveTransfer(
   $transferId: String!

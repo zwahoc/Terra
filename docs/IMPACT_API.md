@@ -65,10 +65,11 @@ The preview endpoint deliberately does **not** persist anything. To save the
 chosen matching calculation, call `POST /api/optimisation-runs` with the same
 calculation fields plus a required `idempotency_key` and `actor_label`. It
 recalculates from one current database snapshot, then atomically inserts an
-optimisation run and its `SELECTED`/`ELIGIBLE` allocation proposals. It does not
+optimisation run, its `SELECTED`/`ELIGIBLE` allocation proposals and initial linked
+forecast assessments/revision heads. It does not
 create a transfer, reservation, stock mutation, demand commitment, or any
 physical-delivery event. `GET /api/optimisation-runs/{run_id}` retrieves the
-persisted run and proposals. `destination_project_id` is optional for backward
+persisted run, proposals and assessment revisions. `destination_project_id` is optional for backward
 compatibility; when supplied, the optimiser considers only confirmed demand for
 that destination while retaining cross-project supply candidates. The browser
 must send this scope to FastAPI rather than filtering a global plan locally.
@@ -79,9 +80,14 @@ Planning date must cover the timestamps of supplied live records. Baseline date
 after runtime writes. Preview factor applicability uses planning_date. Existing
 saved proposal forecasts still use proposal.created_at: integration must agree
 that date and bind the same full context before claiming identical saved results.
-The allocation-input hash is stored as the persisted run's input snapshot hash;
-it fingerprints mapped allocation inputs rather than a complete source-document
-or engineering-certification record.
+The persisted run now stores a canonical hash of its full planning input
+snapshot, including raw material/route/factor and commitment inputs. The mapped
+allocation-input hash remains separate. Neither is engineering certification.
+Initial linked forecasts retain their planning date and provenance. Later live
+recalculation context/date alignment remains deferred.
+
+Paired preview/saving and explicit proposal selection are documented in
+[OPTIMISATION_COMPARISON_API.md](OPTIMISATION_COMPARISON_API.md).
 
 HTTP 400 rejects noneligible pairs, quantities exceeding caps and invalid
 snapshot/context records; 422 rejects malformed/unknown request fields; 503
