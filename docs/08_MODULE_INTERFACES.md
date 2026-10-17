@@ -83,13 +83,23 @@ writes.
 
 This computes the same eligible matching calculation from one database snapshot,
 then atomically creates an immutable `optimisation_run`, its `SELECTED` and
-`ELIGIBLE` allocation proposals, and an idempotency operation record. The
-response returns `data.run` and `data.proposals`; `GET
+`ELIGIBLE` allocation proposals, initial linked forecast assessments/revision
+heads, and an idempotency operation record. The response returns `data.run`,
+`data.proposals` and `data.assessments`; `GET
 /api/optimisation-runs/{run_id}` returns that persisted run and its proposals.
 The endpoint creates no transfer, reservation, stock mutation, demand
 commitment, dispatch, receipt, or reuse. Repeating the same idempotency key and
 payload returns the original result; reusing it with different input returns a
 conflict. Previewing potential surplus must **never make it reservable**.
+
+`POST /api/optimisation-comparisons/preview` runs MAX_REUSE and carbon allocation
+against one prepared snapshot without writes. `POST /api/optimisation-comparisons`
+saves both runs, PROPOSED proposals, initial forecasts and revision heads in one
+transaction. The existing proposal approval endpoint can explicitly select a
+PROPOSED alternative and create its REQUESTED transfer atomically, without a
+reservation. See [the complete comparison contracts](OPTIMISATION_COMPARISON_API.md).
+The allocator now follows Member 4's reservation window: dispatch cannot precede
+needed_from, and receipt must still meet required_by after lead time.
 
 For the current MAX_REUSE implementation, the latest user-requested priority is
 maximum allocated pcs, earliest demand `required_by`, earliest feasible delivery,

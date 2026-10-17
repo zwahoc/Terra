@@ -37,6 +37,67 @@ class EmulatorTests(unittest.TestCase):
         self.adapter.execute('UpsertProjects',{'rows':[row]},write=True)
         data=self.adapter.execute('ListProjects')['projects']
         self.assertEqual(next(x for x in data if x['id']=='PRJ-001')['name'],row['name'])
+    def test_comparison_persistence_forecast_heads_and_explicit_selection(self):
+        from datetime import date
+        from backend.app.repositories.optimisation_repository import OptimisationRepository
+        from backend.app.services.optimisation_comparison_service import (
+            OptimisationComparisonInput, persist_optimisation_comparison)
+        from backend.app.services.transfer_request_service import (
+            TransferRequestInput, create_transfer_request)
+        repo = OptimisationRepository(self.adapter)
+        value = OptimisationComparisonInput(date(2026,10,12), 'demo-v1', None,
+                                           'integration-comparison', 'Demo operator')
+        before = self.adapter.snapshot()
+        result = persist_optimisation_comparison(value, repo)
+        alternatives = result['data']['alternatives']
+        self.assertEqual(len(alternatives), 2)
+        self.assertEqual(alternatives[0]['run']['inputs_snapshot_hash'],
+                         alternatives[1]['run']['inputs_snapshot_hash'])
+        for item in alternatives:
+            self.assertEqual(len(item['proposals']), len(item['assessments']))
+            self.assertTrue(all(p['status']=='PROPOSED' for p in item['proposals']))
+            self.assertTrue(all(a['basis']=='PROPOSAL_FORECAST' for a in item['assessments']))
+        self.assertTrue(persist_optimisation_comparison(value, repo)['data']['replayed'])
+        after = self.adapter.snapshot()
+        self.assertEqual(before['supply_offers'], after['supply_offers'])
+        self.assertEqual(before['demand_requests'], after['demand_requests'])
+        self.assertEqual(before['transfers'], after['transfers'])
+        proposal = alternatives[0]['proposals'][0]
+        transfer_repo = TransferRepository(self.adapter)
+        request = TransferRequestInput('Demo operator', 'integration-comparison-select')
+        response = create_transfer_request(proposal['id'], request, transfer_repo)
+        transfer = response['data']['transfer']
+        self.assertEqual(transfer['status'], 'REQUESTED')
+        self.assertEqual(transfer['reserved_quantity'], 0)
+        state = transfer_repo.get_request_state(proposal['id'], 'unused', transfer['id'], 'unused')
+        self.assertEqual(state.proposal['status'], 'SELECTED')
+        head = ImpactRepository(self.adapter).persistence_state(
+            'ACTUAL_CONFIRMED_USE:'+transfer['id'], 'unused').head
+        self.assertEqual(head['revision'], 0)
+        self.assertTrue(create_transfer_request(proposal['id'], request, transfer_repo)['data']['replayed'])
+
+    def test_single_run_saves_linked_forecasts_and_comparison_rolls_back(self):
+        from datetime import date
+        from unittest.mock import patch
+        from backend.app.repositories.optimisation_repository import OptimisationRepository
+        from backend.app.services.optimisation_run_service import OptimisationRunInput, persist_optimisation_run
+        from backend.app.services.optimisation_comparison_service import OptimisationComparisonInput, persist_optimisation_comparison
+        repo = OptimisationRepository(self.adapter)
+        result = persist_optimisation_run(OptimisationRunInput('MAX_REUSE', date(2026,10,12),
+            'demo-v1', None, 'integration-single-run', 'Demo operator'), repo)
+        self.assertEqual(len(result['data']['proposals']), len(result['data']['assessments']))
+        self.assertTrue(all(p['status']=='SELECTED' for p in result['data']['proposals']))
+        before = self.adapter.snapshot()
+        original = repo.persist_comparison
+        def invalid_write(command):
+            # Fail after run/proposal inserts by duplicating an assessment PK.
+            command['assessments'][1]['id'] = command['assessments'][0]['id']
+            original(command)
+        with patch.object(repo, 'persist_comparison', side_effect=invalid_write):
+            with self.assertRaises(Exception):
+                persist_optimisation_comparison(OptimisationComparisonInput(date(2026,10,17),
+                    'demo-v1', None, 'integration-comparison-rollback', 'Demo operator'), repo)
+        self.assertTrue(equivalent(before, self.adapter.snapshot()))
     def test_transfer_repository_and_api_reads(self):
         repository=TransferRepository(self.adapter)
         self.assertEqual(repository.list(),self.seed['transfers'])

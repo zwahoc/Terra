@@ -38,6 +38,12 @@ def preview_optimisation(records, *, objective: str, planning_date: date,
         factor_dataset_version=factor_dataset_version,
         destination_project_id=destination_project_id,
     )
+    return preview_with_calculator(calculator, objective=objective,
+                                   destination_project_id=destination_project_id)
+
+
+def preview_with_calculator(calculator, *, objective, destination_project_id=None):
+    """Reuse one prepared snapshot/context across alternative objectives."""
     if objective == 'MAX_NET_CO2E_AVOIDED':
         plan = allocate(calculator.snapshot, objective=objective,
                         carbon_scores=calculator.score_linear_candidates(),
@@ -98,3 +104,15 @@ def preview_optimisation(records, *, objective: str, planning_date: date,
             'carbon_scoring_available': plan.carbon_scoring_available,
         },
     })
+
+
+def preview_comparison(records, *, planning_date, factor_dataset_version,
+                       destination_project_id=None):
+    calculator = ForecastPreviewCalculator(records, planning_date=planning_date,
+        factor_dataset_version=factor_dataset_version, destination_project_id=destination_project_id)
+    plans = [preview_with_calculator(calculator, objective=objective,
+             destination_project_id=destination_project_id)
+             for objective in ('MAX_REUSE', 'MAX_NET_CO2E_AVOIDED')]
+    return {'preview': True, 'persisted': False,
+            'allocation_snapshot_hash': calculator.allocation_snapshot_hash,
+            'carbon_context_id': calculator.carbon_context_id, 'alternatives': plans}

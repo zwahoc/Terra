@@ -246,6 +246,7 @@ def allocate_max_reuse(snapshot: DomainSnapshot) -> AllocationPlan:
         MappingProxyType({
             'algorithm_version': 'max-flow-lexicographic-pairs-v1',
             'quantity_unit': 'pcs',
+            'reservation_timing_policy': 'reserve_and_dispatch_on_or_after_needed_from',
             'lead_time_policy_version': candidates.lead_time_policy_version,
             'lead_time_is_synthetic': True,
             'symmetric_demo_route_lookup': True,
@@ -340,6 +341,7 @@ def allocate(snapshot: DomainSnapshot, *, objective: str,
     assumptions = {
         'algorithm_version': 'exact-lexicographic-reward-flow-v1',
         'quantity_unit': 'pcs',
+        'reservation_timing_policy': 'reserve_and_dispatch_on_or_after_needed_from',
         'lead_time_policy_version': candidates.lead_time_policy_version,
         'lead_time_is_synthetic': True,
         'symmetric_demo_route_lookup': True,

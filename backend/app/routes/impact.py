@@ -7,10 +7,14 @@ from fastapi.responses import JSONResponse, Response
 
 from backend.app.schemas.impact import (
     ImpactCalculationRequest, ForecastPreviewRequest, OptimisationPreviewRequest, OptimisationRunCreateRequest,
+    OptimisationComparisonRequest, OptimisationComparisonCreateRequest,
 )
 from backend.app.repositories.impact_repository import ImpactRepository, ImpactRepositoryError
 from backend.app.services.forecast_preview_service import ForecastPreviewCalculator
-from backend.app.services.optimisation_preview_service import preview_optimisation, preview_json
+from backend.app.services.optimisation_preview_service import preview_optimisation, preview_json, preview_comparison
+from backend.app.services.optimisation_comparison_service import (
+    OptimisationComparisonInput, persist_optimisation_comparison,
+)
 from backend.app.services.optimisation_run_service import (
     OptimisationRunConflict, OptimisationRunError, OptimisationRunInput, OptimisationRunInvalid,
     OptimisationRunNotFound, OptimisationRunUnavailable, get_optimisation_run, persist_optimisation_run,
@@ -97,9 +101,26 @@ def _optimisation_error(exc: OptimisationRunError):
     return JSONResponse(status_code=status, content={"data": None, "meta": None, "error": {"code": exc.code, "message": exc.message, "details": exc.details}})
 
 
+@router.post('/optimisation-comparisons/preview', response_model=None)
+def comparison_preview(body: OptimisationComparisonRequest):
+    try:
+        result = preview_comparison(_preview_records(), **body.model_dump())
+        return {'data': result, 'meta': load_baseline_metadata(), 'error': None}
+    except ImpactError as exc:
+        return _error(exc)
+
+
+@router.post('/optimisation-comparisons', status_code=201, response_model=None)
+def create_comparison(body: OptimisationComparisonCreateRequest):
+    try:
+        return persist_optimisation_comparison(OptimisationComparisonInput(**body.model_dump()))
+    except OptimisationRunError as exc:
+        return _optimisation_error(exc)
+
+
 @router.post('/optimisation-runs', status_code=201, response_model=None)
 def persist_optimisation(body: OptimisationRunCreateRequest):
-    """Persist an eligible selected plan; does not create transfers or reservations."""
+    """Save one selected plan and linked forecasts; no transfers/reservations."""
     try:
         return persist_optimisation_run(OptimisationRunInput(**body.model_dump()))
     except OptimisationRunError as exc:

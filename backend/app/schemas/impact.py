@@ -35,3 +35,15 @@ class OptimisationRunCreateRequest(OptimisationPreviewRequest):
 
     idempotency_key: str = Field(min_length=1, max_length=128)
     actor_label: str = Field(min_length=1, max_length=200)
+
+
+class OptimisationComparisonRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+    planning_date: date
+    factor_dataset_version: str = Field(min_length=1, max_length=128)
+    destination_project_id: str | None = Field(default=None, min_length=1, max_length=128)
+
+
+class OptimisationComparisonCreateRequest(OptimisationComparisonRequest):
+    idempotency_key: str = Field(min_length=1, max_length=128)
+    actor_label: str = Field(min_length=1, max_length=200)

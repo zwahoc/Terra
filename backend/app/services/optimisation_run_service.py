@@ -4,12 +4,18 @@ import json
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Callable
+from copy import deepcopy
+from decimal import Decimal
+import math
 
 from backend.app.repositories.optimisation_repository import (
     OptimisationPersistenceError, OptimisationPersistenceState, OptimisationRepository,
     OptimisationRepositoryError, OptimisationRepositoryUnavailable,
 )
 from backend.app.services.optimisation_preview_service import preview_optimisation
+from backend.app.services.impact_service import _hash
+from terra.contract import camel
+from terra.validation import sha
 from backend.app.services.transfer_read_service import load_baseline_metadata
 
 
@@ -51,7 +57,7 @@ def _load(repo, run_id, operation_id):
 
 
 def _response(state, key, replayed):
-    return {"data": {"run": state.run, "proposals": state.proposals,
+    return {"data": {"run": state.run, "proposals": state.proposals, 'assessments': state.assessments,
                      "idempotency_key": key, "replayed": replayed},
             "meta": load_baseline_metadata(), "error": None}
 
@@ -63,6 +69,70 @@ def _replay(state, fingerprint, key):
     if state.run is None:
         raise OptimisationRunError("OPTIMISATION_DATA_ERROR", "The stored optimisation operation is incomplete.")
     return True
+
+
+def build_run_command(request, result, records, *, occurred, proposal_status='SELECTED'):
+    """Build dictionary-shaped run, proposals, immutable forecasts and heads.
+
+    Initial forecasts retain the preview's declared planning date/context. Later
+    live recalculation remains Member 4's existing, separate revision behaviour.
+    """
+    operation_id, run_id, digest = _identity(request.idempotency_key)
+    snapshot = {'as_of': request.planning_date.isoformat(),
+                'factor_dataset_version': request.factor_dataset_version,
+                'destination_project_id': request.destination_project_id}
+    # Preserve all planning inputs/commitment provenance, not recursively nested
+    # historical run snapshots or unrelated assessment history.
+    for name in ('projects', 'materials', 'documents', 'extracted_rows', 'supply_offers',
+                 'demand_requests', 'route_distances', 'emission_factors', 'transfers',
+                 'allocation_proposals'):
+        snapshot[name] = sorted(deepcopy(records[name]), key=lambda r: r['id'])
+    proposals, assessments, heads = [], [], []
+    forecasts = {(f['supply_offer_id'], f['demand_request_id']): f for f in result['forecast_previews']}
+    for index, allocation in enumerate(result['plan']['allocations'], 1):
+        pid = f'ALC-{digest[:24]}-{index:03}'
+        proposals.append({'id': pid, 'runId': run_id,
+            'supplyOfferId': allocation['supply_offer_id'], 'demandRequestId': allocation['demand_request_id'],
+            'proposedQuantity': allocation['proposed_quantity'], 'unit': allocation['unit'],
+            'compatibilityResult': 'ELIGIBLE', 'status': proposal_status,
+            'reasonCodes': allocation['reason_codes'], 'createdAt': occurred})
+        forecast = forecasts[allocation['supply_offer_id'], allocation['demand_request_id']]
+        aid = f'IMP-{digest[:24]}-{index:03}'
+        fingerprint = _hash(forecast)
+        assumptions = {**forecast['assumptions'], 'missing_data': forecast['missing_data'],
+            'factor_snapshots': forecast['factor_snapshots'],
+            'forecast_activity_date': request.planning_date.isoformat(),
+            'carbon_context_id': result['carbon_context_id'],
+            'revision': {'number': 1, 'previous_assessment_id': None,
+                         'reason': 'Initial optimisation forecast', 'actor_label': request.actor_label,
+                         'input_fingerprint': fingerprint}}
+        assessment = {'id': aid, 'basis': 'PROPOSAL_FORECAST', 'proposal_id': pid,
+            'transfer_id': None, 'quantity_assessed': allocation['proposed_quantity'], 'unit': allocation['unit'],
+            'baseline_description': forecast['baseline_description'], 'factor_ids': forecast['factor_ids'],
+            'assumptions': assumptions, 'calculation_status': forecast['calculation_status'], 'calculated_at': occurred}
+        for field in ('avoided_production_kgco2e', 'additional_transport_kgco2e',
+                      'additional_processing_kgco2e', 'net_avoided_kgco2e'):
+            value = forecast[field]
+            numeric = None if value is None else float(Decimal(value))
+            if numeric is not None and not math.isfinite(numeric):
+                raise OptimisationRunInvalid('CARBON_VALUE_INVALID', 'Forecast exceeds supported stored numeric range.')
+            assessment[field] = numeric
+        assessments.append({camel(k): v for k, v in assessment.items()})
+        heads.append({'id': f'PROPOSAL_FORECAST:{pid}', 'basis': 'PROPOSAL_FORECAST',
+            'proposalId': pid, 'transferId': None, 'currentAssessmentId': aid, 'revision': 1,
+            'inputFingerprint': fingerprint, 'updatedAt': occurred})
+    return {'operationId': operation_id, 'runId': run_id, 'requestFingerprint': _fingerprint(request),
+        'run': {'id': run_id, 'createdAt': occurred, 'objective': request.objective,
+            'inputsSnapshotHash': sha(snapshot), 'inputSnapshot': snapshot,
+            'factorDatasetVersion': request.factor_dataset_version, 'solverStatus': result['plan']['solver_status'],
+            'assumptions': {**result['plan']['assumptions'],
+                'allocation_snapshot_hash': result['allocation_snapshot_hash'],
+                'carbon_context_id': result['carbon_context_id'],
+                'forecast_summary': result['forecast_summary'],
+                'reservation_timing_policy': 'reserve_and_dispatch_on_or_after_needed_from',
+                'saved_forecasts_activity_date': request.planning_date.isoformat(),
+                'later_live_recalculation_context_alignment': 'DEFERRED'}},
+        'proposals': proposals, 'assessments': assessments, 'heads': heads}
 
 
 def persist_optimisation_run(request: OptimisationRunInput, repository: OptimisationRepository | None = None,
@@ -91,23 +161,7 @@ def persist_optimisation_run(request: OptimisationRunInput, repository: Optimisa
     now = (clock or (lambda: datetime.now(timezone(timedelta(hours=8)))))()
     if now.tzinfo is None or now.utcoffset() is None: raise OptimisationRunError("OPTIMISATION_TIME_INVALID", "The run clock must return a timezone-aware timestamp.")
     occurred = now.isoformat(timespec="seconds")
-    proposals = []
-    for index, allocation in enumerate(result["plan"]["allocations"], 1):
-        proposals.append({"id": f"ALC-{digest[:24]}-{index:03}", "runId": run_id,
-            "supplyOfferId": allocation["supply_offer_id"], "demandRequestId": allocation["demand_request_id"],
-            "proposedQuantity": allocation["proposed_quantity"], "unit": allocation["unit"],
-            "compatibilityResult": "ELIGIBLE", "status": "SELECTED",
-            "reasonCodes": allocation["reason_codes"], "createdAt": occurred})
-    command = {"operationId": operation_id, "runId": run_id, "requestFingerprint": fingerprint,
-        "run": {"id": run_id, "createdAt": occurred, "objective": request.objective,
-            "inputsSnapshotHash": result["allocation_snapshot_hash"],
-            "inputSnapshot": {"planning_date": request.planning_date.isoformat(),
-                              "destination_project_id": request.destination_project_id,
-                              "allocation_snapshot_hash": result["allocation_snapshot_hash"],
-                              "actor_label": request.actor_label},
-            "factorDatasetVersion": result["factor_dataset_version"], "solverStatus": result["plan"]["solver_status"],
-            "assumptions": {**result["plan"]["assumptions"], "persisted_from_preview": False}},
-        "proposals": proposals}
+    command = build_run_command(request, result, records, occurred=occurred)
     try: repo.persist(command)
     except OptimisationRepositoryUnavailable as exc: raise OptimisationRunUnavailable("OPTIMISATION_DATA_UNAVAILABLE", "The local SQL Connect emulator is unavailable.") from exc
     except OptimisationPersistenceError as exc:
@@ -125,4 +179,4 @@ def get_optimisation_run(run_id: str, repository: OptimisationRepository | None 
     except OptimisationRepositoryUnavailable as exc: raise OptimisationRunUnavailable("OPTIMISATION_DATA_UNAVAILABLE", "The local SQL Connect emulator is unavailable.") from exc
     except OptimisationRepositoryError as exc: raise OptimisationRunError("OPTIMISATION_DATA_ERROR", "Optimisation data could not be read.") from exc
     if state.run is None: raise OptimisationRunNotFound("OPTIMISATION_RUN_NOT_FOUND", "The optimisation run was not found.", {"run_id": run_id})
-    return {"data": {"run": state.run, "proposals": state.proposals}, "meta": load_baseline_metadata(), "error": None}
+    return {"data": {"run": state.run, "proposals": state.proposals, 'assessments': state.assessments}, "meta": load_baseline_metadata(), "error": None}

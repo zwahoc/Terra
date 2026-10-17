@@ -83,9 +83,9 @@ def _validate(state: TransferRequestState, proposal_id: str, request: TransferRe
                                      "This allocation proposal already has a transfer request.",
                                      {"proposal_id": proposal_id,
                                       "transfer_id": state.transfers_for_proposal[0]["id"]})
-    if state.proposal["status"] != "SELECTED" or state.proposal["compatibility_result"] != "ELIGIBLE":
+    if state.proposal["status"] not in ('PROPOSED', 'SELECTED') or state.proposal["compatibility_result"] != "ELIGIBLE":
         raise TransferRequestConflict("PROPOSAL_NOT_REQUESTABLE",
-                                     "Only a SELECTED and ELIGIBLE proposal can create a transfer request.",
+                                     "Only a PROPOSED or SELECTED eligible proposal can be selected for a transfer request.",
                                      {"proposal_id": proposal_id})
     if not request.actor_label.strip() or len(request.actor_label) > 200:
         raise TransferRequestInvalid("ACTOR_LABEL_REQUIRED",

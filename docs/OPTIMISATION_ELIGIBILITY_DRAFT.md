@@ -110,25 +110,25 @@ No wall clock or route speed is silently assumed. Unknown lead time produces REV
 An explicit zero is permitted only as a declared same-day planning assumption.
 
 This draft treats available_until as the final dispatch date and needed_from
-as the earliest permitted receipt date. Material may wait at source before
-dispatch; early recipient storage is not assumed. With lead time L:
+as the earliest permitted receipt date and, following the user's 17 October 2026
+decision, also the earliest reservation date. Reservation and dispatch wait until
+the recipient window opens. With lead time L:
 
 ```text
-earliest_dispatch = max(planning_date, available_from, needed_from - L)
+earliest_dispatch = max(planning_date, available_from, needed_from)
 earliest_delivery = earliest_dispatch + L
 ```
 
 Dispatch must fall in the source window; delivery must fall in the recipient
-window. This dispatch/receipt interpretation is an explicit draft assumption to
-harmonise with Member 4's transfer/scheduling contract. Dates are calendar days;
+window. This follows Member 4's existing reservation contract. Dates are calendar days;
 business calendars, partial-day cutoffs and route capacity are not modelled.
 
-**Open integration discrepancy (14 October 2026):** Member 4's reservation
-service and connector require reservation inside the demand window, which can
-prevent a pre-needed_from dispatch needed for timely receipt. See the
-[reservation timing issue and example](MEMBER_3_4_CARBON_COOPERATION.md#unresolved-integration-issue-reservation-timing).
-This receipt-window interpretation is not yet harmonised with reservation;
-planning eligibility alone does not guarantee execution by the transfer API.
+**Resolved integration discrepancy (17 October 2026):** Member 3 no longer plans
+dispatch before needed_from. A 20 October-only receipt window with two days'
+lead time is now INELIGIBLE, rather than planning an unreservable 18 October
+dispatch. A 20–22 October window can dispatch on the 20th and receive on the 22nd.
+See [the timing decision](MEMBER_3_4_CARBON_COOPERATION.md#reservation-timing-resolved-on-17-october-2026).
+Reservation still rechecks live records; planning does not guarantee future stock.
 
 Confirmed future supply can be ELIGIBLE for planning if it meets the deadline.
 source_reservable_quantity_on_planning_date is still zero before release.

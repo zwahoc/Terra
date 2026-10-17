@@ -174,7 +174,7 @@ def approve_transfer_by_id(
     status_code=201,
     summary="Approve a matching proposal and create its transfer request",
     description=(
-        "Approves one selected eligible matching proposal and atomically creates its "
+        "Selects one proposed or selected eligible matching proposal and atomically creates its "
         "REQUESTED transfer and REQUESTED audit event. The requested quantity equals "
         "the proposal quantity; no stock is reserved and no incoming demand commitment "
         "is created."

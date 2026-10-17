@@ -146,9 +146,15 @@ class EligibilityTests(unittest.TestCase):
         result = self.evaluate((s, d, sm, dm))
         self.assertEqual(result.compatibility_result, 'INELIGIBLE')
         result = self.evaluate((s, d, sm, dm), lead_time_days=2)
-        self.assertEqual(result.earliest_dispatch_date, date(2026, 10, 18))
-        self.assertEqual(result.earliest_delivery_date, date(2026, 10, 20))
+        self.assertEqual(result.compatibility_result, 'INELIGIBLE')
+        # Reservation must wait until needed_from; a longer source window makes
+        # dispatch on the 20th and receipt on the 22nd feasible.
+        result = self.evaluate((replace(s, available_until=date(2026, 10, 20)), d, sm, dm), lead_time_days=2)
+        self.assertEqual(result.earliest_dispatch_date, date(2026, 10, 20))
+        self.assertEqual(result.earliest_delivery_date, date(2026, 10, 22))
         self.assertEqual(result.compatibility_result, 'ELIGIBLE')
+        narrow = replace(d, required_by=date(2026, 10, 20))
+        self.assertEqual(self.evaluate((s, narrow, sm, dm), lead_time_days=2).compatibility_result, 'INELIGIBLE')
 
     def test_missing_lead_time_requires_review(self):
         result = self.evaluate(self.pair(), lead_time_days=None)
