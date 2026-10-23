@@ -13,7 +13,7 @@ Built for the Sime Darby Property University Hackathon 2026, PLANET sustainabili
 - **Material reconciliation:** distinguishes physical stock, remaining local requirements, ordered supply, potential excess, released surplus and uncovered demand. Revised observations retain their history.
 - **Automatic matching:** compares reuse, deadline and carbon objectives for eligible materials across projects. Recommendations do not reserve stock.
 - **Transfer tracking:** combines transfer confirmation and reservation, then records full dispatch, full receipt and partial or repeated actual use. Cancellation is available before dispatch.
-- **Environmental reporting:** calculates comparative carbon estimates from applicable factors, material weight, route distance and confirmed use, with CSV export and retained calculation evidence.
+- **Environmental reporting:** calculates comparative carbon estimates from applicable factors, material weight, route distance and confirmed use, with a five-sheet Excel report, technical CSV/JSON exports and retained calculation evidence.
 
 The application includes Home, Inventory, Matching, Approvals, Deliveries, Upload and Report pages. An ingestion comparison sandbox is also available for inspecting model outputs.
 
@@ -206,7 +206,7 @@ For a new document journey:
 5. Open Matching to compare current alternatives for a material.
 6. Review a proposed transfer, confirm suitability and reserve it explicitly.
 7. Use Deliveries for dispatch, full receipt and actual-use recording.
-8. Open Report for the current actual-use estimate and CSV export.
+8. Open Report, select a project and download its Excel report. An all-projects export and technical CSV/JSON downloads are also available.
 
 Analysis can take multiple provider calls. Failed files can be retried, skipped or replaced with reviewed manual information. Existing successful results and original sources are retained.
 
@@ -221,6 +221,8 @@ Support depends on the actual file contents and provider path. Legacy binary DOC
 A complete estimate needs applicable production, freight and loading/unloading factors, a compatible material weight and a route distance. Missing inputs remain unknown rather than zero.
 
 Material weight and route distance can be supplied through the explicit input-confirmation controls. The current UI does not author/import emission-factor datasets, and document ingestion does not automatically register those factors. Reference-factor setup is separate from file publication.
+
+The Excel workbook contains Summary, Transfers, Carbon breakdown, Factors & evidence, and Needs attention. It reports the current cumulative position, counts each transfer once in the all-project view, separates material units and shows incomplete calculation coverage. Project reports include both supplied and received transfers, so separate project reports must not be summed.
 
 Production avoidance uses the quantity actually used. Freight and handling reflect the quantity moved. Demonstration factors are labelled; comparative avoided-emissions estimates are not official inventory deductions, certified waste diversion or carbon credits.
 

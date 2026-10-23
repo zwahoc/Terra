@@ -177,10 +177,18 @@ def read_assessment(assessment_id: str):
 
 @router.get("/exports/impact", response_model=None)
 def impact_export(
-    basis: Basis = Query(...), format: Literal["json", "csv"] = Query(...),
+    basis: Basis = Query(...), format: Literal["json", "csv", "xlsx"] = Query(...),
     project_id: str | None = Query(default=None), transfer_id: str | None = Query(default=None),
 ):
     try:
+        if format == 'xlsx':
+            if basis != 'ACTUAL_CONFIRMED_USE':
+                raise ImpactInvalid('REPORT_BASIS_INVALID','The Excel reuse report contains actual use only. Forecasts remain available as technical exports.')
+            from backend.app.services.reuse_workbook import export_reuse_excel, MIME
+            content,filename=export_reuse_excel(project_id=project_id,transfer_id=transfer_id)
+            return Response(content=content,media_type=MIME,headers={
+                'Content-Disposition':f'attachment; filename="{filename}"',
+                'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
         if format == "json":
             return preview_json(export_json(basis, project_id=project_id, transfer_id=transfer_id))
         content = export_csv(basis, project_id=project_id, transfer_id=transfer_id)
@@ -189,6 +197,17 @@ def impact_export(
             media_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": f'attachment; filename="terra-impact-{basis.lower()}.csv"'},
         )
+    except ImpactError as exc:
+        return _error(exc)
+
+
+@router.get('/reports/reuse')
+def reuse_report_summary(project_id: str | None = Query(default=None)):
+    try:
+        from backend.app.services.reuse_report import build_reuse_report
+        report=build_reuse_report(project_id=project_id,include_evidence=False)
+        return JSONResponse(preview_json({'data':{'scope':report['scope'],'summary':report['summary'],
+            'generated_at':report['generated_at']},'error':None}),headers={'Cache-Control':'no-store'})
     except ImpactError as exc:
         return _error(exc)
 

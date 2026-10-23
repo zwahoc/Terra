@@ -72,12 +72,26 @@ A COMPLETED intent may have calculation_status=INSUFFICIENT_DATA and null net; c
 
 - GET /api/impact-assessments supports basis, proposal/transfer filters and current_only. Current selection uses authoritative heads and pending-state/unit checks.
 - GET /api/impact-assessments/{assessment_id} reads a retained revision/history with provenance.
-- GET /api/exports/impact accepts basis, format=csv/json and optional project_id/transfer_id. Source/current guards prevent an inconsistent export; pending/failed actual updates exclude stale results.
+- GET /api/exports/impact accepts basis, format=csv/json/xlsx and optional project_id/transfer_id. Source/current guards prevent an inconsistent export; pending/failed actual updates exclude stale results.
 
 An assessment retains basis, proposal/transfer ID, quantity_assessed/unit, baseline_description, production/freight/handling/net components, factor IDs/snapshots, assumptions, status and calculated_at. Actual revisions also retain source_input, revision number/previous identity/reason and the declared cost-allocation basis. Forecast and actual scopes are not summed. Global actual metrics count each transfer's used quantity once; unlike quantity units stay separate.
 
 Report presents current project/material/route and actual-use values. Missing-input labels can be deduplicated/readable, but original codes and IDs remain inspectable. Numerical graphics must not plot unknown as zero. Demonstration-factor/boundary disclosures remain available.
 
+## Excel reuse report
+
+`GET /api/exports/impact?basis=ACTUAL_CONFIRMED_USE&format=xlsx` downloads the current cumulative material reuse report. Optional `project_id` includes source and recipient transfers with an explicit project role; optional `transfer_id` narrows the result further. Invalid scopes return404. XLSX rejects forecast basis with400. CSV/JSON retain their existing technical contracts.
+
+The Python workbook generator returns five sheets: Summary, Transfers, Carbon breakdown, Factors & evidence, and Needs attention. It uses one version-guarded operational read with current assessment heads and impact-intent status. No calculation, approval, source edit or persistent write is performed by export. Pending/failed, incompatible-unit, missing and physically stale assessments do not contribute old benefits. Incomplete current components stay blank; their reason remains visible. No-use transfers remain in the register without counting as reuse.
+
+All-project totals count each transfer once. Project reports overlap and must not be summed. Material quantities group by identity, unit and project role; never sum unlike units. Known actual mass uses current catalogue weight, with kg handled as a mass unit; unknown weights remain counted separately. Carbon detail retains the saved assessment inputs/factor snapshots where present, distinguishing legacy register fallback. Production uses actual use, freight/handling moved quantity. Demonstration, mixed and other factor subtotals remain separate. Negative net values stay visible. No monthly/period calculation is inferred from latest-use or calculation timestamps.
+
+The export has typed numbers/dates, internal report-reference links, frozen headers, filters, print layouts and a material carbon chart. Technical IDs are in the supporting sheet. Text is literal, never interpreted as Excel formulas or external links. Exact values exceeding Excel's15 significant digits are stored as text rather than rounded. Blank and zero are distinct. The response uses the XLSX MIME type, a readable project-code filename, no-store and nosniff.
+
+`GET /api/reports/reuse?project_id=...` returns the matching scope, generation timestamp and compact summary for the existing Report page. An absent project selects all projects. The page retains project selection/material assessment details, adds compact cumulative totals and makes Download Excel report primary. The initial project list offers an all-project export. CSV/JSON remain under Technical exports. Material search and selected detail do not narrow a project export.
+
+The calculation engine, saved revisions, matching, reservations, physical-use workflow, models and database schema are unchanged. `reuse_report.py` builds the read model; `reuse_workbook.py` formats it with the pinned XlsxWriter runtime dependency. Scripted XML/API/client tests and read-only local downloads verify scope/content; no native Excel assurance or cloud acceptance is implied.
+
 ## Sources
 
-[Carbon engine](../backend/app/domain/carbon.py), [forecast calculator](../backend/app/services/forecast_preview_service.py), [impact service](../backend/app/services/impact_service.py), [automatic processing](../backend/app/services/automatic_impact_service.py), [export](../backend/app/services/impact_export_service.py), [schemas](../backend/app/schemas/impact.py), [routes](../backend/app/routes/impact.py). Local/schema/unit tests do not prove missing real-world factors or environmental assurance.
+[Carbon engine](../backend/app/domain/carbon.py), [forecast calculator](../backend/app/services/forecast_preview_service.py), [impact service](../backend/app/services/impact_service.py), [automatic processing](../backend/app/services/automatic_impact_service.py), [technical export](../backend/app/services/impact_export_service.py), [reuse report](../backend/app/services/reuse_report.py), [Excel workbook](../backend/app/services/reuse_workbook.py), [schemas](../backend/app/schemas/impact.py), [routes](../backend/app/routes/impact.py). Local/schema/unit tests do not prove missing real-world factors or environmental assurance.

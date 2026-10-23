@@ -72,3 +72,34 @@ test('matching totals are exact within one unit and never combine incompatible u
  assert.equal(presentation.sameTransfer(allocation('A','X'),allocation('A','Y')),false);
  assert.equal(presentation.timingState(allocation('A','X'),undefined),'UNKNOWN');
 });
+
+const reportApi=await import(await moduleUrl('../frontend/src/lib/terra-api.ts',[
+ [/import \{ refreshWorkspace \} from ["']\.\.\/data\/terra["'];?/g,"const refreshWorkspace=async()=>{throw Error('Report must not mutate workspace');};"],
+ [/from ["']\.\/action-request["']/g,`from '${commands}'`],
+]));
+test('Excel report download keeps project scope, readable server filename and no writes',async()=>{
+ const saved={fetch:globalThis.fetch,document:globalThis.document,setTimeout:globalThis.setTimeout};
+ const create=URL.createObjectURL,revoke=URL.revokeObjectURL;const calls=[];let clicked=false,removed=false,filename='';
+ try {
+  const anchor={href:'',set download(v){filename=v;},click:()=>{clicked=true;},remove:()=>{removed=true;}};
+  globalThis.document={createElement:()=>anchor,body:{appendChild:()=>{}}};
+  globalThis.setTimeout=()=>0;URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{};
+  globalThis.fetch=async(path,init)=>{calls.push([path,init]);return new Response(new Uint8Array([80,75]),{headers:{'content-type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','content-disposition':'attachment; filename="terra-LG-EW-P1-reuse-2026-10-24.xlsx"'}});};
+  await reportApi.downloadReuseExcel({projectId:'project with spaces'});
+  const url=new URL(calls[0][0],'http://local');
+  assert.equal(url.searchParams.get('project_id'),'project with spaces');assert.equal(url.searchParams.get('format'),'xlsx');
+  assert.equal(url.searchParams.get('basis'),'ACTUAL_CONFIRMED_USE');assert.equal(calls[0][1].cache,'no-store');
+  assert.equal(calls[0][1].method,undefined);assert.equal(clicked,true);assert.equal(removed,true);
+  assert.equal(filename,'terra-LG-EW-P1-reuse-2026-10-24.xlsx');
+  await reportApi.downloadReuseExcel();assert.equal(new URL(calls[1][0],'http://local').searchParams.has('project_id'),false);
+ } finally {Object.assign(globalThis,saved);URL.createObjectURL=create;URL.revokeObjectURL=revoke;}
+});
+test('Report download exposes backend errors and refuses a wrong-format response',async()=>{
+ const original=globalThis.fetch;
+ try {
+  globalThis.fetch=async()=>new Response(JSON.stringify({error:{message:'Terra changed while exporting. Please retry.'}}),{status:409,headers:{'content-type':'application/json'}});
+  await assert.rejects(reportApi.downloadReuseExcel(),/Terra changed/);
+  globalThis.fetch=async()=>new Response('{}',{headers:{'content-type':'application/json'}});
+  await assert.rejects(reportApi.downloadReuseExcel(),/unexpected report format/);
+ } finally {globalThis.fetch=original;}
+});

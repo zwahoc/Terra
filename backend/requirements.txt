@@ -7,3 +7,4 @@ python-dotenv==1.2.4
 pypdfium2==5.14.0
 Pillow==12.3.0
 reportlab==4.4.10
+XlsxWriter==3.3.0

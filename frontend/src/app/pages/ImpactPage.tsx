@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { materialName, projectName, terra } from '../../data/terra';
-import { downloadImpactCsv, listImpactAssessments, listImpactIntents, retryImpactUpdates, type ImpactIntent, type ImpactAssessment } from '../../lib/terra-api';
+import { downloadImpactFile, downloadReuseExcel, readReuseReportSummary, type ReuseReportSummary, listImpactAssessments, listImpactIntents, retryImpactUpdates, type ImpactIntent, type ImpactAssessment } from '../../lib/terra-api';
 import { formatQuantity } from '../../lib/quantities';
 import { Empty, ErrorNotice, Feedback, MissingInputs, PageHeader, Pagination, TechnicalDetails } from '../components-workspace';
 const value=(number:number|null)=>number===null?'Not available':`${number.toLocaleString(undefined,{maximumFractionDigits:2})} kgCO₂e`;
@@ -9,23 +9,26 @@ function belongsToProject(a:ImpactAssessment,id:string){const p=proposalFor(a);r
 function assessmentMaterial(a:ImpactAssessment){const p=proposalFor(a),s=terra.supply_offers.find(s=>s.id===p?.supply_offer_id),d=terra.demand_requests.find(d=>d.id===p?.demand_request_id);return s||d?materialName(s?.material_id??d!.material_id):'Material unavailable';}
 export default function ImpactPage({projectId,initialTransfer}:{projectId:string;initialTransfer?:string}){
  const [project,setProject]=useState(projectId==='ALL'?'':projectId),[selection,setSelection]=useState(initialTransfer||''),[assessments,setAssessments]=useState<ImpactAssessment[]>([]),[intents,setIntents]=useState<ImpactIntent[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState<unknown>(null),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[query,setQuery]=useState(''),[page,setPage]=useState(1),[connected,setConnected]=useState(false);
+ const [report,setReport]=useState<ReuseReportSummary|null>(null);
  const [readError,setReadError]=useState<unknown>(null);
- const load=async()=>{const [rows,states]=await Promise.all([listImpactAssessments(),listImpactIntents()]);setAssessments(rows);setIntents(states);setConnected(true);setLoading(false);};
- useEffect(()=>{let active=true;const read=async()=>{try{const [rows,states]=await Promise.all([listImpactAssessments(),listImpactIntents()]);if(active){setAssessments(rows);setIntents(states);setConnected(true);setReadError(null);setLoading(false);}}catch(e){if(active){setReadError(e);setConnected(false);setLoading(false);}}};void read();const t=setInterval(()=>void read(),4000);return()=>{active=false;clearInterval(t);};},[]);
+ const load=async()=>{const [rows,states,summary]=await Promise.all([listImpactAssessments(),listImpactIntents(),readReuseReportSummary(project)]);setAssessments(rows);setIntents(states);setReport(summary);setConnected(true);setLoading(false);};
+ useEffect(()=>{let active=true;setConnected(false);setReport(null);const read=async()=>{try{const [rows,states,summary]=await Promise.all([listImpactAssessments(),listImpactIntents(),readReuseReportSummary(project)]);if(active){setAssessments(rows);setIntents(states);setReport(summary);setConnected(true);setReadError(null);setLoading(false);}}catch(e){if(active){setReadError(e);setConnected(false);setLoading(false);}}};void read();const t=setInterval(()=>void read(),4000);return()=>{active=false;clearInterval(t);};},[project]);
  const actual=assessments.filter(a=>a.basis==='ACTUAL_CONFIRMED_USE');
  const projectActual=actual.filter(a=>belongsToProject(a,project));
  const searched=projectActual.filter(a=>assessmentMaterial(a).toLowerCase().includes(query.toLowerCase()));
  const selected=selection?projectActual.find(a=>a.id===selection||a.transfer_id===selection):searched[0];
  const scopedIntents=intents.filter(i=>{const t=terra.transfers.find(t=>t.id===i.id),p=t&&terra.allocation_proposals.find(p=>p.id===t.proposal_id);return !project||terra.supply_offers.find(s=>s.id===p?.supply_offer_id)?.source_project_id===project||terra.demand_requests.find(d=>d.id===p?.demand_request_id)?.destination_project_id===project;}).filter(i=>i.status!=='COMPLETED');
  const pages=Math.max(1,Math.ceil(searched.length/10)),current=Math.min(page,pages);
- const exportCsv=async()=>{if(busy||!connected)return;setBusy(true);setMessage('');setError(null);try{await downloadImpactCsv({projectId:project});setMessage('Report downloaded.');}catch(e){setError(e);}finally{setBusy(false);}};
+ const exportFile=async(format:'xlsx'|'csv'|'json'='xlsx')=>{if(busy||!connected)return;setBusy(true);setMessage('');setError(null);try{if(format==='xlsx')await downloadReuseExcel({projectId:project});else await downloadImpactFile(format,{projectId:project});setMessage('Report downloaded.');}catch(e){setError(e);}finally{setBusy(false);}};
  const back=()=>{setProject('');setSelection('');setQuery('');setPage(1);};
- return <section><PageHeader title={project?projectName(project):'Reports'} onBack={project?back:undefined} back="Back to projects" actions={project?<button className="workspace-primary" disabled={busy||loading||!connected||!projectActual.length} onClick={()=>void exportCsv()}>{busy?'Preparing…':'Export CSV'}</button>:undefined}>{project&&'Confirmed material use'}</PageHeader>
+ return <section><PageHeader title={project?projectName(project):'Reports'} onBack={project?back:undefined} back="Back to projects" actions={<button className="workspace-primary" disabled={busy||loading||!connected||!report} onClick={()=>void exportFile()}>{busy?'Preparing…':project?'Download Excel report':'Download all projects Excel'}</button>}>{project&&'Confirmed material use'}</PageHeader>
  {!!(error||readError)&&<ErrorNotice error={error||readError}><button onClick={()=>void load().then(()=>{setError(null);setReadError(null);}).catch(setReadError)}>Retry connection</button></ErrorNotice>}{message&&<Feedback>{message}</Feedback>}{loading&&<p role="status">Loading reports…</p>}
  {scopedIntents.length>0&&<div className="workspace-feedback is-warning" role="status">{scopedIntents.some(i=>i.status==='FAILED')?'Some carbon estimates need a retry.':'Updating carbon estimates…'}{scopedIntents.some(i=>i.status==='FAILED')&&<button disabled={busy} onClick={async()=>{setBusy(true);try{await retryImpactUpdates();await load();}catch(e){setError(e);}finally{setBusy(false);}}}>Retry estimates</button>}</div>}
+ {report&&<ReportSummary report={report}/>}
  {!loading&&!project&&<section className="workspace-panel"><h2>Choose a project</h2>{terra.projects.map(p=>{const count=actual.filter(a=>belongsToProject(a,p.id)).length;return <button className="workspace-list-row" key={p.id} onClick={()=>{setProject(p.id);setSelection('');}}><span><strong>{p.name}</strong><small>{p.code} · {p.township}</small></span><span>{count} use report{count===1?'':'s'}</span><span className="workspace-row-action">View reports</span></button>;})}{!terra.projects.length&&<Empty>No projects have been published yet.</Empty>}</section>}
  {!loading&&project&&<><label className="workspace-report-project">Project<select value={project} onChange={e=>{setProject(e.target.value);setSelection('');setQuery('');setPage(1);}}>{terra.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><div className="workspace-report-layout"><aside className="workspace-panel"><h2>Material use</h2><label>Search materials<input type="search" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/></label>{searched.slice((current-1)*10,current*10).map(a=><button className="workspace-report-choice" aria-pressed={selected?.id===a.id} key={a.id} onClick={()=>setSelection(a.id)}><strong>{assessmentMaterial(a)}</strong><small>{formatQuantity(a.quantity_assessed)} {a.unit} used</small><span>{a.net_avoided_kgco2e===null?'Estimate unavailable':value(a.net_avoided_kgco2e)}</span></button>)}{!searched.length&&<Empty>No current use reports match this view.</Empty>}<Pagination page={current} pages={pages} onChange={setPage}/></aside>
  <section className="workspace-panel">{selected?<ActualUseReport item={selected}/>:<Empty>{initialTransfer?'This delivery does not yet have a current use assessment.':'Select a material use report.'}</Empty>}</section></div></>}
+ <details className="workspace-disclosure"><summary>Technical exports</summary><div className="workspace-actions"><button disabled={busy||!connected} onClick={()=>void exportFile('csv')}>Download CSV</button><button disabled={busy||!connected} onClick={()=>void exportFile('json')}>Download JSON</button></div></details>
  </section>;
 }
 function ActualUseReport({item}:{item:ImpactAssessment}){
@@ -34,4 +37,14 @@ function ActualUseReport({item}:{item:ImpactAssessment}){
  <details className="workspace-disclosure" open={item.net_avoided_kgco2e!==null}><summary>Calculation breakdown</summary><dl className="workspace-report-breakdown">{[['Avoided material production',item.avoided_production_kgco2e],['Additional transport',item.additional_transport_kgco2e],['Loading and unloading',item.additional_processing_kgco2e]].map(([label,n])=><div key={label}><dt>{label}</dt><dd>{value(n as number|null)}</dd></div>)}</dl></details>
  <details className="workspace-disclosure"><summary>Calculation basis</summary><p>Production avoidance uses confirmed used quantity. Transport and handling use dispatched quantity.</p><p>{item.baseline_description}</p><p>Comparative estimates are separate from official emissions inventories and carbon credits.</p><p>Calculated {new Date(item.calculated_at).toLocaleString('en-MY')}</p></details><TechnicalDetails values={{'Transfer ID':item.transfer_id,'Assessment ID':item.id,'Revision':(item.assumptions.revision as {number?:number}|undefined)?.number??1,'Factor IDs':item.factor_ids}}/>
  </article>;
+}
+
+function ReportSummary({report}:{report:ReuseReportSummary}) {
+ const s=report.summary;
+ return <section className="workspace-overview-stats" aria-label="Current cumulative reuse summary">
+  <div><h2>Transfers with actual use</h2><strong>{s.used_transfers}</strong></div>
+  <div><h2>Known reused mass</h2><strong>{formatQuantity(s.known_reuse_tonnes)} t</strong>{s.unknown_mass_transfers>0&&<p>{s.unknown_mass_transfers} used {s.unknown_mass_transfers===1?'transfer has':'transfers have'} no recorded weight.</p>}</div>
+  <div><h2>Known net estimate</h2><strong>{s.known_net_kgco2e===null?'Not available':value(Number(s.known_net_kgco2e))}</strong>{s.demonstration_estimates>0&&<p>Includes demonstration factors.</p>}</div>
+  <div><h2>Calculation coverage</h2><strong>{s.complete_estimates} / {s.used_transfers}</strong><p>{s.missing_estimates>0?`${s.missing_estimates} used ${s.missing_estimates===1?'transfer needs':'transfers need'} a current complete estimate.`:'Used transfers with a complete estimate.'}</p></div>
+ </section>;
 }

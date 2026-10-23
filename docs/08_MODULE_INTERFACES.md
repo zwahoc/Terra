@@ -96,6 +96,8 @@ Impact lists support basis/entity filters and current_only. Current heads select
 
 Workspace data joins current projects/materials/offers/demands/transfers/observations, unit-aware supply/demand/transfer views, one current reuse summary per material, all matching alternatives and dashboard.by_project. Metadata carries workspace_epoch. Shared reads fail on incomplete capacity or crossed source revisions, rather than displaying truncated authoritative state.
 
+The project Report page downloads a cumulative five-sheet Excel workbook through `/api/exports/impact?basis=ACTUAL_CONFIRMED_USE&format=xlsx`; `/api/reports/reuse` reads its compact summary. Pending/missing estimates and unknown mass remain explicit; old CSV/JSON contracts stay available as technical exports. Details are in [Impact API](IMPACT_API.md).
+
 History routes expose only completed verified archive summaries, saved batches and intact sources. They do not approve, restore or republish into the active workspace. Source bytes use no-store/nosniff/sandbox protections. Full archive/cutover is local maintenance, not a normal UI API.
 
 ## Implemented route index
@@ -125,6 +127,7 @@ The table below is extracted from checked-in route declarations. Detailed reques
 | GET | `/api/impact-assessments` | `impact.py::read_assessments` |
 | GET | `/api/impact-assessments/{assessment_id}` | `impact.py::read_assessment` |
 | GET | `/api/exports/impact` | `impact.py::impact_export` |
+| GET | `/api/reports/reuse` | `impact.py::reuse_report_summary` |
 | GET | `/api/impact-refresh` | `impact.py::impact_refresh_status` |
 | POST | `/api/impact-refresh/retry` | `impact.py::retry_automatic_impact` |
 | POST | `/api/ingestion/batches` | `ingestion.py::create_batch` |

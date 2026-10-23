@@ -63,18 +63,37 @@ export function calculateActualImpact(transferId: string) {
   return post(`/api/impact-assessments/transfers/${transferId}/calculate`, { actor_label, revision_reason: "Calculate confirmed actual-use result" });
 }
 
-export async function downloadImpactCsv(scope: { projectId?: string; transferId?: string } = {}) {
-  const query = new URLSearchParams({ basis: "ACTUAL_CONFIRMED_USE", format: "csv" });
-  if (scope.projectId) query.set("project_id", scope.projectId);
-  if (scope.transferId) query.set("transfer_id", scope.transferId);
-  const response = await fetch(`/api/exports/impact?${query}`);
-  if (!response.ok) throw new Error(`Terra API returned HTTP ${response.status}.`);
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url; anchor.download = scope.transferId ? `terra-transfer-${scope.transferId}-impact.csv` : scope.projectId ? `terra-project-${scope.projectId}-impact.csv` : "terra-actual-use-impact.csv"; anchor.click();
-  URL.revokeObjectURL(url);
+export type ReportScope = { projectId?: string; transferId?: string };
+export type ReuseReportSummary = {
+ scope: { project_id: string | null; project_name: string; project_code: string };
+ generated_at: string;
+ summary: { transfers: number; used_transfers: number; complete_estimates: number; missing_estimates: number;
+  unknown_mass_transfers: number; known_reuse_tonnes: Quantity; known_net_kgco2e: Quantity | null; demonstration_estimates: number };
+};
+export const readReuseReportSummary = (projectId?: string) => request<ReuseReportSummary>(
+ `/api/reports/reuse${projectId ? `?${new URLSearchParams({project_id:projectId})}` : ''}`);
+
+export async function downloadImpactFile(format: 'xlsx' | 'csv' | 'json', scope: ReportScope = {}) {
+ const query = new URLSearchParams({ basis: 'ACTUAL_CONFIRMED_USE', format });
+ if (scope.projectId) query.set('project_id', scope.projectId);
+ if (scope.transferId) query.set('transfer_id', scope.transferId);
+ const response = await fetch(`/api/exports/impact?${query}`, {cache:'no-store'});
+ if (!response.ok) {
+  const error = await response.json().catch(() => null);
+  throw new Error(error?.error?.message ?? `Terra API returned HTTP ${response.status}.`);
+ }
+ const expected = format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : format === 'csv' ? 'text/csv' : 'application/json';
+ if (!response.headers.get('content-type')?.includes(expected)) throw new Error('Terra returned an unexpected report format. Please retry.');
+ const filename=response.headers.get('content-disposition')?.match(/filename="([A-Za-z0-9_.-]+)"/)?.[1];
+ const blob = await response.blob();
+ const url = URL.createObjectURL(blob);
+ const anchor = document.createElement('a');
+ anchor.href = url; anchor.download = filename ?? `terra-reuse-report.${format}`;
+ document.body.appendChild(anchor);anchor.click();anchor.remove();
+ setTimeout(() => URL.revokeObjectURL(url),1000);
 }
+export const downloadImpactCsv = (scope:ReportScope={}) => downloadImpactFile('csv',scope);
+export const downloadReuseExcel = (scope:ReportScope={}) => downloadImpactFile('xlsx',scope);
 
 export type ConfirmationPreview = {
  proposal_id: string; generation_id: string; expected_revision: number; chosen_quantity: Quantity; original_quantity: Quantity; unit: string;
