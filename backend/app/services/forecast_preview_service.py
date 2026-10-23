@@ -12,7 +12,8 @@ from backend.app.services.impact_service import (
     BASELINE_DESCRIPTION, LIFECYCLE_BOUNDARY, OMISSIONS, ImpactInvalid,
     _hash, _route, _factor_snapshot, calculate_context_components,
 )
-from terra.contract import MODELS
+from terra.contract import RUNTIME_MODELS as MODELS
+from backend.app.domain.carbon import CALCULATION_POLICY_VERSION
 
 
 COLLECTIONS = ('projects', 'materials', 'documents', 'extracted_rows', 'supply_offers',
@@ -76,16 +77,20 @@ class ForecastPreviewCalculator:
             'routes': sorted(self._records['route_distances'], key=lambda r: r['id']),
             'factors': sorted(self._factors, key=lambda r: r['id']),
             'boundary': LIFECYCLE_BOUNDARY,
+            'calculation_policy_version': CALCULATION_POLICY_VERSION,
             'model': 'linear-all-proposed-units-moved-and-processed-v1',
         })
 
     def assess_forecast_preview(self, supply_offer_id: str, demand_request_id: str,
-                                quantity: int) -> dict:
+                                quantity: int, *, _coefficient=False) -> dict:
         """Return components/provenance for one eligible hypothetical quantity."""
         pair = self._pairs.get((supply_offer_id, demand_request_id))
         if pair is None or pair.compatibility_result != 'ELIGIBLE':
             raise ImpactInvalid('FORECAST_PAIR_NOT_ELIGIBLE', 'Only an eligible candidate can be previewed.')
-        if type(quantity) is not int or not 0 < quantity <= pair.max_allocatable_quantity:
+        from terra.quantities import amount, ordinary
+        try: quantity=ordinary(amount(quantity,unit_name=self.snapshot.supplies[supply_offer_id].unit))
+        except ValueError as exc: raise ImpactInvalid('FORECAST_QUANTITY_INVALID',str(exc)) from exc
+        if not quantity > 0 or (not _coefficient and quantity > pair.max_allocatable_quantity):
             raise ImpactInvalid('FORECAST_QUANTITY_INVALID', 'Quantity must be positive and within the candidate cap.')
         supply = self.snapshot.supplies[supply_offer_id]
         demand = self.snapshot.demands[demand_request_id]
@@ -103,7 +108,7 @@ class ForecastPreviewCalculator:
         return {
             'preview': True, 'persisted': False,
             'supply_offer_id': supply_offer_id, 'demand_request_id': demand_request_id,
-            'quantity_assessed': quantity, 'unit': 'pcs',
+            'quantity_assessed': quantity, 'unit': material['standard_unit'],
             'planning_date': self.snapshot.as_of_date.isoformat(),
             'allocation_snapshot_hash': self.allocation_snapshot_hash,
             'carbon_context_id': self.carbon_context_id,
@@ -120,6 +125,7 @@ class ForecastPreviewCalculator:
             'factor_snapshots': tuple(_factor_snapshot(f) for f in factors),
             'baseline_description': BASELINE_DESCRIPTION,
             'assumptions': {
+                'calculation_policy_version': CALCULATION_POLICY_VERSION,
                 'synthetic': True, 'linear_scaling_guaranteed': True,
                 'moved_quantity': quantity, 'processed_quantity': quantity,
                 'handling_allocation': 'ALL_MOVED_UNITS', 'substitution_ratio': 1,
@@ -140,6 +146,6 @@ class ForecastPreviewCalculator:
         coefficients = {}
         for pid, pair in self._pairs.items():
             if pair.compatibility_result == 'ELIGIBLE':
-                coefficients[pid] = self.assess_forecast_preview(*pid, 1)['net_avoided_kgco2e']
+                coefficients[pid] = self.assess_forecast_preview(*pid, 1, _coefficient=True)['net_avoided_kgco2e']
         return LinearCarbonScores(self.allocation_snapshot_hash, self.factor_dataset_version,
                                   self.carbon_context_id, coefficients, True)

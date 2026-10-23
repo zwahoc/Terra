@@ -22,7 +22,9 @@ def load(path=SEED):
 def require(condition,message):
     if not condition: raise ValueError(message)
 
-def sha(value):return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+def sha(value):
+    from terra.quantities import json_default
+    return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),default=json_default).encode()).hexdigest()
 
 def maps(seed):return {e:{r['id']:r for r in seed[e]} for e in FIELDS}
 

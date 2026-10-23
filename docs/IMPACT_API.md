@@ -1,245 +1,83 @@
-# Terra impact calculation and export API
+# Carbon calculation and reporting API
 
-## Non-persisting forecast and optimisation previews (14 October 2026)
+Terra compares hypothetical equivalent-new-material production avoidance with additional road freight and combined loading/unloading. It preserves original proposal forecasts, chosen-quantity confirmation forecasts and immutable actual-use revisions separately. It does not issue credits, deduct official inventories or implement a live Pantas exchange.
 
-Member 4 now exposes `ForecastPreviewCalculator` in
-[forecast_preview_service.py](../backend/app/services/forecast_preview_service.py).
-It accepts existing record collections, detaches one consistent input context,
-validates operational eligibility/caps, and exposes:
+## Inputs and applicability
 
-- `assess_forecast_preview(supply_offer_id, demand_request_id, quantity)`:
-  temporary forecast components, missing data, factor snapshots and assumptions.
-- `score_linear_candidates()`: Member 3's `LinearCarbonScores` batch for all
-  eligible pairs. This explicitly guarantees fixed-context per-piece linearity;
-  proposed = moved = processed quantity, substitution ratio 1, no fixed/shared trips.
+Required context is the specific material/catalogue unit, quantity assessed, quantity moved/processed, documented weight where mass is needed, route distance and applicable versioned factors. Null is not zero. A factor must match type, supported unit, lifecycle boundary, valid_from≤activity date, dataset version and transport mode where relevant.
 
-Factor selection and arithmetic are shared with saved assessments through
-`calculate_context_components()` in impact_service.py. No placeholder proposals,
-impact IDs, revision heads, reservations or database writes are needed.
-Missing net is None, never zero; negative coefficients reach Member 3's agreed
-exclusion policy. Previews do not add a database basis enum.
+Factor specificity is exact material, then explicitly applicable category, then general factor. The newest applicable valid_from wins within specificity; tied factors are ambiguous and unusable. An unfamiliar material category does not prevent operational matching, but does not create factor coverage either.
 
-Two new **read-only-in-effect POST** extensions use Terra's `{data, meta, error}`
-envelope. Each reads the emulator snapshot once and never calls persistence:
+| Component | Compatible unit/basis |
+|---|---|
+| Production | kgCO2e per catalogue unit, or kgCO2e/kg with supported material weight |
+| Road freight | kgCO2e/t-km; moved quantity×kg per catalogue unit÷1000×road km |
+| Combined handling | kgCO2e per moved catalogue unit, or explicit kg basis |
 
-`POST /api/impact-assessments/forecast-preview`
+Incompatible factor dimensions do not become known components by fallback. `calculation_policy_version=catalogue-unit-factors-v2` binds current dependencies/source inputs. Historical incompatible estimates stay in history and are excluded from current lists/exports.
 
-```json
-{
-  "supply_offer_id": "SUP-003",
-  "demand_request_id": "DEM-003",
-  "quantity": 200,
-  "planning_date": "2026-10-12",
-  "factor_dataset_version": "demo-v1"
-}
+Weight/route/master corrections require explicit operator confirmation/basis. Emission-factor dataset preparation remains separate from ingestion; an uploaded annex is evidence, not automatic reference-factor registration. Demonstration assumptions remain marked `is_demo_factor`; no real EPD/source/route verification may be invented.
+
+## Arithmetic
+
+```text
+avoided_production = used_quantity × production_per_catalogue_unit
+or used_quantity × mass_kg_per_unit × production_per_kg
+
+additional_freight = moved_quantity × mass_kg_per_unit / 1000
+                    × distance_km × freight_per_tonne_km
+
+additional_handling = moved_quantity × handling_per_catalogue_unit
+or moved_quantity × mass_kg_per_unit × handling_per_kg
+
+net_avoided = avoided_production - additional_freight - additional_handling
 ```
 
-Baseline result: production 190, freight 5.19168, processing 4, net 180.80832
-kgCO2e. `data` includes `preview: true`, `persisted: false`, context/snapshot
-hashes, components, status, missing data and factor provenance. Decimal results
-are JSON **strings** to preserve precision; the frontend should parse them for
-display rather than implement carbon arithmetic.
+Proposal previews use proposed quantity as moved/processed quantity. Actual production uses actually used quantity; actual freight/handling use the full dispatched quantity, including during partial use. Do not prorate all transport away because some received material is unused. Known components can be retained while net remains null if any required input is missing.
 
-`POST /api/optimisation-runs/preview`
+The engine boundary is:
 
-```json
-{
-  "objective": "MAX_NET_CO2E_AVOIDED",
-  "planning_date": "2026-10-12",
-  "factor_dataset_version": "demo-v1",
-  "destination_project_id": "PRJ-002"
-}
+```text
+Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.
 ```
 
-Accepts all three existing objectives. `data.plan` contains the allocator result;
-`data.forecast_previews` assesses each chosen pair at its final proposed quantity
-using the same detached context. `data.forecast_summary` distinguishes complete
-selected-plan net, known subtotal, incomplete allocations and candidate scoring
-coverage. An unscored carbon run can return an empty plan: inspect the plan's
-`carbon_scoring_available` and `incomplete_carbon`, not just its zero quantity.
-MAX_REUSE/deadline plans can have missing final forecasts despite needing no
-carbon scores for allocation. Opposing strategies should be compared separately,
-not added together.
+The retained wording is an exact factor-selection value; broader runtime units still require compatible dimensions. Baseline substitution must describe equivalent new procurement displaced, not assume every material transfer is waste diversion. Negative net is possible. Carbon allocation excludes negative/unscored pairs under its objective policy, while operational eligibility can remain valid.
 
-The preview endpoint deliberately does **not** persist anything. To save the
-chosen matching calculation, call `POST /api/optimisation-runs` with the same
-calculation fields plus a required `idempotency_key` and `actor_label`. It
-recalculates from one current database snapshot, then atomically inserts an
-optimisation run, its `SELECTED`/`ELIGIBLE` allocation proposals and initial linked
-forecast assessments/revision heads. It does not
-create a transfer, reservation, stock mutation, demand commitment, or any
-physical-delivery event. `GET /api/optimisation-runs/{run_id}` retrieves the
-persisted run, proposals and assessment revisions. `destination_project_id` is optional for backward
-compatibility; when supplied, the optimiser considers only confirmed demand for
-that destination while retaining cross-project supply candidates. The browser
-must send this scope to FastAPI rather than filtering a global plan locally.
-Potential-surplus preview is not accepted.
+## Read-only forecasts
 
-Planning date must cover the timestamps of supplied live records. Baseline date
-2026-10-12 works on untouched seed data; use the applicable live planning date
-after runtime writes. Preview factor applicability uses planning_date. Existing
-saved proposal forecasts still use proposal.created_at: integration must agree
-that date and bind the same full context before claiming identical saved results.
-The persisted run now stores a canonical hash of its full planning input
-snapshot, including raw material/route/factor and commitment inputs. The mapped
-allocation-input hash remains separate. Neither is engineering certification.
-Initial linked forecasts retain their planning date and provenance. Later live
-recalculation context/date alignment remains deferred.
+`POST /api/impact-assessments/forecast-preview` accepts supply_offer_id, demand_request_id, positive exact quantity, planning_date and factor_dataset_version. It validates one current eligible pair/cap, takes detached shared context and returns components/net, missing_data, status, factor snapshots/IDs, input hashes, boundary and assumptions with preview=true/persisted=false. It never publishes or reserves.
 
-Paired preview/saving and explicit proposal selection are documented in
-[OPTIMISATION_COMPARISON_API.md](OPTIMISATION_COMPARISON_API.md).
+`POST /api/optimisation-runs/preview` accepts objective MAX_REUSE/EARLIEST_DEADLINE/MAX_NET_CO2E_AVOIDED, planning_date, factor_dataset_version and optional destination_project_id. It computes a plan and assesses each selected quantity with the same frozen context. [Comparison API](OPTIMISATION_COMPARISON_API.md) describes all three alternatives.
 
-HTTP 400 rejects noneligible pairs, quantities exceeding caps and invalid
-snapshot/context records; 422 rejects malformed/unknown request fields; 503
-reports emulator unavailability without seed fallback. Missing factors/mass/routes
-produce an incomplete forecast rather than a fabricated value.
+Planning date must cover the timestamps in supplied records. Use the applicable current date after live operations; baseline 2026-10-12 is only for the corresponding historical fixture state. Preview activity-date applicability is bound to planning_date.
 
-Offline tests: `python3 -m unittest tests.test_forecast_preview -v`.
+## Saved calculation commands
 
-The original persisted assessment and export APIs below retain their contracts.
+| POST route | Scope |
+|---|---|
+| /api/impact-assessments/proposals/{proposal_id}/calculate | Versioned proposal forecast |
+| /api/impact-assessments/transfers/{transfer_id}/calculate | Versioned actual-confirmed-use scope; delegates to durable current update where present |
 
-This milestone calculates traceable comparative impact estimates through
-framework-independent Python services and persists them through Terra's
-loopback-only SQL Connect adapter. It does not issue credits, certify factors,
-alter a corporate inventory, call Pantas, or claim independent environmental
-verification.
+Body fields are idempotency_key, revision_reason and actor_label. Changed payload/key reuse and stale source/head revisions fail; unchanged fingerprints are replay-safe. No calculation endpoint records receipt or physical use. Initial saved forecasts accompany persisted optimisation results, while confirmation retains its own chosen-quantity forecast in events.
 
-## Boundaries and arithmetic
+## Automatic actual-use revisions
 
-`PROPOSAL_FORECAST` uses `allocation_proposals.proposed_quantity` for
-production, freight and the supported per-piece handling assumption.
-`ACTUAL_CONFIRMED_USE` uses `transfers.actually_used_quantity` for production
-but retains the physical `dispatched_quantity` for freight. Freight and
-processing are never silently set to actual-use quantity.
+Confirmed use/applicable confirmed corrections atomically enqueue ImpactRefreshIntent. The local worker checks operational source revision, intent token, current head, transfer quantities/time and factor context before inserting an immutable assessment and advancing its head/completing the intent together.
 
-The deterministic Decimal engine applies:
+GET /api/impact-refresh returns current intent status; POST /api/impact-refresh/retry reprocesses unfinished/failed work without repeating use. Newer tokens supersede older unfinished work. Unchanged current-policy inputs can complete without an extra revision. A calculation failure preserves physical facts; older estimates awaiting refresh are not current or exportable.
 
-- per-piece production = assessed quantity x `kgCO2e/pcs` factor;
-- per-kg production = assessed quantity x mass kg/unit x `kgCO2e/kg` factor;
-- freight = moved quantity x mass kg/unit / 1000 x route km x
-  `kgCO2e/t-km` factor;
-- processing = explicit processed quantity x matching per-piece or per-kg
-  factor;
-- simplified net = production substitution - additional freight - processing.
+A COMPLETED intent may have calculation_status=INSUFFICIENT_DATA and null net; completed processing is not proof of complete reference inputs. DEMO uses illustrative factors, PRELIMINARY indicates an estimate under its retained provenance. Status does not turn a comparative estimate into certified performance.
 
-The baseline is hypothetical displacement of functionally equivalent new
-procurement. Baseline freight, disposal and credit issuance are excluded. The
-route is the single synthetic symmetric road-distance record between source and
-destination. For forecast and fully used transfers, all moved units receive the
-seed model's per-piece handling factor. When a received shipment is only partly
-used, Terra has no approved allocation of handling between used and residual
-units: processing and net are `null`, status is `INSUFFICIENT_DATA`, and
-`PROCESSING_BOUNDARY` is reported. Missing inputs/factors are never zero, and a
-negative calculated net is preserved.
+## Read and export
 
-The component methods align with the GHG Protocol's activity-data-times-factor
-and mass-distance freight approaches and its comparative avoided-emissions
-guidance. Those sources do not certify Terra's synthetic factors or establish
-carbon-credit eligibility:
+- GET /api/impact-assessments supports basis, proposal/transfer filters and current_only. Current selection uses authoritative heads and pending-state/unit checks.
+- GET /api/impact-assessments/{assessment_id} reads a retained revision/history with provenance.
+- GET /api/exports/impact accepts basis, format=csv/json and optional project_id/transfer_id. Source/current guards prevent an inconsistent export; pending/failed actual updates exclude stale results.
 
-- <https://ghgprotocol.org/sites/default/files/2022-12/Chapter1.pdf>
-- <https://ghgprotocol.org/sites/default/files/2022-12/Chapter4.pdf>
-- <https://ghgprotocol.org/estimating-and-reporting-avoided-emissions>
+An assessment retains basis, proposal/transfer ID, quantity_assessed/unit, baseline_description, production/freight/handling/net components, factor IDs/snapshots, assumptions, status and calculated_at. Actual revisions also retain source_input, revision number/previous identity/reason and the declared cost-allocation basis. Forecast and actual scopes are not summed. Global actual metrics count each transfer's used quantity once; unlike quantity units stay separate.
 
-## Deterministic factor selection
+Report presents current project/material/route and actual-use values. Missing-input labels can be deduplicated/readable, but original codes and IDs remain inspectable. Numerical graphics must not plot unknown as zero. Demonstration-factor/boundary disclosures remain available.
 
-A factor must match factor type, optimisation run's dataset version, activity
-date (`valid_from` not later than activity), supported unit and the exact
-lifecycle boundary. Transport also requires `ROAD_FREIGHT`. Material-specific
-factors outrank category factors, which outrank factors with no material scope.
-Within the winning scope, the newest valid date wins. Two equally specific
-factors on that date are ambiguous; Terra reports missing coverage instead of
-choosing by row order. Stored assessments retain factor IDs and complete factor
-snapshots, including source, URL, version, boundary and `is_demo_factor`.
+## Sources
 
-## Revision and current-result contract
-
-Every successful calculation inserts an immutable `impact_assessments` row and
-advances one scope head (`basis + proposal` or `basis + transfer`) in the same
-transaction. The head is Terra's current result: the latest successfully
-persisted operator-requested revision for that exact scope and basis. It is not
-an independent environmental approval. The assessment records revision number,
-previous assessment ID, reason, actor, current timestamp and reproducible input
-fingerprint. Exports select heads only, so superseded revisions cannot be
-double-totalled.
-
-The persistence mutation compares the expected head revision and the source
-proposal/transfer quantities and timestamps. If use changes while calculation
-is in flight, the stale result cannot overwrite the newer state; HTTP 409
-`IMPACT_INPUT_STALE` instructs the caller to recalculate. An identical
-idempotency retry returns the same assessment with `replayed: true`; changing
-request input while reusing the key returns HTTP 409.
-
-## Postman setup and exact requests
-
-From `D:\Terra`, run `npm run emulator`, `npm run seed`, and `npm run
-dev:backend` in separate terminals. In Postman use base URL
-`http://127.0.0.1:8000`, Authorization `No Auth`, header `Content-Type:
-application/json`, and raw JSON bodies.
-
-Forecast regression:
-
-`POST /api/impact-assessments/proposals/ALC-001/calculate`
-
-```json
-{"idempotency_key":"postman-impact-alc001-r2","revision_reason":"Recalculate documented seed regression","actor_label":"Demo operator"}
-```
-
-Verified fixture inputs are 600 pcs, 2.5 kg/pcs, 25 km, EF-001 = 0.75
-kgCO2e/pcs, EF-007 = 0.12 kgCO2e/t-km and EF-008 = 0.02 kgCO2e/pcs.
-Expected components are production `600 x 0.75 = 450`, freight `600 x 2.5 /
-1000 x 25 x 0.12 = 4.5`, processing `600 x 0.02 = 12`, net `433.5`
-kgCO2e. This is not Document 01's separate illustrative 10 kg handling
-assumption and 435.5 result. The new row is revision 2 after seed `IMP-001`.
-
-Actual confirmed-use calculation:
-
-`POST /api/impact-assessments/transfers/TRF-007/calculate`
-
-```json
-{"idempotency_key":"postman-impact-trf007-r2","revision_reason":"Recalculate confirmed-use result","actor_label":"Demo operator"}
-```
-
-`TRF-007` has 400 used/moved pieces of MAT-001 at 2.5 kg/piece over 8 km.
-Expected production is 300, freight 0.96, processing 8, and net 291.04
-kgCO2e. Use the response's current timestamp; do not expect a seed timestamp.
-
-Partial-use missing-data check:
-
-`POST /api/impact-assessments/transfers/TRF-006/calculate`
-
-```json
-{"idempotency_key":"postman-impact-trf006-r2","revision_reason":"Verify unresolved partial-use boundary","actor_label":"Demo operator"}
-```
-
-The fixture has 550 actually used but 600 dispatched. Production is 412.5 and
-freight is 4.5; processing and net are `null`, status is
-`INSUFFICIENT_DATA`, and missing data includes `PROCESSING_BOUNDARY`.
-
-Read-back requests:
-
-- `GET /api/impact-assessments?basis=PROPOSAL_FORECAST&current_only=true`
-- `GET /api/impact-assessments?basis=PROPOSAL_FORECAST&current_only=false`
-- `GET /api/impact-assessments/{assessment_id}` using the ID returned by POST
-
-The current-only list contains one row for ALC-001: the new assessment. The all
-revisions list also retains `IMP-001`. Repeat a POST body unchanged to verify
-the same ID/revision and `replayed: true`; use a fresh idempotency key and
-reason to create the next immutable revision.
-
-## Export checks
-
-Exact endpoints:
-
-- `GET /api/exports/impact?basis=ACTUAL_CONFIRMED_USE&format=json`
-- `GET /api/exports/impact?basis=ACTUAL_CONFIRMED_USE&format=csv`
-- `GET /api/exports/impact?basis=PROPOSAL_FORECAST&format=json`
-- `GET /api/exports/impact?basis=PROPOSAL_FORECAST&format=csv`
-
-JSON uses Terra's `{data, meta, error}` envelope; CSV is an attachment with one
-flat row per current assessment. Both include trace IDs, projects/material,
-quantities, components, complete factor provenance, assumptions, evidence
-references, status, missing-data coverage, revision and disclaimer. Forecast
-and actual are selected separately and `aggregation` is explicitly `null` in
-JSON. The export does not combine competing alternatives into a plan or label
-reused mass as diverted waste without baseline evidence.
+[Carbon engine](../backend/app/domain/carbon.py), [forecast calculator](../backend/app/services/forecast_preview_service.py), [impact service](../backend/app/services/impact_service.py), [automatic processing](../backend/app/services/automatic_impact_service.py), [export](../backend/app/services/impact_export_service.py), [schemas](../backend/app/schemas/impact.py), [routes](../backend/app/routes/impact.py). Local/schema/unit tests do not prove missing real-world factors or environmental assurance.

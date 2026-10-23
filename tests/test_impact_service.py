@@ -82,7 +82,7 @@ class ImpactServiceTests(unittest.TestCase):
         self.assertEqual(assessment["assumptions"]["revision"]["previous_assessment_id"], "IMP-001")
         self.assertEqual(assessment["calculated_at"], "2026-10-14T12:30:00+08:00")
 
-    def test_actual_partial_use_keeps_full_freight_and_null_net(self):
+    def test_actual_partial_use_keeps_full_movement_costs(self):
         repository = FakeImpactRepository(self.seed)
         response = calculate_impact("ACTUAL_CONFIRMED_USE", "TRF-006", self.request("partial"), repository, self.clock)
         assessment = response["data"]["assessment"]
@@ -90,9 +90,9 @@ class ImpactServiceTests(unittest.TestCase):
         self.assertEqual(assessment["assumptions"]["moved_quantity"], 600)
         self.assertEqual(assessment["avoided_production_kgco2e"], 412.5)
         self.assertEqual(assessment["additional_transport_kgco2e"], 4.5)
-        self.assertIsNone(assessment["additional_processing_kgco2e"])
-        self.assertIsNone(assessment["net_avoided_kgco2e"])
-        self.assertEqual(assessment["calculation_status"], "INSUFFICIENT_DATA")
+        self.assertEqual(assessment["additional_processing_kgco2e"], 12.0)
+        self.assertEqual(assessment["net_avoided_kgco2e"], 396.0)
+        self.assertEqual(assessment["calculation_status"], "DEMO")
 
     def test_identical_retry_returns_same_revision_without_second_write(self):
         repository = FakeImpactRepository(self.seed)

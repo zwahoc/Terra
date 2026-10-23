@@ -1,3 +1,6 @@
+import type { Quantity } from './quantities';
+import { refreshWorkspace } from '../data/terra';
+import { commandRequest } from './action-request';
 export type OptimisationObjective = "MAX_REUSE" | "EARLIEST_DEADLINE" | "MAX_NET_CO2E_AVOIDED";
 
 /**
@@ -23,13 +26,13 @@ export type OptimisationPreview = {
   plan: {
     objective: OptimisationObjective;
     solver_status: string;
-    total_proposed_quantity: number;
-    remaining_newly_allocatable_quantity_by_demand: Record<string, number>;
+    total_proposed_quantity: Quantity;
+    remaining_newly_allocatable_quantity_by_demand: Record<string, Quantity>;
     allocations: Array<{
       supply_offer_id: string;
       demand_request_id: string;
       material_id: string;
-      proposed_quantity: number;
+      proposed_quantity: Quantity;
       unit: string;
       earliest_delivery_date: string;
       required_by: string;
@@ -48,16 +51,16 @@ export type OptimisationPreview = {
     carbon_scoring_available: boolean | null;
   };
   matching_coverage_by_demand: Record<string, {
-    required_quantity: number;
-    proposed_quantity: number;
-    committed_quantity: number;
-    uncovered_quantity: number;
+    required_quantity: Quantity;
+    proposed_quantity: Quantity;
+    committed_quantity: Quantity;
+    uncovered_quantity: Quantity;
     status: "COVERED" | "PARTIALLY_COVERED" | "NOT_COVERED" | "ALREADY_COMMITTED";
   }>;
   forecast_previews: Array<{
     supply_offer_id: string;
     demand_request_id: string;
-    quantity_assessed: number;
+    quantity_assessed: Quantity;
     unit: string;
     net_avoided_kgco2e: string | null;
     calculation_status: "DEMO" | "PRELIMINARY" | "INSUFFICIENT_DATA";
@@ -70,7 +73,7 @@ export type PersistedAllocationProposal = {
   run_id: string;
   supply_offer_id: string;
   demand_request_id: string;
-  proposed_quantity: number;
+  proposed_quantity: Quantity;
   unit: string;
   compatibility_result: "ELIGIBLE" | string;
   status: "SELECTED" | string;
@@ -99,9 +102,6 @@ type PersistedRunData = {
 type PersistedEnvelope = { data: PersistedRunData | null; error: { code: string; message: string } | null };
 const activeRunStorageKey = "terra.active_optimisation_run_id";
 
-function newIdempotencyKey(prefix: string) {
-  return `${prefix}-${crypto.randomUUID()}`;
-}
 
 async function persistedRequest(path: string, init?: RequestInit): Promise<PersistedRunData> {
   const response = await fetch(path, init);
@@ -123,18 +123,12 @@ export async function persistOptimisationRun(
   planningDate: string,
   destinationProjectId?: string,
 ) {
-  return persistedRequest("/api/optimisation-runs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      objective,
-      planning_date: planningDate,
-      factor_dataset_version: "demo-v1",
-      ...(destinationProjectId ? { destination_project_id: destinationProjectId } : {}),
-      idempotency_key: newIdempotencyKey("optimisation-run"),
-      actor_label: "Demo operator",
-    }),
+  const result = await commandRequest<PersistedRunData>("/api/optimisation-runs", {
+    objective, planning_date: planningDate, factor_dataset_version: "demo-v1",
+    ...(destinationProjectId ? { destination_project_id: destinationProjectId } : {}), actor_label: "Demo operator",
   });
+  await refreshWorkspace().catch(() => {});
+  return result;
 }
 
 export const getPersistedOptimisationRun = (runId: string) => persistedRequest(`/api/optimisation-runs/${runId}`);

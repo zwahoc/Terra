@@ -1,0 +1,762 @@
+{
+  "tools": [
+    {
+      "name": "search_projects",
+      "description": "Search published Terra projects. Follow next_cursor even for empty filtered pages.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "default": "",
+            "title": "Query",
+            "type": "string"
+          },
+          "after": {
+            "default": "",
+            "title": "After",
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "SearchArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_project_context",
+      "description": "Read project facts, materials, recorded stock/supply/demand and commitments. Not a complete physical-stock ledger.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "project_id": {
+            "minLength": 1,
+            "title": "Project Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "title": "ProjectArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "search_materials",
+      "description": "Search the existing Terra material catalogue. Name similarity alone does not prove compatibility.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "default": "",
+            "title": "Query",
+            "type": "string"
+          },
+          "after": {
+            "default": "",
+            "title": "After",
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "SearchArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_material_context",
+      "description": "Get an exact existing catalogue material and its specifications.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "material_id": {
+            "minLength": 1,
+            "title": "Material Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "material_id"
+        ],
+        "title": "MaterialArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_project_records",
+      "description": "Read a page of this project's stored document, extracted-row, offer, demand, proposal, transfer or commitment records.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "project_id": {
+            "minLength": 1,
+            "title": "Project Id",
+            "type": "string"
+          },
+          "collection": {
+            "enum": [
+              "documents",
+              "extracted_rows",
+              "supply_offers",
+              "demand_requests",
+              "allocation_proposals",
+              "transfers",
+              "demand_commitments"
+            ],
+            "title": "Collection",
+            "type": "string"
+          },
+          "after": {
+            "default": "",
+            "title": "After",
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_id",
+          "collection"
+        ],
+        "title": "ProjectRecordsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_record_context",
+      "description": "Find an exact stored record within a project, following all pages.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "project_id": {
+            "minLength": 1,
+            "title": "Project Id",
+            "type": "string"
+          },
+          "collection": {
+            "enum": [
+              "documents",
+              "extracted_rows",
+              "supply_offers",
+              "demand_requests",
+              "allocation_proposals",
+              "transfers",
+              "demand_commitments"
+            ],
+            "title": "Collection",
+            "type": "string"
+          },
+          "record_id": {
+            "minLength": 1,
+            "title": "Record Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "collection",
+          "record_id"
+        ],
+        "title": "RecordArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "find_related_documents",
+      "description": "Read project document metadata to investigate overlap/revisions. These are stored records, not automatically new stock.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "project_id": {
+            "minLength": 1,
+            "title": "Project Id",
+            "type": "string"
+          },
+          "after": {
+            "default": "",
+            "title": "After",
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "title": "RelatedDocumentsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "propose_project",
+      "description": "Create a provisional project in this model run only. Unknown fields may be null. Requires human review.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Code"
+          },
+          "township": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Township"
+          },
+          "managing_organisation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Managing Organisation"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Start Date"
+          },
+          "target_end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target End Date"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ProjectProposal",
+        "type": "object"
+      }
+    },
+    {
+      "name": "propose_material",
+      "description": "Create a provisional material in this model run only. Categories/units may extend the seed; no eligibility or engineering approval is implied.",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical_name": {
+            "minLength": 1,
+            "title": "Canonical Name",
+            "type": "string"
+          },
+          "category_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category Code"
+          },
+          "specifications": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Specifications",
+            "type": "object"
+          },
+          "standard_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Standard Unit"
+          },
+          "reference_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reference Code"
+          }
+        },
+        "required": [
+          "canonical_name"
+        ],
+        "title": "MaterialProposal",
+        "type": "object"
+      }
+    }
+  ],
+  "file_draft_schema": {
+    "$defs": {
+      "DraftRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "project_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/EntityRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "material_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/EntityRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "raw_description": {
+            "title": "Raw Description",
+            "type": "string"
+          },
+          "raw_quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Raw Quantity"
+          },
+          "raw_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Raw Unit"
+          },
+          "raw_fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Raw Fields",
+            "type": "object"
+          },
+          "specifications": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Specifications",
+            "type": "object"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quantity"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unit"
+          },
+          "record_kind": {
+            "default": "UNKNOWN",
+            "enum": [
+              "PLANNED_REQUIREMENT",
+              "PURCHASE_ORDER",
+              "RECEIPT",
+              "ON_HAND_INVENTORY",
+              "REMAINING_LOCAL_REQUIREMENT",
+              "POTENTIAL_SURPLUS",
+              "CONFIRMED_SURPLUS",
+              "OUTSTANDING_DEMAND",
+              "UNKNOWN"
+            ],
+            "title": "Record Kind",
+            "type": "string"
+          },
+          "effective_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Effective Date"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Until"
+          },
+          "needed_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Needed From"
+          },
+          "required_by": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Required By"
+          },
+          "application": {
+            "default": "UNDECIDED",
+            "enum": [
+              "ADD",
+              "REPLACE",
+              "HISTORY_ONLY",
+              "UNDECIDED"
+            ],
+            "title": "Application",
+            "type": "string"
+          },
+          "replaces_record_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Replaces Record Ids",
+            "type": "array"
+          },
+          "source_locator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Locator"
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Page"
+          },
+          "source_item_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Item Ref"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "requires_operator_confirmation": {
+            "const": true,
+            "default": true,
+            "title": "Requires Operator Confirmation",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "raw_description"
+        ],
+        "title": "DraftRecord",
+        "type": "object"
+      },
+      "EntityRef": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "EXISTING",
+              "PROPOSED"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "title": "EntityRef",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "enum": [
+          "BOQ",
+          "PURCHASE_ORDER",
+          "INVENTORY",
+          "DEMAND",
+          "MIXED",
+          "OTHER"
+        ],
+        "title": "Document Type",
+        "type": "string"
+      },
+      "summary": {
+        "title": "Summary",
+        "type": "string"
+      },
+      "project_refs": {
+        "items": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "title": "Project Refs",
+        "type": "array"
+      },
+      "records": {
+        "items": {
+          "$ref": "#/$defs/DraftRecord"
+        },
+        "title": "Records",
+        "type": "array"
+      },
+      "assumptions": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Assumptions",
+        "type": "array"
+      },
+      "issues": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Issues",
+        "type": "array"
+      },
+      "page_coverage": {
+        "items": {
+          "type": "integer"
+        },
+        "title": "Page Coverage",
+        "type": "array"
+      }
+    },
+    "required": [
+      "document_type",
+      "summary"
+    ],
+    "title": "FileDraft",
+    "type": "object"
+  },
+  "batch_cross_check_schema": {
+    "$defs": {
+      "CrossFileFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "submission_ids": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Submission Ids",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "POSSIBLE_DUPLICATE",
+              "POSSIBLE_REVISION",
+              "CONFLICT",
+              "SHARED_CONTEXT",
+              "MISSING_INFORMATION"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "requires_operator_confirmation": {
+            "const": true,
+            "default": true,
+            "title": "Requires Operator Confirmation",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "submission_ids",
+          "kind",
+          "explanation"
+        ],
+        "title": "CrossFileFinding",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "findings": {
+        "items": {
+          "$ref": "#/$defs/CrossFileFinding"
+        },
+        "title": "Findings",
+        "type": "array"
+      },
+      "summary": {
+        "title": "Summary",
+        "type": "string"
+      }
+    },
+    "required": [
+      "summary"
+    ],
+    "title": "BatchCrossCheck",
+    "type": "object"
+  }
+}

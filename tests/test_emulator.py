@@ -38,7 +38,7 @@ class EmulatorTests(unittest.TestCase):
         data=self.adapter.execute('ListProjects')['projects']
         self.assertEqual(next(x for x in data if x['id']=='PRJ-001')['name'],row['name'])
     def test_comparison_persistence_forecast_heads_and_explicit_selection(self):
-        from datetime import date
+        from datetime import date,datetime,timezone,timedelta
         from backend.app.repositories.optimisation_repository import OptimisationRepository
         from backend.app.services.optimisation_comparison_service import (
             OptimisationComparisonInput, persist_optimisation_comparison)
@@ -48,9 +48,10 @@ class EmulatorTests(unittest.TestCase):
         value = OptimisationComparisonInput(date(2026,10,12), 'demo-v1', None,
                                            'integration-comparison', 'Demo operator')
         before = self.adapter.snapshot()
-        result = persist_optimisation_comparison(value, repo)
+        activity_clock=lambda:datetime(2026,10,12,12,tzinfo=timezone(timedelta(hours=8)))
+        result = persist_optimisation_comparison(value, repo,activity_clock)
         alternatives = result['data']['alternatives']
-        self.assertEqual(len(alternatives), 2)
+        self.assertEqual(len(alternatives), 3)
         self.assertEqual(alternatives[0]['run']['inputs_snapshot_hash'],
                          alternatives[1]['run']['inputs_snapshot_hash'])
         for item in alternatives:
@@ -65,9 +66,14 @@ class EmulatorTests(unittest.TestCase):
         proposal = alternatives[0]['proposals'][0]
         transfer_repo = TransferRepository(self.adapter)
         request = TransferRequestInput('Demo operator', 'integration-comparison-select')
-        response = create_transfer_request(proposal['id'], request, transfer_repo)
+        response = create_transfer_request(proposal['id'], request, transfer_repo,activity_clock)
         transfer = response['data']['transfer']
         self.assertEqual(transfer['status'], 'REQUESTED')
+        from backend.app.services.workspace_service import workspace_data
+        workspace=workspace_data(self.adapter)
+        display=next(row for row in workspace['transfer_views'] if row['id']==transfer['id'])
+        self.assertNotEqual(display['material_name'], 'Unknown material')
+        self.assertIn(proposal['id'],{row['id'] for row in workspace['terra']['allocation_proposals']})
         self.assertEqual(transfer['reserved_quantity'], 0)
         state = transfer_repo.get_request_state(proposal['id'], 'unused', transfer['id'], 'unused')
         self.assertEqual(state.proposal['status'], 'SELECTED')
@@ -240,7 +246,7 @@ class EmulatorTests(unittest.TestCase):
         self.assertEqual(use['data']['supply_offer']['transferred_out_quantity'],200)
         self.assertEqual(use['data']['demand_request']['fulfilled_quantity'],120)
         self.assertEqual(use['data']['demand_request']['committed_incoming_quantity'],80)
-        self.assertIn('disposition pending',use['data']['transfer']['notes'])
+        self.assertEqual(use['data']['transfer']['notes'],receive['data']['transfer']['notes'])
         repeated_status,repeated=asyncio.run(request('POST','/api/transfers/TRF-001/confirm-use',{'quantity':50,'actor_label':'Demo operator','idempotency_key':'partial-use-again'}))
         self.assertEqual(repeated_status,200,repeated)
         self.assertEqual(repeated['data']['transfer']['actually_used_quantity'],170)

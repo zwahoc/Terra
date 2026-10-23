@@ -1,0 +1,20 @@
+.transfer-actions label { display: grid; gap: .5rem; margin-block: 1rem; max-width: 42rem; }
+.transfer-actions input { font: inherit; padding: .75rem; border: 1px solid #819b8e; border-radius: 6px; min-width: 0; }
+.transfer-actions input[type=checkbox] { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; }
+.transfer-actions .transfer-confirm-check { display: flex; align-items: flex-start; }
+.transfer-actions button { min-height: 44px; cursor: pointer; }
+.transfer-actions button:disabled { opacity: .55; cursor: default; }
+.transfer-actions button:focus-visible, .transfer-actions input:focus-visible { outline: 3px solid #256b54; outline-offset: 3px; }
+.transfer-confirmation { margin-block-start: 1.5rem; padding-block-start: 1rem; border-top: 1px solid #bac9bf; }
+.transfer-actions .terra-quantities { display: flex; flex-wrap: wrap; gap: 1rem 2rem; }
+.transfer-actions .terra-transfer-actions { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.transfer-cancel { background: transparent; color: #82361e; border: 1px solid currentColor; padding: .75rem 1rem; }
+@media (max-width: 640px) { .transfer-actions .terra-transfer-actions { align-items: stretch; flex-direction: column; } }
+
+.transfer-heading { padding: 1.5rem 2rem; color: #183f34; }
+.transfer-heading h1 { margin: 0 0 .75rem; font-size: 2rem; letter-spacing: -.025em; line-height: 1.15; }
+.transfer-heading p { max-width: 65ch; margin: 0; line-height: 1.5; }
+.transfer-actions .terra-approval-detail { padding: 1.5rem 2rem; }
+.transfer-actions .terra-approval-list > button { border-left: 0; }
+.transfer-actions .terra-approval-list > button[aria-pressed=true] { background: #d5e7d0; }
+.transfer-actions .terra-approval-list > button > div { display: grid; gap: .4rem; }

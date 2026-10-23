@@ -1,177 +1,181 @@
-# 08 — Module interfaces, API DTOs and collaboration boundaries (future MVP)
+# 08 — Module interfaces and API contracts
 
-**Status:** Future API/DTO contract, synchronised with Document 09. The chosen framework and runtime are fixed; endpoint details may be refined during implementation. **The local seed task must not build the full API.** Quantity/status/provenance semantics remain stable.
+The application boundary is FastAPI at `/api`. All routes use the trusted local client/host/origin guard. Provider operations, source filesystem paths and credentials are never public application APIs. [Document 09](09_ARCHITECTURE_UPDATE.md) governs architecture.
 
-```text
-React + TypeScript + Tailwind CSS
-    -> HTTPS/JSON -> FastAPI, thin Python routes + Pydantic DTOs
-    -> framework-independent Python services/domain functions
-    -> repositories -> Python REST adapter, authentication proof required
-    -> Firebase SQL Connect named operations -> Cloud SQL PostgreSQL
-```
+## Ownership and transport
 
-FastAPI owns endpoints, intake orchestration, validation and error mapping. Python services own business calculations. No separate Node backend or browser-direct Firebase application access is planned. Node.js is limited to Firebase tooling or justified one-off utilities. API DTOs use `snake_case`; the adapter maps SQL Connect `camelCase` fields without exposing provider credentials.
-
-## 1. Module ownership and contracts
-
-| Module | Responsibility | Consumes | Produces | Excludes |
-|---|---|---|---|---|
-| Frontend (Member 1) | React/TypeScript/Tailwind dashboard, inventory, review, matches/carbon, transfers/ESG | FastAPI DTOs and status enums | Operator requests/actions through FastAPI | Authoritative stock/carbon calculations or direct Firebase operations |
-| AI Material Intelligence (Member 2) | Independent Python parsers, normalized rows, LLM-assist, review/publication integration | Document and catalogue metadata | Reviewable `extracted_rows` + candidate canonical mappings | Declaring confirmed surplus from LLM alone or updating transfer counters |
-| Circular Optimiser (Member 3) | Constraint validation, allocation alternatives and reasons | Confirmed uncommitted supply, outstanding demand, routes, material specs | `optimisation_runs` + `allocation_proposals` | Direct transfer reservations and physical-use claims |
-| Carbon & Transfer (Member 4) | Factor selection, forecast/actual carbon results, atomic lifecycle, exports | Proposals, transfers, factors, routes, verified use | `transfers`, `transfer_events`, `impact_assessments`, ESG export | Real carbon credits and official corporate GHG accounting |
-
-The Python backend is one application with shared database state. Processing modules call internal service/repository interfaces; React calls FastAPI. A supply/demand service performs deterministic potential-surplus/outstanding-demand calculations after documented input validation. Modules do not independently write coupled counters. Repositories isolate REST credentials, operation names, mappings and persistence. Test domain functions without HTTP/Firebase, then test adapter and API separately. No independently deployed module services or queues are required.
-
-## 2. Proposed API responses
-
-Use a consistent envelope:
-
-```json
-{
-  "data": {},
-  "meta": {"dataset_version": "1.0.0", "synthetic": true, "as_of_date": "2026-10-12"},
-  "error": null
-}
-```
-
-For failures: `data=null`, `error={"code":"...", "message":"...", "details":{...}}`; appropriate HTTP codes. Avoid untyped silent success and never expose admin credentials in responses.
-
-The metadata above describes the synthetic baseline, not the current time. The Firebase REST response is provider-specific; the adapter must detect operation errors and FastAPI maps them into this Terra envelope. Server-to-database authentication remains necessary despite the absence of app login. Public demo writes require a separately agreed access plan.
-
-### Read endpoints for initial frontend mocking
-
-- `GET /api/projects` — project list.
-- `GET /api/materials?category=PAVING_BLOCK` — catalogue.
-- `GET /api/supply-offers?status=CONFIRMED&project_id=PRJ-001` — effective stock and raw counters. Each record should include **derived** `reservable_quantity` (does not increase confirmed amount).
-- `GET /api/demand-requests?status=OPEN` — include `remaining_unfulfilled_quantity` and `newly_allocatable_quantity` reflecting active incoming commitments.
-- `GET /api/optimisation-runs` and `GET /api/optimisation-runs/{id}/proposals` — alternative plans by run.
-- `GET /api/transfers` — current stages and quantities.
-- `GET /api/dashboard/summary` — derived metrics, with forecast vs actual impact split.
-
-The first Codex task may only create a **query/connector data path and docs**, not HTTP routes.
-
-### Document/AI endpoints (later)
-
-- `POST /api/documents` — file reference/upload, class type, project.
-- `GET /api/documents/{id}/extracted-rows` — raw/candidate extraction fields.
-- `PATCH /api/extracted-rows/{id}` — human correction status and fields.
-- `POST /api/extracted-rows/{id}/publish` — idempotent conversion after business validation.
-- `GET /api/materials?query=...` — canonical lookup and mapping suggestions, also supporting the category filter above.
-
-### Optimisation endpoints
-
-Non-persisting integration extensions are implemented at
-`POST /api/optimisation-runs/preview` and
-`POST /api/impact-assessments/forecast-preview`. See
-[IMPACT_API.md](IMPACT_API.md) for their explicit request/response contracts.
-They return temporary plans/forecasts without run/proposal/assessment IDs or
-writes.
-
-`POST /api/optimisation-runs`
-
-```json
-{
-  "objective": "MAX_NET_CO2E_AVOIDED",
-  "planning_date": "2026-10-12",
-  "factor_dataset_version": "demo-v1",
-  "destination_project_id": "PRJ-002",
-  "idempotency_key": "optimise-2026-10-12-prj-002",
-  "actor_label": "Demo operator"
-}
-```
-
-This computes the same eligible matching calculation from one database snapshot,
-then atomically creates an immutable `optimisation_run`, its `SELECTED` and
-`ELIGIBLE` allocation proposals, initial linked forecast assessments/revision
-heads, and an idempotency operation record. The response returns `data.run`,
-`data.proposals` and `data.assessments`; `GET
-/api/optimisation-runs/{run_id}` returns that persisted run and its proposals.
-The endpoint creates no transfer, reservation, stock mutation, demand
-commitment, dispatch, receipt, or reuse. Repeating the same idempotency key and
-payload returns the original result; reusing it with different input returns a
-conflict. Previewing potential surplus must **never make it reservable**.
-
-`POST /api/optimisation-comparisons/preview` runs MAX_REUSE and carbon allocation
-against one prepared snapshot without writes. `POST /api/optimisation-comparisons`
-saves both runs, PROPOSED proposals, initial forecasts and revision heads in one
-transaction. The existing proposal approval endpoint can explicitly select a
-PROPOSED alternative and create its REQUESTED transfer atomically, without a
-reservation. See [the complete comparison contracts](OPTIMISATION_COMPARISON_API.md).
-The allocator now follows Member 4's reservation window: dispatch cannot precede
-needed_from, and receipt must still meet required_by after lead time.
-
-For the current MAX_REUSE implementation, the latest user-requested priority is
-maximum allocated pcs, earliest demand `required_by`, earliest feasible delivery,
-shorter route and stable IDs. See SRS Section 12.1 for the amendment and provenance.
-This changes the internal plan preference policy, not the endpoint or DTO fields.
-
-### Transfer workflow endpoints
-
-`POST /api/allocation-proposals/{id}/approve` — approve a matching proposal, then atomically create its `REQUESTED` transfer and `REQUESTED` event. It accepts `actor_label`, `idempotency_key`, optional `evidence_ref`, and optional `notes`. The proposal must be `SELECTED` and `ELIGIBLE`; duplicate requests for a proposal return a conflict. Its requested quantity equals the proposal quantity. It creates no reservation, stock mutation, demand commitment, dispatch, receipt, or reuse.
-`POST /api/transfers/{id}/approve` — legacy compatibility for existing synthetic baseline records only; new proposal approvals use the endpoint above.
-`POST /api/transfers/{id}/reserve` — **transactional, idempotent** stock and incoming demand commitment check.  
-`POST /api/transfers/{id}/dispatch` — record quantity dispatched and decrement active reservation.  
-`POST /api/transfers/{id}/receive` — intentional MVP restriction: confirm the complete dispatched quantity arrived in one operation; no request quantity, partial/missing delivery, or confirmed reuse.
-`POST /api/transfers/{id}/confirm-use` — record quantity actually used and update demand fulfilled counters.  
-`POST /api/transfers/{id}/cancel` — cancel before dispatch with a reason and atomic release of remaining holds/commitments; post-dispatch exception handling remains an open contract.  
-`POST /api/impact-assessments/proposals/{proposal_id}/calculate` — append a `PROPOSAL_FORECAST` assessment revision.
-
-`POST /api/impact-assessments/transfers/{transfer_id}/calculate` — append an `ACTUAL_CONFIRMED_USE` assessment revision after confirmed use.
-
-`GET /api/impact-assessments?basis={basis}&current_only=true|false` — read one current head per scope by default, or immutable revision history.
-
-`GET /api/impact-assessments/{assessment_id}` — read one traceable assessment revision.
-
-`GET /api/exports/impact?basis=ACTUAL_CONFIRMED_USE&format=json|csv` — controlled ESG export.
-
-For any mutating route, require `idempotency_key` or equivalent replay-safe operation ID; duplicate requests must not double-apply quantity. Return updated transfer state and inventory snapshot.
-
-Selection and approval are not reservation. At reserve time, revalidate current confirmation, specs/units/date window, source stock and recipient uncommitted need within the same race-safe operation. Dispatch reduces the source hold and increases transferred-out quantities once. Receipt does not increase fulfilled demand; confirmed use does. Remaining unused/missing promises require explicit resolution before release. No endpoint may silently invent a return or count a forecast as achieved reuse. See Document 07 for unresolved partial-transfer closure and actual-use transport-cost policy.
-
-## 3. Shared error codes
-
-| Code | Meaning |
+| Module | Owns |
 |---|---|
-| `INVALID_SOURCE_TYPE` | BOQ/PO data improperly offered as available stock |
-| `ROW_NOT_REVIEWED` | Attempted publication before acceptance |
-| `MATERIAL_SPEC_MISMATCH` | Critical dimensions/grade/type mismatch |
-| `UNIT_CONVERSION_UNSUPPORTED` | Cannot convert to catalogue unit reliably |
-| `SUPPLY_NOT_CONFIRMED` | Potential/suspended/closed supply not reservable |
-| `INSUFFICIENT_STOCK` | Confirmed stock minus commitments too small |
-| `DEMAND_ALREADY_COMMITTED` | Existing incoming transfers exhaust need |
-| `INVALID_DATE_WINDOW` | Availability vs need-by mismatch |
-| `INVALID_TRANSFER_TRANSITION` | Status stage prerequisites not met |
-| `IDEMPOTENCY_REPLAY` | Operation already processed (may return original success) |
-| `CARBON_INSUFFICIENT_DATA` | Missing factor/mass/route/handling boundary for full assessment |
-| `UNSUPPORTED_FORMAT` | Document parser cannot handle a file |
-| `PARSING_FAILED` | Supported document format could not be parsed; retain failure context without publishing business records |
+| Ingestion | Source preparation, model conversations/tools, extraction/reconciliation/cross-check and provisional persistence |
+| Review/publication | Operator overlays, exact previews, approvals, atomic contributions/identity resolution and matching handoff |
+| Matching | Current material scopes, same-input objective alternatives and explicit source-input corrections |
+| Transfer | Fresh confirmation/forecast, atomic coupled holds, physical lifecycle and event history |
+| Impact/export | Factor applicability, proposal/actual comparisons, immutable revisions/current heads and CSV/JSON |
+| Workspace/history | Current joined views and separately verified read-only archives |
 
-## 4. Example response: eligibility with carbon explanation
+JSON responses normally use `{data, meta, error}`. Failed actions return a structured error code/message/details with data=null. File/source/export routes return protected bytes. API schemas live in `backend/app/schemas/`; current `/docs` exposes generated OpenAPI. Identifiers in HTTP are transport values, not display names.
 
-```json
-{
-  "proposal_id": "ALC-001",
-  "supply_offer_id": "SUP-001",
-  "demand_request_id": "DEM-001",
-  "proposed_quantity": 600,
-  "unit": "pcs",
-  "compatibility_result": "ELIGIBLE",
-  "reason_codes": ["SAME_CANONICAL_MATERIAL", "SPECIFICATIONS_MATCH", "DATE_WINDOW_OK"],
-  "carbon_preview": {
-    "calculation_status": "DEMO",
-    "avoided_production_kgco2e": 450,
-    "additional_transport_kgco2e": 4.5,
-    "additional_processing_kgco2e": 10,
-    "net_avoided_kgco2e": 435.5,
-    "all_factors_synthetic": true,
-    "baseline_description": "Hypothetical replacement of 600 functionally equivalent new blocks"
-  }
-}
-```
+Operational quantities accept exact nonnegative/positive values as required by each command: whole JSON integers or plain decimal strings, rejecting booleans, floats, nonfinite values, overprecision and fractional discrete counts. Responses preserve exact fractional strings and compatible whole integers. Draft source strings remain separate from validated quantities. Provider millionths never appear as ordinary browser/model quantities.
 
-Numbers above refer only to the illustrative example in `01_BUSINESS_WORKFLOW.md`. This DTO is illustrative and is **not** a guaranteed record ID in the eventual seed; the generated scenario index is authoritative.
+## Intake and analysis
 
-## 5. Versioning and ownership rule
+`IngestionBatch` has contract_version=ingestion.intake.v1, stable id/revision, INTAKE/PUBLISHED state, selected_project_id, source submissions/context, comparisons, optional working review and publication identity. `FileSubmission` keeps immutable source metadata and ANALYSE/SKIPPED/MANUAL resolution. `SourceFile` contains source ID, SHA-256, byte_size, display_filename and media_type. Source paths are never caller-selected.
 
-When one module changes a shared field, add a migration/contract change and update API types/docs/tests in the same pull request. Provide canonical schema models and enum definitions as shared artifacts where practical. Do not let members invent independent interpretations of `confirmed_quantity`, `actually_used_quantity`, or carbon factor units.
+Create a batch with selected_project_id or null; multipart upload sends expected_revision and file parts. Context changes use expected_revision and retain operator_notes/operator_input. Database reads are cursor-scoped; missing filtered rows with next_cursor do not end a search. Read tokens describe OBSERVED_READS, not complete-ledger or transaction-snapshot authority.
+
+AnalyseRequest sends expected_revision, idempotency_key, mode DEFAULT/COMPARE and explicit reanalyse. DEFAULT uses the exact saved primary if configured; COMPARE uses isolated configured slots. Provider enablement/keys are server-only. SelectPrimaryRequest references expected batch/preference revisions and a complete current comparison/run; choosing primary does not select a working review or approve/publish facts.
+
+FileDraft has document_type, summary, project_refs, records, assumptions/issues and the material-focused project_info/source_items/page_coverage contract. Each DraftRecord carries existing/proposed project/material references, raw fields/specifications, exact quantity/unit, meaning/basis/inference, effective/availability/need dates, application/predecessors and page/item/locator provenance. SourceItem record_indices and row references must agree. The JSON schema is defined by `FileDraft.model_json_schema()` in [analysis DTOs](../backend/app/schemas/analysis.py).
+
+File results retain classification/module identity, original candidate/response history, preparation/reader coverage, page groups, errors/recoveries, reconciliation and observed context. Completed compatible work survives targeted retry. Comparison exposes current-input/database-context readiness; historical/restored results cannot silently become current.
+
+## Tool contract
+
+Exact descriptions and argument JSON schemas are generated by `analysis_tools.py::tool_definitions()` from strict typed models. Current tools are:
+
+| Tool | Authority/result |
+|---|---|
+| search_projects | Paginated existing published project matches |
+| get_project_context | Existing project facts/material evidence/commitments, with completeness caveats |
+| search_materials | Literal compatible existing catalogue retrieval |
+| search_materials_bulk | Multiple LLM-chosen ANY/ALL criteria over names/codes/specifications, complete stable pagination, no ranking/top-N |
+| get_material_context | Exact published catalogue specifications |
+| get_project_records | Paginated project-scoped source/offer/demand/proposal/transfer/commitment reads |
+| get_record_context | Exact stored record within its project |
+| find_related_documents | Stored document metadata for duplicate/revision investigation |
+| get_published_records | Current contribution/supersession/stock-head pages |
+| get_published_record_context | Exact approved observation/stock scope context |
+| get_run_draft_context | This model run's proposals or saved file records only |
+| propose_project | New run-local project proposal, requiring operator review |
+| propose_material | New run-local material proposal with open-ended category/unit/specifications |
+
+Existing database IDs must come from returned records. DRAFT-PROJECT/DRAFT-MATERIAL identities are provisional and run-owned. Tools never perform approval, operational publication, transfer, arbitrary SQL or external lookup. Classification/batch checks/repair/reconciliation have their own restricted stage contracts; reconciliation is read-only.
+
+## Working review and exact previews
+
+Select/prepare/rebase use expected_revision, comparison_id and run_id. A working ReviewState retains original/current rows/projects, local entities, manual submissions, stock-scope acknowledgements and audit. Row decisions are PENDING/ACCEPTED/EXCLUDED; manual provenance is OPERATOR_MANUAL, source rows AI_DOCUMENT. Defaults retain readability of older payloads.
+
+RowEdit sends current, decision, assumptions_confirmed, conversion and release_confirmed with the opening expected_revision. Conversion has to_unit, positive plain-decimal factor, basis and confirmed; Python computes the exact result. EntityEdit sends kind/attributes/confirmed. ProjectEdit distinguishes current association/facts from explicit master_updates. Supported corrections include name/code/township/organisation/start/target-end/address; conflicting/blank erasures fail.
+
+Read-only editor-preview accepts expected_revision/current/conversion/row_id and returns exact target quantity/unit, catalogue unit, questions and eligible earlier observations. Replacement options must be current comparable observations of the same project/material/meaning, never an offer, transfer or stock-head identity. Previewing changes no record and grants no approval.
+
+ReviewView returns revision, review, current approvals, per-submission blockers/warnings, effective rows, deterministic groups and preview_digest. Prepared prospective acknowledgements can display consequences before actual acceptance. ApproveSubmission sends expected_revision, preview_digest, summary_confirmed and accept_recommendations=true for prepared review. The service revalidates current context/content and stores the dependent submission digest, not a caller-provided approval flag.
+
+ManualSubmission accepts label/records, optional conversion per record, and optional replaces_submission_id/analysis_run_id for failed-file recovery. It never fabricates source provenance. ResolveFile explicitly chooses SKIPPED/ANALYSE against current failed analysis. Added-file rebase preserves edits and invalidates affected approvals; wholly manual/resolved batches have a separate context-refresh action.
+
+## Atomic publication
+
+The publication plan is a guarded read returning current revision, plan_digest, included effects, counts, resolved IDs, warnings/blockers and any existing receipt. PublishBatch sends expected_revision, plan_digest and idempotency_key. A named SQL transaction applies all accepted changes/audit/receipt/matching intent together or none.
+
+The receipt retains publication/batch identity, commit time, effect counts, matching handoff status/warnings and source resolution provenance. Repeating the same request is replay-safe; changed payload under the same key is rejected. Lost responses use saved-receipt lookup before retry. Handoff retry never repeats publication. Published reviews reject edits.
+
+## Current matching and source inputs
+
+GET matching returns READY or AWAITING_LOCAL_CUTOVER. READY contains observed_on and materials with material_id/name/unit, CURRENT/PENDING/FAILED, diagnostic and current generation or null. A generation contains identity/fingerprint/planning date and three alternatives with run/proposal IDs, allocations, coverage and forecasts. Superseded alternatives cannot execute.
+
+InputCorrection sends expected_revision, idempotency_key, kind MATERIAL_MASS/ROUTE_DISTANCE/PROJECT_FACTS, relevant material/project/source/recipient IDs, string-valued values, basis and confirmed. Weight/distance require a nonempty confirmed basis; project corrections do not require an override explanation. Atomic before/after audit and dirty matching/impact scopes retain source revision safety.
+
+Current reads page required collections with operational-version bracketing. Dirty scopes/worker output persist durably with expected source/scope guards. Explicit refresh retries failed work; no LLM or automatic reservation is introduced. Complete returned scope filtering/pagination is frontend presentation, not hidden candidate suppression.
+
+## Transfer confirmation and physical actions
+
+| Operation | Body/result |
+|---|---|
+| confirmation-preview | GET quantity and generation_id; returns original/chosen quantity, expected_revision, current timing/confirmability and chosen-quantity factor/component forecast; no mutation |
+| confirm | POST quantity, generation_id, expected_revision, actor_label, idempotency_key and optional evidence_ref; returns RESERVED transfer, event, source/demand effects and replay metadata |
+| dispatch | actor_label/idempotency_key/evidence_ref; no quantity override; moves full hold to dispatched |
+| receive | same base fields, no quantity; confirms full dispatched quantity |
+| confirm-use | positive exact additional quantity plus base fields; bounded by received-minus-used; persists use and impact intent together |
+| cancel | base fields plus reason; pre-dispatch only; releases source/recipient holds once |
+
+Current confirmation is one transaction, not chained request/approve/reserve calls. Legacy request/approve/reserve routes remain readable/compatible for older records; current automatically generated proposals require the combined command. Choice/review/preview is not reservation.
+
+## Impact, workspace and history
+
+Impact lists support basis/entity filters and current_only. Current heads select one valid assessment revision per scope; unfinished actual refreshes exclude stale current figures/export. COMPLETED work may still yield INSUFFICIENT_DATA. Explicit retry/calculation never repeats physical use. Source/head/intent guards reject stale assessment persistence.
+
+Workspace data joins current projects/materials/offers/demands/transfers/observations, unit-aware supply/demand/transfer views, one current reuse summary per material, all matching alternatives and dashboard.by_project. Metadata carries workspace_epoch. Shared reads fail on incomplete capacity or crossed source revisions, rather than displaying truncated authoritative state.
+
+History routes expose only completed verified archive summaries, saved batches and intact sources. They do not approve, restore or republish into the active workspace. Source bytes use no-store/nosniff/sandbox protections. Full archive/cutover is local maintenance, not a normal UI API.
+
+## Implemented route index
+
+The table below is extracted from checked-in route declarations. Detailed request/response schemas are in OpenAPI and the referenced schema modules. A POST may be read-only-in-effect, such as forecast preview; only its service contract determines mutation authority.
+
+| Method | Path | Route module/function |
+|---|---|---|
+| GET | `/api/ingestion/providers` | `analysis.py::providers` |
+| POST | `/api/ingestion/providers/check` | `analysis.py::check_providers` |
+| POST | `/api/ingestion/batches/{batch_id}/primary-model` | `analysis.py::select_primary` |
+| POST | `/api/ingestion/batches/{batch_id}/analyse` | `analysis.py::analyse` |
+| GET | `/api/ingestion/batches/{batch_id}/comparisons/{comparison_id}` | `analysis.py::comparison` |
+| GET | `/api/ingestion/batches/{batch_id}/runs/{run_id}` | `analysis.py::analysis_run` |
+| POST | `/api/ingestion/batches/{batch_id}/comparisons/{comparison_id}/runs/{run_id}/retry` | `analysis.py::retry_analysis` |
+| GET | `/api/history` | `history.py::index` |
+| GET | `/api/history/{archive_id}/batches/{batch_id}` | `history.py::read_batch` |
+| GET | `/api/history/{archive_id}/batches/{batch_id}/files/{submission_id}/source` | `history.py::source` |
+| POST | `/api/impact-assessments/forecast-preview` | `impact.py::forecast_preview` |
+| POST | `/api/optimisation-runs/preview` | `impact.py::optimisation_preview` |
+| POST | `/api/optimisation-comparisons/preview` | `impact.py::comparison_preview` |
+| POST | `/api/optimisation-comparisons` | `impact.py::create_comparison` |
+| POST | `/api/optimisation-runs` | `impact.py::persist_optimisation` |
+| GET | `/api/optimisation-runs/{run_id}` | `impact.py::read_optimisation_run` |
+| POST | `/api/impact-assessments/proposals/{proposal_id}/calculate` | `impact.py::calculate_forecast` |
+| POST | `/api/impact-assessments/transfers/{transfer_id}/calculate` | `impact.py::calculate_actual` |
+| GET | `/api/impact-assessments` | `impact.py::read_assessments` |
+| GET | `/api/impact-assessments/{assessment_id}` | `impact.py::read_assessment` |
+| GET | `/api/exports/impact` | `impact.py::impact_export` |
+| GET | `/api/impact-refresh` | `impact.py::impact_refresh_status` |
+| POST | `/api/impact-refresh/retry` | `impact.py::retry_automatic_impact` |
+| POST | `/api/ingestion/batches` | `ingestion.py::create_batch` |
+| GET | `/api/ingestion/batches/{batch_id}` | `ingestion.py::get_batch` |
+| POST | `/api/ingestion/batches/{batch_id}/files` | `ingestion.py::upload_files` |
+| PATCH | `/api/ingestion/batches/{batch_id}/context` | `ingestion.py::patch_context` |
+| GET | `/api/ingestion/batches/{batch_id}/duplicates` | `ingestion.py::identical_uploads` |
+| POST | `/api/ingestion/batches/{batch_id}/context/projects` | `ingestion.py::capture_context` |
+| POST | `/api/ingestion/batches/{batch_id}/restore` | `ingestion.py::restore_batch` |
+| GET | `/api/ingestion/batches/{batch_id}/files/{submission_id}/source` | `ingestion.py::whole_source` |
+| GET | `/api/ingestion/projects` | `ingestion.py::projects` |
+| GET | `/api/ingestion/materials` | `ingestion.py::materials` |
+| GET | `/api/ingestion/materials/{material_id}` | `ingestion.py::material` |
+| GET | `/api/ingestion/projects/{project_id}/records` | `ingestion.py::project_records` |
+| GET | `/api/ingestion/projects/{project_id}/context` | `ingestion.py::project_context` |
+| GET | `/api/matching` | `matching.py::current` |
+| POST | `/api/matching/refresh` | `matching.py::refresh` |
+| GET | `/api/matching/inputs` | `matching.py::inputs` |
+| POST | `/api/matching/inputs` | `matching.py::correction` |
+| GET | `/api/ingestion/batches/{batch_id}/publication-plan` | `publication.py::plan` |
+| POST | `/api/ingestion/batches/{batch_id}/publish` | `publication.py::publish` |
+| GET | `/api/ingestion/batches/{batch_id}/publication` | `publication.py::receipt` |
+| POST | `/api/ingestion/batches/{batch_id}/publication/handoff/retry` | `publication.py::handoff` |
+| GET | `/api/ingestion/batches/{batch_id}/review` | `review.py::get_review` |
+| POST | `/api/ingestion/batches/{batch_id}/review/select` | `review.py::select_review` |
+| POST | `/api/ingestion/batches/{batch_id}/review/prepare` | `review.py::prepare_review` |
+| POST | `/api/ingestion/batches/{batch_id}/review/editor-preview` | `review.py::material_editor_preview` |
+| POST | `/api/ingestion/batches/{batch_id}/review/rebase` | `review.py::rebase_review` |
+| POST | `/api/ingestion/batches/{batch_id}/review/refresh-context` | `review.py::refresh_manual_context` |
+| POST | `/api/ingestion/batches/{batch_id}/files/{submission_id}/resolution` | `review.py::resolve_file` |
+| POST | `/api/ingestion/batches/{batch_id}/manual-submissions` | `review.py::manual` |
+| PATCH | `/api/ingestion/batches/{batch_id}/review/submissions/{submission_id}/rows/{row_id}` | `review.py::edit_row` |
+| PATCH | `/api/ingestion/batches/{batch_id}/review/submissions/{submission_id}/projects/{project_id}` | `review.py::edit_project` |
+| PUT | `/api/ingestion/batches/{batch_id}/review/entities/{entity_id}` | `review.py::edit_entity` |
+| PUT | `/api/ingestion/batches/{batch_id}/review/stock-scopes` | `review.py::stock_scopes` |
+| POST | `/api/ingestion/batches/{batch_id}/review/submissions/{submission_id}/approve` | `review.py::approve` |
+| POST | `/api/ingestion/batches/{batch_id}/review/submissions/{submission_id}/decisions` | `review.py::bulk_decision` |
+| GET | `/api/transfers` | `transfers.py::get_transfers` |
+| GET | `/api/transfers/{transfer_id}` | `transfers.py::get_transfer_by_id` |
+| POST | `/api/transfers/{transfer_id}/approve` | `transfers.py::approve_transfer_by_id` |
+| POST | `/api/allocation-proposals/{proposal_id}/approve` | `transfers.py::create_transfer_request_for_proposal` |
+| POST | `/api/transfers/{transfer_id}/reserve` | `transfers.py::reserve_transfer` |
+| POST | `/api/transfers/{transfer_id}/dispatch` | `transfers.py::dispatch_transfer` |
+| POST | `/api/transfers/{transfer_id}/receive` | `transfers.py::receive_transfer` |
+| POST | `/api/transfers/{transfer_id}/confirm-use` | `transfers.py::confirm_transfer_use` |
+| POST | `/api/transfers/{transfer_id}/cancel` | `transfers.py::cancel_transfer` |
+| GET | `/api/transfers/{transfer_id}/events` | `transfers.py::transfer_events` |
+| GET | `/api/supply-offers/{offer_id}` | `transfers.py::supply_offer` |
+| GET | `/api/demand-requests/{demand_id}` | `transfers.py::demand_request` |
+| GET | `/api/allocation-proposals/{proposal_id}/confirmation-preview` | `transfers.py::confirmation_preview` |
+| POST | `/api/allocation-proposals/{proposal_id}/confirm` | `transfers.py::confirm_current_transfer` |
+| GET | `/api/workspace` | `workspace.py::workspace` |
+
+Sources: [routes](../backend/app/routes), [schemas](../backend/app/schemas), [ingestion tools](../backend/app/services/analysis_tools.py).

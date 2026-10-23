@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -57,4 +57,23 @@ test('process spawn errors reject and clean up signal handlers', async () => {
   const before = process.listenerCount('SIGINT');
   await assert.rejects(run(path.join(os.tmpdir(), 'terra-missing-program'), []));
   assert.equal(process.listenerCount('SIGINT'), before);
+});
+
+test('normal emulator data uses a private persistent directory', () => {
+  const config = JSON.parse(readFileSync(path.join(root, 'firebase.json'), 'utf8'));
+  const emulator = config.emulators.dataconnect;
+  assert.equal(emulator.host, '127.0.0.1');
+  assert.equal(emulator.port, 9399);
+  assert.equal(emulator.dataDir, '.local/sql-connect-data');
+  assert.match(readFileSync(path.join(root, '.gitignore'), 'utf8'), /^\.local\/$/m);
+});
+
+test('destructive integration runner refuses the persistent owner endpoint', () => {
+  const result = spawnSync(process.execPath, [path.join(root, 'scripts', 'run_python.mjs'),
+    path.join(root, 'scripts', 'run_emulator_tests.py')], {
+    cwd: root, encoding: 'utf8', env: { ...process.env, GCLOUD_PROJECT: 'demo-terra-local',
+      DATA_CONNECT_EMULATOR_HOST: '127.0.0.1:9399' },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /only the disposable emulator at 9499/);
 });

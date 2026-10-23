@@ -112,7 +112,7 @@ def preview_comparison(records, *, planning_date, factor_dataset_version,
         factor_dataset_version=factor_dataset_version, destination_project_id=destination_project_id)
     plans = [preview_with_calculator(calculator, objective=objective,
              destination_project_id=destination_project_id)
-             for objective in ('MAX_REUSE', 'MAX_NET_CO2E_AVOIDED')]
+             for objective in ('MAX_REUSE', 'EARLIEST_DEADLINE', 'MAX_NET_CO2E_AVOIDED')]
     return {'preview': True, 'persisted': False,
             'allocation_snapshot_hash': calculator.allocation_snapshot_hash,
             'carbon_context_id': calculator.carbon_context_id, 'alternatives': plans}

@@ -60,10 +60,10 @@ type Project @table(name: "projects", key: "id", singular: "project", plural: "p
 
 type Material @table(name: "materials", key: "id", singular: "material", plural: "materials") {
   id: String! @col(name: "id")
-  category: Category! @col(name: "category")
+  category: String! @col(name: "category")
   canonicalName: String! @col(name: "canonical_name")
   specifications: Any! @col(name: "specifications")
-  standardUnit: Unit! @col(name: "standard_unit")
+  standardUnit: String! @col(name: "standard_unit")
   massKgPerUnit: Float @col(name: "mass_kg_per_unit")
   massSource: String @col(name: "mass_source")
   referenceCode: String @col(name: "reference_code")
@@ -109,11 +109,11 @@ type SupplyOffer @table(name: "supply_offers", key: "id", singular: "supplyOffer
   material: Material! @ref(fields: "materialId", references: "id")
   originDocumentRowId: String @col(name: "origin_document_row_id")
   originDocumentRow: ExtractedRow @ref(fields: "originDocumentRowId", references: "id")
-  declaredQuantity: Int! @col(name: "declared_quantity")
-  confirmedQuantity: Int @col(name: "confirmed_quantity")
-  reservedActiveQuantity: Int! @col(name: "reserved_active_quantity")
-  transferredOutQuantity: Int! @col(name: "transferred_out_quantity")
-  unit: Unit! @col(name: "unit")
+  declaredQuantity: Int64! @col(name: "declared_quantity")
+  confirmedQuantity: Int64 @col(name: "confirmed_quantity")
+  reservedActiveQuantity: Int64! @col(name: "reserved_active_quantity")
+  transferredOutQuantity: Int64! @col(name: "transferred_out_quantity")
+  unit: String! @col(name: "unit")
   surplusStatus: SurplusStatus! @col(name: "surplus_status")
   condition: Condition! @col(name: "condition")
   availableFrom: Date! @col(name: "available_from")
@@ -131,9 +131,9 @@ type DemandRequest @table(name: "demand_requests", key: "id", singular: "demandR
   material: Material! @ref(fields: "materialId", references: "id")
   originDocumentRowId: String @col(name: "origin_document_row_id")
   originDocumentRow: ExtractedRow @ref(fields: "originDocumentRowId", references: "id")
-  requiredQuantity: Int! @col(name: "required_quantity")
-  fulfilledQuantity: Int! @col(name: "fulfilled_quantity")
-  unit: Unit! @col(name: "unit")
+  requiredQuantity: Int64! @col(name: "required_quantity")
+  fulfilledQuantity: Int64! @col(name: "fulfilled_quantity")
+  unit: String! @col(name: "unit")
   neededFrom: Date! @col(name: "needed_from")
   requiredBy: Date! @col(name: "required_by")
   requestStatus: RequestStatus! @col(name: "request_status")
@@ -171,8 +171,8 @@ type AllocationProposal @table(name: "allocation_proposals", key: "id", singular
   supplyOffer: SupplyOffer! @ref(fields: "supplyOfferId", references: "id")
   demandRequestId: String! @col(name: "demand_request_id")
   demandRequest: DemandRequest! @ref(fields: "demandRequestId", references: "id")
-  proposedQuantity: Int! @col(name: "proposed_quantity")
-  unit: Unit! @col(name: "unit")
+  proposedQuantity: Int64! @col(name: "proposed_quantity")
+  unit: String! @col(name: "unit")
   compatibilityResult: Compatibility! @col(name: "compatibility_result")
   status: ProposalStatus! @col(name: "status")
   reasonCodes: [String!]! @col(name: "reason_codes")
@@ -183,11 +183,11 @@ type Transfer @table(name: "transfers", key: "id", singular: "transfer", plural:
   id: String! @col(name: "id")
   proposalId: String! @col(name: "proposal_id") @unique
   proposal: AllocationProposal! @ref(fields: "proposalId", references: "id")
-  approvedQuantity: Int! @col(name: "approved_quantity")
-  reservedQuantity: Int! @col(name: "reserved_quantity")
-  dispatchedQuantity: Int! @col(name: "dispatched_quantity")
-  receivedQuantity: Int! @col(name: "received_quantity")
-  actuallyUsedQuantity: Int! @col(name: "actually_used_quantity")
+  approvedQuantity: Int64! @col(name: "approved_quantity")
+  reservedQuantity: Int64! @col(name: "reserved_quantity")
+  dispatchedQuantity: Int64! @col(name: "dispatched_quantity")
+  receivedQuantity: Int64! @col(name: "received_quantity")
+  actuallyUsedQuantity: Int64! @col(name: "actually_used_quantity")
   status: TransferStatus! @col(name: "status")
   sourceConfirmationStatus: Confirmation! @col(name: "source_confirmation_status")
   destinationConfirmationStatus: Confirmation! @col(name: "destination_confirmation_status")
@@ -213,7 +213,7 @@ type EmissionFactor @table(name: "emission_factors", key: "id", singular: "emiss
   factorType: FactorType! @col(name: "factor_type")
   materialId: String @col(name: "material_id")
   material: Material @ref(fields: "materialId", references: "id")
-  materialCategory: Category @col(name: "material_category")
+  materialCategory: String @col(name: "material_category")
   transportMode: TransportMode @col(name: "transport_mode")
   value: Float! @col(name: "value")
   unit: String! @col(name: "unit")
@@ -233,8 +233,8 @@ type ImpactAssessment @table(name: "impact_assessments", key: "id", singular: "i
   proposal: AllocationProposal @ref(fields: "proposalId", references: "id")
   transferId: String @col(name: "transfer_id")
   transfer: Transfer @ref(fields: "transferId", references: "id")
-  quantityAssessed: Int! @col(name: "quantity_assessed")
-  unit: Unit! @col(name: "unit")
+  quantityAssessed: Int64! @col(name: "quantity_assessed")
+  unit: String! @col(name: "unit")
   baselineDescription: String! @col(name: "baseline_description")
   avoidedProductionKgco2E: Float @col(name: "avoided_production_kgco2e")
   additionalTransportKgco2E: Float @col(name: "additional_transport_kgco2e")
@@ -252,7 +252,7 @@ type TransferApprovalOperation @table(name: "transfer_approval_operations", key:
   transferId: String! @col(name: "transfer_id")
   transfer: Transfer! @ref(fields: "transferId", references: "id")
   eventId: String! @col(name: "event_id") @unique
-  approvedQuantity: Int! @col(name: "approved_quantity")
+  approvedQuantity: Int64! @col(name: "approved_quantity")
   sourceConfirmationStatus: Confirmation! @col(name: "source_confirmation_status")
   destinationConfirmationStatus: Confirmation! @col(name: "destination_confirmation_status")
   actorLabel: String! @col(name: "actor_label")
@@ -267,7 +267,7 @@ type TransferWorkflowOperation @table(name: "transfer_workflow_operations", key:
   transferId: String! @col(name: "transfer_id")
   transfer: Transfer! @ref(fields: "transferId", references: "id")
   eventId: String! @col(name: "event_id") @unique
-  quantity: Int @col(name: "quantity")
+  quantity: Int64 @col(name: "quantity")
   reason: String @col(name: "reason")
   actorLabel: String! @col(name: "actor_label")
   evidenceRef: String @col(name: "evidence_ref")
@@ -299,7 +299,7 @@ type OptimisationRunOperation @table(name: "optimisation_run_operations", key: "
 type DemandCommitmentBalance @table(name: "demand_commitment_balances", key: "demandRequestId", singular: "demandCommitmentBalance", plural: "demandCommitmentBalances") {
   demandRequestId: String! @col(name: "demand_request_id")
   demandRequest: DemandRequest! @ref(fields: "demandRequestId", references: "id")
-  committedQuantity: Int! @col(name: "committed_quantity")
+  committedQuantity: Int64! @col(name: "committed_quantity")
 }
 
 type ImpactAssessmentHead @table(name: "impact_assessment_heads", key: "id", singular: "impactAssessmentHead", plural: "impactAssessmentHeads") {
@@ -322,4 +322,93 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
   scopeId: String! @col(name: "scope_id")
   assessmentId: String! @col(name: "assessment_id") @unique
   assessment: ImpactAssessment! @ref(fields: "assessmentId", references: "id")
+}
+
+
+# Intake payloads are provisional. No seed/offer/demand/transfer foreign keys.
+type IngestionBatch @table(name: "ingestion_batches", key: "id", singular: "ingestionBatch", plural: "ingestionBatches") {
+  id: String! @col(name: "id")
+  revision: Int! @col(name: "revision")
+  payload: Any! @col(name: "payload")
+}
+
+type IngestionRevision @table(name: "ingestion_revisions", key: "id", singular: "ingestionRevision", plural: "ingestionRevisions") {
+  id: String! @col(name: "id")
+  batchId: String! @col(name: "batch_id")
+  batch: IngestionBatch! @ref(fields: "batchId", references: "id")
+  revision: Int! @col(name: "revision")
+  payload: Any! @col(name: "payload")
+}
+
+
+type OperationalVersion @table(name: "operational_version", key: "id", singular: "operationalVersion", plural: "operationalVersions") {
+  id: String!
+  revision: Int! @default(value: 0)
+}
+type RegisteredMaterial @table(name: "registered_materials", key: "id", singular: "registeredMaterial", plural: "registeredMaterials") {
+  id: String!
+  payload: Any!
+}
+type ProjectMaterialRecord @table(name: "project_material_records", key: "id", singular: "projectMaterialRecord", plural: "projectMaterialRecords") {
+  id: String!
+  projectId: String!
+  project: Project! @ref(fields: "projectId", references: "id")
+  materialId: String!
+  payload: Any!
+}
+type ProjectStockHead @table(name: "project_stock_heads", key: "id", singular: "projectStockHead", plural: "projectStockHeads") {
+  id: String!
+  projectId: String!
+  materialId: String!
+  payload: Any!
+}
+type SupersededRecord @table(name: "superseded_records", key: "id", singular: "supersededRecord", plural: "supersededRecords") {
+  id: String!
+  projectId: String!
+  successorId: String!
+}
+type IngestionPublication @table(name: "ingestion_publications", key: "id", singular: "ingestionPublication", plural: "ingestionPublications") {
+  id: String!
+  batchId: String! @unique
+  requestKey: String!
+  requestFingerprint: String!
+  receipt: Any!
+  handoffStatus: String!
+  handoffPayload: Any!
+}
+
+type QuantityEncoding @table(name: "quantity_encoding", key: "id", singular: "quantityEncoding", plural: "quantityEncodings") {
+  id: String!
+  version: String!
+}
+type MatchingScope @table(name: "matching_scopes", key: "id", singular: "matchingScope", plural: "matchingScopes") {
+  id: String!
+  token: String!
+  status: String!
+  generationId: String
+  payload: Any!
+}
+type MatchingGeneration @table(name: "matching_generations", key: "id", singular: "matchingGeneration", plural: "matchingGenerations") {
+  id: String!
+  materialId: String!
+  fingerprint: String!
+  payload: Any!
+}
+type RuntimeAudit @table(name: "runtime_audit", key: "id", singular: "runtimeAudit", plural: "runtimeAudits") {
+  id: String!
+  kind: String!
+  payload: Any!
+}
+
+type ImpactRefreshIntent @table(name: "impact_refresh_intents", key: "id", singular: "impactRefreshIntent", plural: "impactRefreshIntents") {
+  id: String!
+  token: String!
+  status: String!
+  payload: Any!
+}
+
+type WorkspaceIdentity @table(name: "workspace_identity", key: "id", singular: "workspaceIdentity", plural: "workspaceIdentities") {
+  id: String!
+  epoch: String!
+  createdAt: Timestamp!
 }

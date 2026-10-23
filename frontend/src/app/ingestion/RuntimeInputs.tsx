@@ -1,0 +1,21 @@
+import { refreshWorkspace } from '../../data/terra';
+import { useState } from 'react';
+import { matchingRequest } from '../../lib/current-matching';
+type InputContext={revision:number;materials:{id:string;canonical_name:string;standard_unit:string}[];projects:{id:string;name:string}[]};
+export default function RuntimeInputs({onSaved}:{onSaved:()=>void}) {
+ const [context,setContext]=useState<InputContext|null>(null);const [kind,setKind]=useState('MATERIAL_MASS');
+ const [material,setMaterial]=useState('');const [project,setProject]=useState('');const [recipient,setRecipient]=useState('');
+ const [value,setValue]=useState('');const [field,setField]=useState('township');const [basis,setBasis]=useState('');
+ const [confirmed,setConfirmed]=useState(false);const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
+ const load=async()=>{try{setContext(await matchingRequest<InputContext>('/inputs'));setConfirmed(false);}catch(e){setMessage(String((e as Error).message));}};
+ return <details onToggle={e=>{if(e.currentTarget.open&&!context)void load();}}><summary>Correct project or carbon inputs</summary><p>Save only values you have checked. Carbon weights are kilograms per catalogue unit; distances are road kilometres.</p>
+ <form onSubmit={async e=>{e.preventDefault();if(!context)return;setBusy(true);try{await matchingRequest('/inputs','POST',{expected_revision:context.revision,kind,material_id:material||null,project_id:project||null,source_project_id:project||null,destination_project_id:recipient||null,values:{[kind==='MATERIAL_MASS'?'mass_kg_per_unit':kind==='ROUTE_DISTANCE'?'distance_km':field]:value},basis,confirmed});setMessage('Confirmed correction saved. Matching is updating.');await load();await refreshWorkspace().catch(()=>{});onSaved();}catch(e){setMessage(String((e as Error).message));}finally{setBusy(false);}}}>
+ <fieldset disabled={busy||!context}><legend>Confirmed input correction</legend><label>Input type<select value={kind} onChange={e=>{setKind(e.target.value);setValue('');setConfirmed(false);}}><option value="MATERIAL_MASS">Material weight</option><option value="ROUTE_DISTANCE">Route distance</option><option value="PROJECT_FACTS">Project information</option></select></label>
+ {kind==='MATERIAL_MASS'?<label>Material<select required value={material} onChange={e=>setMaterial(e.target.value)}><option value="">Choose a material</option>{context?.materials.map(m=><option key={m.id} value={m.id}>{m.canonical_name} · {m.standard_unit}</option>)}</select></label>:<label>{kind==='ROUTE_DISTANCE'?'Source project':'Project'}<select required value={project} onChange={e=>setProject(e.target.value)}><option value="">Choose a project</option>{context?.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
+ {kind==='ROUTE_DISTANCE'&&<label>Recipient project<select required value={recipient} onChange={e=>setRecipient(e.target.value)}><option value="">Choose a project</option>{context?.projects.filter(p=>p.id!==project).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
+ {kind==='PROJECT_FACTS'&&<label>Field<select value={field} onChange={e=>setField(e.target.value)}>{['township','name','managing_organisation','address','start_date','target_end_date'].map(k=><option key={k} value={k}>{k.replaceAll('_',' ')}</option>)}</select></label>}
+ <label>{kind==='MATERIAL_MASS'?'Weight in kg per catalogue unit':kind==='ROUTE_DISTANCE'?'Road distance in km':'Corrected value'}<input required value={value} inputMode={kind==='PROJECT_FACTS'?'text':'decimal'} onChange={e=>setValue(e.target.value)}/></label>
+ <label>{kind==='PROJECT_FACTS'?'Source reference, optional':'Source or estimate basis'}<input required={kind!=='PROJECT_FACTS'} value={basis} onChange={e=>setBasis(e.target.value)}/></label>
+ <label><span><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> I checked this correction and its basis.</span></label><button disabled={!confirmed}>{busy?'Saving…':'Save confirmed correction'}</button></fieldset>
+ </form>{message&&<p role="status">{message}</p>}<button type="button" onClick={()=>void load()}>Reload current inputs</button></details>;
+}

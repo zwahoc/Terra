@@ -2,7 +2,13 @@
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from backend.app.routes.ingestion import local_operator, run
+from backend.app.services.optimisation_preview_service import preview_json
+from backend.app.schemas.transfers import TransferConfirmationRequest
+from backend.app.services.transfer_confirmation_service import prepare_confirmation, confirm_transfer
+from terra.local_adapter import LocalDataConnect, AdapterError
+from backend.app.services.ingestion_errors import IngestionError
 from fastapi.responses import JSONResponse
 
 from backend.app.schemas.transfers import (
@@ -53,7 +59,7 @@ from backend.app.services.transfer_workflow_service import (
 )
 
 
-router = APIRouter(prefix="/api", tags=["transfers"])
+router = APIRouter(prefix="/api", tags=["transfers"], dependencies=[Depends(local_operator)])
 
 
 def _envelope_error(
@@ -61,11 +67,11 @@ def _envelope_error(
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
-        content={
+        content=preview_json({
             "data": None,
             "meta": None,
             "error": {"code": code, "message": message, "details": details},
-        },
+        }),
     )
 
 
@@ -80,7 +86,7 @@ def _error_response(status_code: int, error: TransferReadError) -> JSONResponse:
 
 def _run_read(action) -> dict[str, Any] | JSONResponse:
     try:
-        return action()
+        return preview_json(action())
     except (TransferNotFound, RelatedRecordNotFound) as exc:
         return _error_response(404, exc)
     except TransferReadUnavailable as exc:
@@ -172,9 +178,9 @@ def approve_transfer_by_id(
     "/allocation-proposals/{proposal_id}/approve",
     response_model=TransferRequestCreateResponse,
     status_code=201,
-    summary="Approve a matching proposal and create its transfer request",
+    summary="Legacy proposal request creation",
     description=(
-        "Selects one proposed or selected eligible matching proposal and atomically creates its "
+        "Legacy compatibility only; current generated proposals require /confirm. Selects an eligible legacy proposal and atomically creates its "
         "REQUESTED transfer and REQUESTED audit event. The requested quantity equals "
         "the proposal quantity; no stock is reserved and no incoming demand commitment "
         "is created."
@@ -262,3 +268,21 @@ def supply_offer(offer_id: str):
             summary="Read demand fulfilment and incoming commitment counters")
 def demand_request(demand_id: str):
     return _run_read(lambda: get_demand_request(demand_id))
+
+
+def _confirmation_action(action):
+    def perform():
+        try:return action()
+        except AdapterError as exc:
+            raise IngestionError('TRANSFER_DATA_UNAVAILABLE','The local transfer database is unavailable. Retry with the same command.',503) from exc
+    return run(perform,stage='TRANSFER_CONFIRMATION',operational_writes=True)
+
+@router.get('/allocation-proposals/{proposal_id}/confirmation-preview')
+def confirmation_preview(proposal_id: str, quantity: str, generation_id: str):
+    return _confirmation_action(lambda:prepare_confirmation(LocalDataConnect(),proposal_id,quantity,generation_id))
+
+@router.post('/allocation-proposals/{proposal_id}/confirm',status_code=201)
+def confirm_current_transfer(proposal_id: str, body: TransferConfirmationRequest):
+    # This service returns the original transfer response envelope.
+    result=_confirmation_action(lambda:confirm_transfer(proposal_id,body)['data'])
+    return result

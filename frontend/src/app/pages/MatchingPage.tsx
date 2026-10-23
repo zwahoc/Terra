@@ -1,83 +1,77 @@
-import { useEffect, useMemo, useState } from "react";
-import StatusBadge from "../../components/StatusBadge";
-import { materialName, terra } from "../../data/terra";
-import { currentPlanningDate, getOptimisationPreview, persistOptimisationRun, type OptimisationObjective, type OptimisationPreview } from "../../lib/optimisation-preview";
-import "./matching-redesign.css";
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { terra, projectName } from '../../data/terra';
+import { matchingRequest, type CurrentMatching, type MatchingMaterial, type Objective } from '../../lib/current-matching';
+import { alternativeFor, hasOpportunity, timingState, opportunityAllocations, sumAllocationQuantity, sameAllocations, pageItems, matchingDate, filterMatchingMaterials, type TransferSelection, type MaterialFilter, type MaterialSort } from '../../lib/matching-presentation';
+import { formatQuantity } from '../../lib/quantities';
+import RuntimeInputs from '../ingestion/RuntimeInputs';
+import './matching-current.css';
+import { ErrorNotice, MissingInputs, PageHeader } from '../components-workspace';
 
-const objectives: { id: OptimisationObjective; label: string }[] = [
-  { id: "MAX_REUSE", label: "Maximise reuse" },
-  { id: "EARLIEST_DEADLINE", label: "Earliest deadline" },
-  { id: "MAX_NET_CO2E_AVOIDED", label: "Estimated carbon" },
+const methods:{id:Objective;label:string;description:string}[]=[
+ {id:'MAX_REUSE',label:'Maximise reuse',description:'Use the greatest eligible quantity of this material.'},
+ {id:'EARLIEST_DEADLINE',label:'Earliest deadline',description:'Prioritise projects with urgent needs.'},
+ {id:'MAX_NET_CO2E_AVOIDED',label:'Carbon benefit',description:'Prioritise estimated net avoided emissions.'},
 ];
-
-type MatchingStep = "projects" | "materials" | "details";
-const formatDate = (value?: string) => value ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`)) : "Not available";
-
-export default function MatchingPage({ onPlanPersisted }: { onPlanPersisted: (runId: string) => void }) {
-  const planningDate = useMemo(() => currentPlanningDate(), []);
-  const [step, setStep] = useState<MatchingStep>("projects");
-  const [objective, setObjective] = useState<OptimisationObjective>("MAX_REUSE");
-  const [projectId, setProjectId] = useState("");
-  const [demandId, setDemandId] = useState("");
-  const [preview, setPreview] = useState<OptimisationPreview | null>(null);
-  const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    if (!projectId) { setPreview(null); setState("idle"); return () => { active = false; }; }
-    setState("loading");
-    // Keep one global plan so constrained supply cannot be proposed to two projects.
-    getOptimisationPreview(objective, planningDate).then((result) => {
-      if (!active) return;
-      setPreview(result); setState("ready");
-    }).catch((error: unknown) => {
-      if (!active) return;
-      setMessage(error instanceof Error ? error.message : "Matching is unavailable."); setState("error");
-    });
-    return () => { active = false; };
-  }, [objective, planningDate, projectId]);
-
-  const project = terra.projects.find((item) => item.id === projectId);
-  const demands = useMemo(() => terra.demand_requests.filter((item) => item.destination_project_id === projectId && item.request_status === "OPEN"), [projectId]);
-  const allocations = useMemo(() => preview?.plan.allocations.filter((item) => demands.some((demand) => demand.id === item.demand_request_id)) ?? [], [preview, demands]);
-  const allocationsByDemand = useMemo(() => {
-    const grouped = new Map<string, OptimisationPreview["plan"]["allocations"]>();
-    allocations.forEach((item) => grouped.set(item.demand_request_id, [...(grouped.get(item.demand_request_id) ?? []), item]));
-    return grouped;
-  }, [allocations]);
-  const demand = demands.find((item) => item.id === demandId);
-  const selectedAllocations = demand ? allocationsByDemand.get(demand.id) ?? [] : [];
-  const forecastByAllocation = useMemo(() => new Map((preview?.forecast_previews ?? []).map((item) => [`${item.supply_offer_id}:${item.demand_request_id}`, item])), [preview]);
-  const stepIndex = ["projects", "materials", "details"].indexOf(step);
-
-  const chooseProject = (id: string) => { setProjectId(id); setDemandId(""); setStep("materials"); };
-  const sendToApprovals = async () => {
-    if (!preview || saving) return;
-    setSaving(true); setMessage("");
-    try {
-      const persisted = await persistOptimisationRun(objective, planningDate);
-      onPlanPersisted(persisted.run.id);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Terra could not send this plan to Approvals.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return <div className="matching-flow">
-    <header className="matching-flow__header"><div><h1>Matching</h1><span>Choose a project and inspect proposed material reuse before sending it for approval.</span></div><small>{formatDate(planningDate)}</small></header>
-    <ol className="matching-flow__steps" aria-label="Matching workflow">{["Project", "Materials", "Details"].map((label, index) => <li key={label} className={index === stepIndex ? "is-current" : index < stepIndex ? "is-complete" : ""}><span>{index + 1}</span>{label}</li>)}</ol>
-
-    {step === "projects" && <section className="matching-stage matching-project-stage"><header><h2>Choose a project</h2><span>Open the current matching result for its outstanding material needs.</span></header><div className="matching-project-grid">{terra.projects.map((item) => { const projectDemands = terra.demand_requests.filter((demandItem) => demandItem.destination_project_id === item.id && demandItem.request_status === "OPEN"); const openDemands = projectDemands.length; const requiredQuantity = projectDemands.reduce((total, demandItem) => total + demandItem.required_quantity, 0); return <button key={item.id} type="button" onClick={() => chooseProject(item.id)}><span>{item.id}</span><strong>{item.name}</strong><small>{openDemands} open demand{openDemands === 1 ? "" : "s"} · {requiredQuantity.toLocaleString()} pcs</small><b>Open plan</b></button>; })}</div></section>}
-
-    {step !== "projects" && <>
-      <section className="matching-flow__project-bar"><button className="matching-back-link" type="button" onClick={() => setStep(step === "details" ? "materials" : "projects")}>‹ {step === "details" ? "Materials" : "Projects"}</button><div><span>Project</span><b>{project?.name ?? projectId}</b></div><label>Priority<select value={objective} onChange={(event) => setObjective(event.target.value as OptimisationObjective)}>{objectives.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label></section>
-      {state === "loading" && <div className="matching-empty matching-loader" role="status"><div className="newtons-cradle" aria-hidden="true"><i className="newtons-cradle__dot" /><i className="newtons-cradle__dot" /><i className="newtons-cradle__dot" /><i className="newtons-cradle__dot" /></div><div><b>Preparing plan</b><span>Checking supply, timing and carbon data.</span></div></div>}
-      {state === "error" && <div className="matching-empty"><b>Matching is unavailable</b><span>{message}</span></div>}
-      {state === "ready" && step === "materials" && <section className="matching-stage matching-material-stage"><header><div><p>Materials</p><h2>Material plan</h2><span>Review the proposed quantities for this project.</span></div></header><div className="matching-demand-list">{demands.map((item) => { const lines = allocationsByDemand.get(item.id) ?? []; const proposed = lines.reduce((sum, line) => sum + line.proposed_quantity, 0); const coverageSummary = preview?.matching_coverage_by_demand?.[item.id]; const coverageStatus = coverageSummary?.status ?? (proposed >= item.required_quantity ? "COVERED" : proposed > 0 ? "PARTIALLY_COVERED" : "NOT_COVERED"); const coverage = coverageStatus.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase()); return <button type="button" key={item.id} onClick={() => { setDemandId(item.id); setStep("details"); }}><div><span>{item.id}</span><strong>{materialName(item.material_id)}</strong><small>Need by {formatDate(item.required_by)}</small></div><div className="matching-demand-list__metrics"><b>{item.required_quantity.toLocaleString()} needed</b><b>{proposed.toLocaleString()} proposed</b><em className={coverageStatus === "COVERED" ? "" : "is-gap"}>{coverage}</em></div><i>Details</i></button>; })}</div></section>}
-      {state === "ready" && step === "details" && demand && <section className="matching-stage matching-detail-stage"><header><p>Details</p><h2>{materialName(demand.material_id)}</h2><span>{demand.required_quantity.toLocaleString()} pcs needed by {formatDate(demand.required_by)}</span></header>{selectedAllocations.length ? <div className="matching-allocation-evidence">{selectedAllocations.map((item) => { const forecast = forecastByAllocation.get(`${item.supply_offer_id}:${item.demand_request_id}`); const matchReasons = item.reason_codes.filter((reason) => !reason.endsWith("_OPTIMUM") && reason !== "PAIR_PRIORITY_TIE_BREAK"); return <article key={`${item.supply_offer_id}:${item.demand_request_id}`}><div className="matching-option__top"><div><span>{item.supply_offer_id} to {item.demand_request_id}</span><h3>{item.proposed_quantity.toLocaleString()} {item.unit} proposed</h3><p>Recommended supply</p></div><StatusBadge status="PENDING" displayLabel="Approval required" /></div><dl><div><dt>Available</dt><dd>{formatDate(item.earliest_delivery_date)}</dd></div><div><dt>Need by</dt><dd>{formatDate(item.required_by)}</dd></div><div><dt>Priority</dt><dd>{preview?.plan.objective.replaceAll("_", " ")}</dd></div><div><dt>Carbon forecast</dt><dd>{forecast?.net_avoided_kgco2e ? `${Number(forecast.net_avoided_kgco2e).toLocaleString(undefined, { maximumFractionDigits: 2 })} kgCO2e` : "Evidence incomplete"}</dd></div></dl><section className="matching-match-reason"><span>Why this match</span><p>{matchReasons.map((reason) => reason.replaceAll("_", " ").toLowerCase()).join(" · ") || "Eligible supply and demand pairing"}</p></section></article>; })}</div> : <div className="matching-empty"><b>No material proposed</b><span>No suitable supply is included in this plan.</span></div>}<footer className="matching-stage__actions"><div><span>Proposed for this project</span><b>{allocations.reduce((sum, item) => sum + item.proposed_quantity, 0).toLocaleString()} pcs</b><small>Stock remains unreserved</small></div><button type="button" disabled={saving || !preview?.plan.allocations.length} onClick={sendToApprovals}>{saving ? "Opening…" : "View Approvals"}</button></footer>{message && <p className="terra-workflow-message" role="status">{message}</p>}</section>}
-    </>}
-  </div>;
+type Selection={material:string;objective:Objective;query:string;filter:MaterialFilter;sort:MaterialSort;page:number;transferPage:number;detail:boolean};
+const defaults:Selection={material:'',objective:'MAX_REUSE',query:'',filter:'all',sort:'name',page:1,transferPage:1,detail:false};
+function storedSelection(key:string):Selection{try{const s=JSON.parse(sessionStorage.getItem(key)||'{}');return {...defaults,material:typeof s.material==='string'?s.material:'',query:typeof s.query==='string'?s.query:'',objective:methods.some(m=>m.id===s.objective)?s.objective:defaults.objective,filter:['all','ready','upcoming','none','attention'].includes(s.filter)?s.filter:'all',sort:['name','reference','deadline'].includes(s.sort)?s.sort:'name',page:Number.isInteger(s.page)&&s.page>0?s.page:1,transferPage:Number.isInteger(s.transferPage)&&s.transferPage>0?s.transferPage:1,detail:!!s.detail};}catch{return defaults;}}
+export default function MatchingPage({onPlanPersisted,reset=false,initialMaterial}:{onPlanPersisted:(runId:string,transfer?:TransferSelection)=>void;reset?:boolean;initialMaterial?:string}){
+ const storageKey=`terra.matching.view.${terra.metadata.workspace_epoch}`;
+ const [selection,setSelection]=useState(()=>initialMaterial?{...defaults,material:initialMaterial,detail:true}:reset?{...defaults}:storedSelection(storageKey));
+ const [view,setView]=useState<CurrentMatching|null>(null),[error,setError]=useState(''),[refreshing,setRefreshing]=useState(false);
+ const alive=useRef(true),sequence=useRef(0),refreshInProgress=useRef(false),detailRef=useRef<HTMLElement>(null);
+ const update=(next:Partial<Selection>)=>setSelection(s=>({...s,...next}));
+ useEffect(()=>{try{sessionStorage.setItem(storageKey,JSON.stringify(selection));}catch{/* Optional navigation preference, never operational state. */}},[selection,storageKey]);
+ async function read(){const ticket=++sequence.current;try{const current=await matchingRequest<CurrentMatching>('');if(alive.current&&ticket===sequence.current){setView(current);setError('');}}catch(e){if(alive.current&&ticket===sequence.current)setError(e instanceof Error?e.message:'Current matching is unavailable.');}}
+ useEffect(()=>{alive.current=true;void read();const timer=setInterval(()=>{if(!refreshInProgress.current)void read();},4000);return()=>{alive.current=false;sequence.current++;clearInterval(timer);};},[]);
+ async function refresh(){if(refreshInProgress.current)return;refreshInProgress.current=true;setRefreshing(true);sequence.current++;try{await matchingRequest('/refresh','POST');await read();}catch(e){if(alive.current)setError(e instanceof Error?e.message:'Matching could not refresh.');}finally{refreshInProgress.current=false;if(alive.current)setRefreshing(false);}}
+ const source=(id:string)=>{const offer=terra.supply_offers.find(o=>o.id===id);return offer?projectName(offer.source_project_id):'Source unavailable';};
+ const recipient=(id:string)=>{const demand=terra.demand_requests.find(d=>d.id===id);return demand?projectName(demand.destination_project_id):'Recipient unavailable';};
+ const describe=(m:MatchingMaterial)=>{const material=terra.materials.find(v=>v.id===m.material_id);
+  const projectIds=new Set([...terra.supply_offers.filter(o=>o.material_id===m.material_id).map(o=>o.source_project_id),...terra.demand_requests.filter(d=>d.material_id===m.material_id).map(d=>d.destination_project_id)]);
+  const projectTerms=terra.projects.filter(p=>projectIds.has(p.id)).flatMap(p=>[p.id,p.name,p.code,p.township]);
+  return {reference:material?.reference_code||'',search:[material?.reference_code||'',material?.category||'',JSON.stringify(material?.specifications||{}),...projectTerms,...opportunityAllocations(m).flatMap(a=>[source(a.supply_offer_id),recipient(a.demand_request_id)])].join(' ')};
+ };
+ const materials=view?.materials??[],on=view?.observed_on;
+ const filtered=filterMatchingMaterials(materials,{query:selection.query,filter:selection.filter,sort:selection.sort,on},describe);
+ const materialPage=pageItems(filtered,selection.page,10);
+ const selected=materials.find(m=>m.material_id===selection.material)??filtered[0]??materials[0];
+ const alternative=selected?alternativeFor(selected,selection.objective):undefined;
+ const rows=alternative?.plan.allocations??[];
+ const transferPage=pageItems(rows,selection.transferPage,5);
+ const summary=selected?sumAllocationQuantity(rows,selected.unit):null;
+ const catalogue=terra.materials.find(m=>m.id===selected?.material_id);
+ const reuse=selected?alternativeFor(selected,'MAX_REUSE'):undefined,deadline=selected?alternativeFor(selected,'EARLIEST_DEADLINE'):undefined;
+ const identical=!!reuse&&!!deadline&&reuse.plan.allocations.length>0&&sameAllocations(reuse.plan.allocations,deadline.plan.allocations);
+ const carbonIncomplete=!!alternative&&(alternative.forecast_summary.net_avoided_kgco2e===null||alternative.forecast_summary.carbon_scoring_available===false||alternative.forecast_summary.candidate_scoring_incomplete);
+ const missing=[...new Set(alternative?.forecast_previews?.flatMap(p=>p.missing_data??[])??[])];
+ const current=!!selected&&selected.status==='CURRENT'&&!error&&!refreshing;
+ const opportunityCount=materials.filter(hasOpportunity).length,noAllocationCount=materials.filter(m=>m.status==='CURRENT'&&!hasOpportunity(m)).length,attentionCount=materials.filter(m=>m.status!=='CURRENT').length;
+ const selectedOutside=selected&&!materialPage.items.some(m=>m.material_id===selected.material_id);
+ function selectMaterial(m:MatchingMaterial){update({material:m.material_id,transferPage:1,detail:true});if(matchMedia('(max-width: 650px)').matches)requestAnimationFrame(()=>{detailRef.current?.scrollIntoView({block:'start',behavior:'instant'});detailRef.current?.querySelector<HTMLElement>('button')?.focus({preventScroll:true});});}
+ return <section className="matching-browser" data-detail={selection.detail} aria-label="Material matching">
+  <PageHeader title="Matching" actions={<button type="button" disabled={refreshing} onClick={()=>void refresh()}>{refreshing?'Refreshing…':'Refresh matches'}</button>}/>
+  {error&&<ErrorNotice error={error}><button type="button" onClick={()=>void read()}>Retry connection</button></ErrorNotice>}
+  {!view&&!error&&<p role="status">Loading current matching results…</p>}
+  {view?.state==='AWAITING_LOCAL_CUTOVER'&&<p>Matching is waiting for the agreed local database setup.</p>}
+  {view?.state==='READY'&&<><div className="matching-browser-layout"><aside className="matching-materials" aria-label="Materials to match"><div className="matching-list-tools"><label>Find a material or project<input type="search" value={selection.query} onChange={e=>update({query:e.target.value,page:1})} placeholder="Name, reference, specification, project…"/></label><div className="matching-list-filters"><label>Show<select value={selection.filter} onChange={e=>update({filter:e.target.value as MaterialFilter,page:1})}><option value="all">Opportunities</option><option value="ready">Ready now</option><option value="upcoming">Upcoming</option><option value="none">No allocations</option><option value="attention">Attention</option></select></label><label>Sort by<select value={selection.sort} onChange={e=>update({sort:e.target.value as MaterialSort,page:1})}><option value="name">Material name</option><option value="reference">Reference</option><option value="deadline">Nearest deadline</option></select></label></div></div>
+  <div className="matching-list-summary"><small role="status">{filtered.length?`${materialPage.start}–${materialPage.end} of ${filtered.length} materials`:'No materials match'}</small>{(selection.query||selection.filter!=='all'||selection.sort!=='name')&&<button className="matching-text-action" type="button" onClick={()=>update({query:'',filter:'all',sort:'name',page:1})}>Clear filters</button>}</div>
+  <div className="matching-material-choices">{materialPage.items.map(m=>{const representative=alternativeFor(m,'MAX_REUSE')??m.generation?.alternatives.find(a=>a.plan.allocations.length>0)??m.generation?.alternatives[0],allocations=m.status==='CURRENT'?representative?.plan.allocations??[]:[],total=sumAllocationQuantity(allocations,m.unit);return <button type="button" className="matching-material-choice" key={m.material_id} aria-pressed={selected?.material_id===m.material_id} onClick={()=>selectMaterial(m)}><strong>{m.material_name}</strong><small>{describe(m).reference}</small><span>{m.status!=='CURRENT'?m.status==='FAILED'?'Needs attention':'Updating recommendations':hasOpportunity(m)?`${total!==null?formatQuantity(total)+' '+m.unit+' · ':''}${allocations.length} proposed transfer${allocations.length===1?'':'s'}`:'No allocations'}</span></button>;})}</div>
+  {!filtered.length&&<p className="matching-list-empty">{!materials.length?'Publish confirmed surplus and outstanding demand to see opportunities.':'Try another query or filter. Materials without allocations and updating results remain available in Show.'}</p>}
+  {materialPage.pages>1&&<div className="matching-browser-pager"><button type="button" aria-label="Previous materials page" disabled={materialPage.page===1} onClick={()=>update({page:materialPage.page-1})}>Previous</button><small>Page {materialPage.page} of {materialPage.pages}</small><button type="button" aria-label="Next materials page" disabled={materialPage.page===materialPage.pages} onClick={()=>update({page:materialPage.page+1})}>Next</button></div>}
+  </aside><article ref={detailRef} className="matching-detail-column"><button className="matching-text-action matching-mobile-back" type="button" onClick={()=>{update({detail:false});requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.matching-list-tools input')?.focus());}}><ArrowLeft size={16} aria-hidden="true"/>Back to materials</button>
+  {selectedOutside&&<p className="matching-selected-note">{selected?.material_name} remains open outside the current list page or filters.</p>}
+  {selected?<div className="matching-detail-paper"><header className="matching-detail-section"><div className="matching-detail-heading"><div><h2>{selected.material_name}</h2><p>{describe(selected).reference}</p></div><span className="matching-result-status">{selected.status==='CURRENT'?hasOpportunity(selected)?'Opportunities available':'No allocations':selected.status==='FAILED'?'Needs attention':'Updating'}</span></div>{catalogue&&Object.keys(catalogue.specifications).length>0&&<details><summary>Catalogue specifications</summary><dl className="matching-specifications">{Object.entries(catalogue.specifications).map(([key,value])=><div key={key}><dt>{key.replaceAll('_',' ')}</dt><dd>{typeof value==='object'?JSON.stringify(value):String(value)}</dd></div>)}</dl></details>}</header>
+  {selected.status!=='CURRENT'?<section className="matching-detail-section" role="status"><h3>{selected.status==='FAILED'?'Matching needs attention':'Updating recommendations'}</h3><p>{selected.error?.message||'Previous recommendations are unavailable while current matching is prepared.'}</p><button type="button" disabled={refreshing} onClick={()=>void refresh()}>Refresh matching results</button></section>:<><section className="matching-detail-section"><h3>Compare plans for this material</h3><div className="matching-plan-choices" role="group" aria-label="Matching approach">{methods.map(method=>{const a=alternativeFor(selected,method.id),q=a?sumAllocationQuantity(a.plan.allocations,selected.unit):null,needsCarbon=method.id==='MAX_NET_CO2E_AVOIDED'&&a?.forecast_summary.carbon_scoring_available===false;return <button type="button" key={method.id} aria-pressed={selection.objective===method.id} onClick={()=>update({objective:method.id,transferPage:1})}><strong>{method.label}</strong><span>{!a?'Result unavailable':needsCarbon?'Needs carbon inputs':`${q===null?'Separate units':formatQuantity(q)+' '+selected.unit} · ${a.plan.allocations.length} transfer${a.plan.allocations.length===1?'':'s'}`}</span></button>;})}</div><p className="matching-plan-note">{identical&&selection.objective!=='MAX_NET_CO2E_AVOIDED'?'Same allocation as the deadline plan.':''}</p>
+  {alternative&&carbonIncomplete&&<details className="matching-carbon-note"><summary>Carbon estimate incomplete</summary><MissingInputs codes={missing}/>{alternative.forecast_summary.candidate_scoring_incomplete&&<p>Candidates with incomplete scoring are excluded from the carbon-first calculation.</p>}</details>}
+  {alternative?.forecast_previews?.some(p=>p.calculation_status==='DEMO')&&<p className="matching-plan-note">Carbon estimates use demonstration factors.</p>}
+  {alternative&&!carbonIncomplete&&alternative.forecast_summary.net_avoided_kgco2e!==null&&<p>Estimated net avoided emissions: {Number(alternative.forecast_summary.net_avoided_kgco2e).toLocaleString(undefined,{maximumFractionDigits:2})} kgCO₂e.</p>}</section>
+  <section className="matching-detail-section"><div className="matching-detail-heading"><h3>Proposed transfers</h3><small>{rows.length} transfer{rows.length===1?'':'s'}{rows.length>0&&summary!==null?` · ${formatQuantity(summary)} ${selected.unit} total`:''}</small></div>
+  {rows.length&&alternative?<><div className="matching-transfers-wrap"><table className="matching-transfers-table"><thead><tr><th scope="col">Source → recipient</th><th scope="col">Quantity</th><th scope="col" className="matching-date-column">Timing</th><th scope="col">Action</th></tr></thead><tbody>{transferPage.items.map(a=>{const timing=timingState(a,on||selected.generation?.planning_date);return <tr key={`${a.supply_offer_id}:${a.demand_request_id}`}><td><strong>{source(a.supply_offer_id)}</strong><span className="matching-recipient"><ArrowRight size={14} aria-hidden="true"/>{recipient(a.demand_request_id)}</span><small className={timing==='UPCOMING'?'matching-upcoming':''}>{timing==='UPCOMING'?`Upcoming · earliest dispatch ${matchingDate(a.earliest_dispatch_date)}`:timing==='READY'?'Ready for review':'Timing requires confirmation'}</small><small className="matching-mobile-dates">Arrival {matchingDate(a.earliest_delivery_date)} · needed by {matchingDate(a.required_by)}</small></td><td className="matching-quantity">{formatQuantity(a.proposed_quantity)} {a.unit}</td><td className="matching-date-column"><span>Dispatch {matchingDate(a.earliest_dispatch_date)}</span><small>Arrival {matchingDate(a.earliest_delivery_date)}</small><small>Needed by {matchingDate(a.required_by)}</small></td><td><button type="button" disabled={!current} aria-label={`Review transfer from ${source(a.supply_offer_id)} to ${recipient(a.demand_request_id)}`} onClick={()=>{if(current)onPlanPersisted(alternative.run_id,{supply_offer_id:a.supply_offer_id,demand_request_id:a.demand_request_id});}}>Review</button></td></tr>;})}</tbody></table></div>{transferPage.pages>1&&<div className="matching-browser-pager"><button type="button" aria-label="Previous transfers page" disabled={transferPage.page===1} onClick={()=>update({transferPage:transferPage.page-1})}>Previous transfers</button><small>{transferPage.start}–{transferPage.end} of {rows.length}</small><button type="button" aria-label="Next transfers page" disabled={transferPage.page===transferPage.pages} onClick={()=>update({transferPage:transferPage.page+1})}>Next transfers</button></div>}</>:<div className="matching-empty-result"><h3>{selection.objective==='MAX_NET_CO2E_AVOIDED'&&carbonIncomplete?'Carbon-first allocation needs more information':'No allocations for this approach'}</h3><p>{!alternative?'A current result is unavailable for this approach. Refresh matching to retry.':selection.objective==='MAX_NET_CO2E_AVOIDED'&&carbonIncomplete?'Reuse and deadline plans may still contain eligible transfers.':'The current plan has no eligible allocation for this material. '}</p>{selection.objective==='MAX_NET_CO2E_AVOIDED'&&reuse?.plan.allocations.length?<button className="matching-text-action" type="button" onClick={()=>update({objective:'MAX_REUSE',transferPage:1})}>See the reuse plan</button>:null}</div>}
+  </section></>}
+  </div>:<p>Choose a material to inspect its current plans.</p>}
+  <div className="matching-input-tools"><RuntimeInputs onSaved={()=>void refresh()}/></div>
+  </article></div><footer className="matching-browser-footer"><small>{opportunityCount} materials with opportunities · {noAllocationCount} without allocations · {attentionCount} updating / attention</small></footer></>}
+ </section>;
 }

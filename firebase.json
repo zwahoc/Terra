@@ -1,7 +1,7 @@
 {
   "dataconnect": {"source": "dataconnect"},
   "emulators": {
-    "dataconnect": {"host": "127.0.0.1", "port": 9399},
+    "dataconnect": {"host": "127.0.0.1", "port": 9399, "dataDir": ".local/sql-connect-data"},
     "ui": {"enabled": false},
     "singleProjectMode": true
   }

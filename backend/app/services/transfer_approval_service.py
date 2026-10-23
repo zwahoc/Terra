@@ -9,6 +9,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
+from terra.quantities import json_default
 
 from backend.app.repositories.transfer_repository import (
     TransferApprovalMutationError,
@@ -82,7 +83,7 @@ def _fingerprint(transfer_id: str, request: TransferApprovalInput) -> str:
         "evidence_ref": request.evidence_ref,
     }
     canonical = json.dumps(
-        semantic_input, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        semantic_input, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=json_default
     )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 

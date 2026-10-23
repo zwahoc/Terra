@@ -1,4 +1,4 @@
-"""Draft operational eligibility rules; no HTTP, database, solver or stock writes.
+"""Operational eligibility for reviewed catalogue identities; no I/O or writes.
 
 Inputs must be published, reviewed domain snapshots from one consistent read.
 An ELIGIBLE result is a planning decision, never a reservation or certification.
@@ -6,12 +6,17 @@ An ELIGIBLE result is a planning decision, never a reservation or certification.
 from dataclasses import dataclass
 from datetime import date, timedelta
 from math import isfinite
+import re
 from typing import Mapping
+from decimal import Decimal
+from terra.quantities import amount, unit
+
+ELIGIBILITY_POLICY_VERSION = 'reviewed-catalogue-identity-v2'
 
 
 def _pieces(value: int, name: str) -> None:
-    if type(value) is not int or value < 0:
-        raise ValueError(f"{name} must be a nonnegative integer number of pcs")
+    try: amount(value)
+    except ValueError as exc: raise ValueError(f'{name}: {exc}') from exc
 
 
 @dataclass(frozen=True)
@@ -86,6 +91,8 @@ class Supply:
     evidence_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        for q in (self.quantity.confirmed_quantity,self.quantity.reserved_active_quantity,self.quantity.transferred_out_quantity):
+            if q is not None: amount(q,unit_name=self.unit)
         if self.surplus_status not in {"POTENTIAL", "CONFIRMED", "SUSPENDED", "CLOSED"}:
             raise ValueError("Unknown surplus_status")
         if self.condition not in {"UNUSED", "RECOVERED", "UNKNOWN"}:
@@ -119,6 +126,8 @@ class Demand:
     quantity: DemandQuantity
 
     def __post_init__(self) -> None:
+        for q in (self.quantity.required_quantity,self.quantity.fulfilled_quantity,self.quantity.incoming_committed_quantity):
+            amount(q,unit_name=self.unit)
         if self.request_status not in {"OPEN", "FULFILLED", "CANCELLED"}:
             raise ValueError("Unknown request_status")
         if type(self.is_outstanding_need_confirmed) is not bool:
@@ -148,21 +157,17 @@ class EligibilityResult:
     extra_required_spec_fields: tuple[str, ...]
 
 
-# Conservative draft policy for the starter catalogue, not engineering approval.
-# Context-specific requirements such as a slip rating are explicit additions.
-_REQUIRED_SPECS = {
-    "PAVING_BLOCK": ("material_type", "length_mm", "width_mm", "thickness_mm",
-                     "colour", "finish", "intended_use"),
-    "BRICK": ("material_type", "length_mm", "width_mm", "height_mm", "grade",
-              "intended_use"),
-    "TILE": ("material_type", "length_mm", "width_mm", "thickness_mm", "finish",
-             "colour", "intended_use"),
-}
-
-
 def _valid_spec(key: str, value: object) -> bool:
+    """Validate an explicitly requested context field, never infer family rules."""
     if key.endswith("_mm"):
-        return (type(value) in (int, float) and isfinite(value) and value > 0)
+        # MaterialProposal deliberately carries specification values as text.
+        # A plain number in an explicitly millimetre field has a known basis;
+        # qualifiers, unit-bearing prose and nonfinite values remain unresolved.
+        if isinstance(value,str):
+            value=value.strip()
+            if not re.fullmatch(r"[0-9]+(?:\.[0-9]+)?",value):return False
+            return Decimal(value)>0
+        return (type(value) in (int, float, Decimal) and isfinite(value) and value > 0)
     return isinstance(value, str) and bool(value.strip())
 
 
@@ -178,11 +183,14 @@ def evaluate_eligibility(
 ) -> EligibilityResult:
     """Evaluate one pair, using explicit dates and a caller-supplied lead time.
 
-    Missing timing/specification/traceability evidence requires review. Known
+    Catalogue identity/specifications are reviewed before publication. Matching
+    does not infer technical completeness from a predefined family vocabulary.
+    Missing explicitly requested context fields/timing/traceability need review. Known
     blockers take precedence over review flags. Noneligible results have a zero
     allocation cap. Pair caps are NOT additive across a multi-pair plan.
     """
     if lead_time_days is not None:
+        if type(lead_time_days) is not int: raise ValueError('Lead time must be a whole number of days.')
         _pieces(lead_time_days, "lead_time_days")
     if supply_material.id != supply.material_id or demand_material.id != demand.material_id:
         raise ValueError("Material records do not resolve the supplied material IDs")
@@ -205,19 +213,17 @@ def evaluate_eligibility(
         blockers.append("INSUFFICIENT_STOCK")
     if demand.quantity.newly_allocatable_quantity == 0:
         blockers.append("DEMAND_ALREADY_COMMITTED")
-    if not (supply.unit == demand.unit == supply_material.standard_unit
-            == demand_material.standard_unit == "pcs"):
+    if not (unit(supply.unit) == unit(demand.unit) == unit(supply_material.standard_unit)
+            == unit(demand_material.standard_unit)):
         blockers.append("UNIT_CONVERSION_UNSUPPORTED")
     if (supply_material.id != demand_material.id
             or supply_material.category != demand_material.category
             or dict(supply_material.specifications) != dict(demand_material.specifications)):
         blockers.append("MATERIAL_SPEC_MISMATCH")
     for material in (supply_material, demand_material):
-        if material.category not in _REQUIRED_SPECS:
-            review.append("MATERIAL_CATEGORY_REVIEW_REQUIRED")
-            continue
-        required = _REQUIRED_SPECS[material.category] + extra_required_spec_fields
-        if any(not _valid_spec(key, material.specifications.get(key)) for key in required):
+        # Keep explicit caller requirements, e.g. a reviewed application's slip
+        # rating. No current automatic caller adds category-derived requirements.
+        if any(not _valid_spec(key,material.specifications.get(key)) for key in extra_required_spec_fields):
             review.append("MATERIAL_SPEC_REVIEW_REQUIRED")
 
     dispatch = delivery = None

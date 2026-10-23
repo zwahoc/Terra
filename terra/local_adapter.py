@@ -10,6 +10,7 @@ from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit
 from datetime import datetime,timezone,timedelta
 from terra.contract import FIELDS,fields,camel
+from terra.quantities import wire, json_default
 
 class AdapterError(RuntimeError):pass
 
@@ -27,9 +28,23 @@ class LocalDataConnect:
         if project!='demo-terra-local':raise ValueError('This adapter only supports demo-terra-local')
         self.base=f'http://{host}/v1/projects/{project}/locations/us-central1/services/terra-local/connectors/terra:'
         self.opener=build_opener(ProxyHandler({}),NoRedirect())
+        self._exact=None
     def execute(self,operation,variables=None,write=False,admin=True):
+        if write and admin and (operation.startswith('Upsert') or operation in (
+                'ImportBaseline','ClearBaseline','ApproveTransfer','ReserveTransfer','DispatchTransfer',
+                'ReceiveTransfer','ConfirmTransferUse','CancelTransfer','PersistForecastImpactAssessment','PersistActualImpactAssessment',
+                'CreateTransferRequest','PersistOptimisationRun','PersistOptimisationComparison')):
+            if self.execute('GetOperationalVersion').get('operationalVersion') is None:
+                try:
+                    self.execute('InitializeOperationalVersion', write=True)
+                except AdapterError:
+                    if self.execute('GetOperationalVersion').get('operationalVersion') is None:
+                        raise
+        if self._exact is None and operation not in ('GetQuantityEncoding','InitializeExactQuantities'):
+            self._exact = bool(self.execute('GetQuantityEncoding').get('quantityEncoding'))
         method=('impersonate' if admin else 'execute')+('Mutation' if write else 'Query')
-        body=json.dumps({'operationName':operation,'variables':variables or {}},allow_nan=False).encode()
+        values=wire(variables or {},encode=True) if self._exact else (variables or {})
+        body=json.dumps({'operationName':operation,'variables':values},allow_nan=False,default=json_default).encode()
         request=Request(self.base+method,body,{'Content-Type':'application/json'})
         try:
             with self.opener.open(request,timeout=30) as response: raw=response.read()
@@ -42,7 +57,8 @@ class LocalDataConnect:
         except json.JSONDecodeError as exc:raise AdapterError(f'{operation}: emulator returned invalid JSON') from exc
         if payload.get('errors'):raise AdapterError(f'{operation}: GraphQL errors: {json.dumps(payload["errors"])}')
         if 'data' not in payload or payload['data'] is None:raise AdapterError(f'{operation}: response has no data')
-        return payload['data']
+        if operation=='InitializeExactQuantities': self._exact=True
+        return wire(payload['data'],encode=False,scale=1_000_000 if self._exact else 1)
     def snapshot(self):
         data=self.execute('SeedSnapshot')
         return {entity:map_entity_rows(entity,data[camel(entity)]) for entity in FIELDS}

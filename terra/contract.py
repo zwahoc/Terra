@@ -49,3 +49,17 @@ for entity in FIELDS:
         if optional: typ=typ|None
         definitions[name]=(typ,Field(...))
     MODELS[entity]=create_model(TYPES[entity],__base__=StrictRow,**definitions)
+
+# Runtime accepts broad catalogue units/categories and exact fractional values.
+# Keep MODELS unchanged for the canonical portable seed validator.
+from decimal import Decimal
+RUNTIME_MODELS={}
+for entity in FIELDS:
+    definitions={}
+    for name,spec,optional in fields(entity):
+        typ=MODELS[entity].model_fields[name].annotation
+        if spec=='int':typ=int|Decimal
+        if spec.startswith(('Category=','Unit=')):typ=str
+        if optional:typ=typ|None
+        definitions[name]=(typ,Field(...))
+    RUNTIME_MODELS[entity]=create_model('Runtime'+TYPES[entity],__base__=StrictRow,**definitions)

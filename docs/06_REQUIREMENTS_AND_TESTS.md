@@ -1,50 +1,45 @@
-# 06 — Requirements, traceability and automated acceptance criteria
+# 06 — Requirements and verification
 
-This supersedes `legacy/CircularFlow_Requirements_v0.1.md` where it assumed multiple users/role-based access and implied raw document uploads are present in the initial seed. Existing FR IDs are intentionally retained as much as possible.
+[SRS](TERRA_SRS_v1.0.md) uses SRS-FR/SRS-NFR/SRS-BR/SRS-AT IDs. The original FR/NFR/A IDs below remain stable for traceability. Requirements and acceptance scenarios are not blanket claims of executed tests.
 
-These are future acceptance targets. The earlier documentation review ran consistency checks only. Local seed implementation evidence is now in SEED_VALIDATION.md; these criteria still do not authorize full application APIs. The confirmed runtime is React/TypeScript/Tailwind → FastAPI → independent Python services/repositories → Python REST adapter → Firebase SQL Connect → Cloud SQL PostgreSQL. Application operations use FastAPI; Python database authentication/read-write behavior remains to be proven. Node.js is limited to tooling and justified one-off utilities.
+## Requirement priorities
 
-## 1. Priority definitions
+P0-SEED describes the canonical fixture foundation; P0-MVP the implemented prototype's required workflow. P1/P2 are optional/future scope, not permission to start new features.
 
-- **P0-SEED:** needed now to make a consistent populated database and local implementation tests.
-- **P0-MVP:** needed in the complete hackathon demonstration, but **not** necessarily part of Codex's first seed task.
-- **P1:** enhancements only if time remains.
-- **P2:** future enterprise roadmap; do not implement now.
+## Functional requirements
 
-## 2. Functional requirements (source: original FR-01 through FR-24, updated to Terra)
-
-| ID | Priority | Requirement and demonstrable acceptance |
+| ID | Priority | Requirement |
 |---|---|---|
 | FR-01 | P0-SEED | Store/list 5 synthetic distinct projects with stable IDs, names, townships and date fields from Document 02. |
-| FR-02 | P0-MVP | Parse known CSV/XLSX and selected text PDFs when raw docs are provided later. |
+| FR-02 | P0-MVP | LLM-led broad document interpretation with optional readers/preprocessing; validate actual format/model support and preserve per-file failures. No forced templates or arbitrary row cap. |
 | FR-03 | P0-SEED + MVP | Distinguish BOQ, PO, inventory, demand; accepted BOQ must not become confirmed surplus. |
 | FR-04 | P0-SEED + MVP | `extracted_rows` contract includes name, amount, unit, specs, dates and source locator; seeded rows are explicitly synthetic. |
 | FR-05 | P0-SEED + MVP | Different raw names can map to same canonical ID; different critical specs do not map automatically. |
-| FR-06 | P0-SEED + MVP | Confidence/review flags and correction fields represented now; review UI later. |
-| FR-07 | P0-SEED + MVP | Unreviewed rows do not automatically publish confirmed supply or demand. |
+| FR-06 | P0-SEED + MVP | Preserve original facts, assumptions and operator edits; structured review with whole-source viewing and no compulsory written override reasons. Seed review flags remain synthetic. |
+| FR-07 | P0-SEED + MVP | Every item resolved by acceptance/correction/exclusion; each file approved separately; only the fully dealt-with approved batch publishes atomically. No unreviewed or partial operational publication. |
 | FR-08 | P0-SEED | Store separate confirmed/potential supply and outstanding demand, with status/quantity rules. |
 | FR-09 | P0-MVP | Matching respects critical specs/units; incompatible fixture produces ineligibility. |
 | FR-10 | P0-SEED + MVP | Dates and quantities consistent; no over-allocation, including recipient commitments. |
-| FR-11 | P0-SEED + MVP | Seed one-to-many allocation example and implement matching later. |
-| FR-12 | P0-SEED + MVP | Seed explainable historical run/proposals; optimiser later generates fresh run. |
-| FR-13 | P0-SEED + MVP | Include two comparable alternative strategy runs; do not count both as execution. |
+| FR-11 | P0-SEED + MVP | Support one-to-many feasible allocation with shared budgets; retain seed examples. |
+| FR-12 | P0-SEED + MVP | Retain explainable saved inputs/runs/proposals and generate current deterministic plans. |
+| FR-13 | P0-SEED + MVP | Compare reuse, deadline and carbon strategies on consistent inputs; do not count both as execution. |
 | FR-14 | P0-SEED | Store demonstrative, explicitly labelled factor values, units and provenance. |
-| FR-15 | P0-SEED + MVP | Seed impact records reproduce from stored factors; live calculator later. |
+| FR-15 | P0-SEED + MVP | Reproduce seed and current impact results from stored inputs/factors with versioned assessment heads. |
 | FR-16 | P0-MVP | Carbon-aware algorithm can rank valid alternatives, not just nearest supplier. |
 | FR-17 | P0-SEED | Unknown unit mass/routes/handling/factors yield `INSUFFICIENT_DATA`, not invented emission outputs. |
-| FR-18 | P0-SEED + MVP | Single-user status-based approvals (NO users/RBAC schema). Seed sample states; later implement transitions. |
-| FR-19 | P0-SEED + MVP | Source/destination counters reconcile; later test truly atomic concurrent reservation mutation. |
+| FR-18 | P0-SEED + MVP | Single-user status-based approvals (NO users/RBAC schema). Retain truthful sample states and guarded operational transitions. |
+| FR-19 | P0-SEED + MVP | Source/destination counters reconcile; enforce atomic source/recipient reservation under contention. |
 | FR-20 | P0-SEED | Separate dispatched, received and actually used; `RECEIVED` not automatically `REUSED`. |
-| FR-21 | P0-SEED | Append-only-style transfer events and chronological history in seed. |
+| FR-21 | P0-SEED | Append-only-style transfer events and chronological history. |
 | FR-22 | P0-MVP | CSV/JSON export of actual reused quantities and estimates, with Pantas disclaimers. |
 | FR-23 | P0-MVP | Overview, documents/review, supply-demand/matching, transfer/ESG UI. |
-| FR-24 | P0-MVP | E2E demo on synthetic projects: review → verify supply/demand → match → confirm/approve → reserve → dispatch → receive → confirm use → export. |
+| FR-24 | P0-MVP | E2E demo on synthetic projects: review → verify supply/demand → match → confirm/reserve → dispatch → receive → confirm use → export. |
 
-## 3. Nonfunctional requirements
+## Nonfunctional requirements
 
 | ID | Requirement |
 |---|---|
-| NFR-01 | Traceability: store source file metadata / row/page; synthetic stub labels must be explicit. |
+| NFR-01 | Traceability: preserve source file metadata / row/page and truthful audit provenance. Local model-test provenance may live outside LLM context; no per-record synthetic labels or simulation commentary are required there. See Document 05. |
 | NFR-02 | Explainable deterministic eligibility: factor, material, date and quantity decisions can be reproduced. |
 | NFR-03 | Atomic stock consistency: no reservations exceeding confirmed stock or demand need. |
 | NFR-04 | **Single-user adaptation:** workflow confirmations through statuses/events only; no role-based auth for MVP. Enterprise controls future. |
@@ -53,15 +48,15 @@ These are future acceptance targets. The earlier documentation review ran consis
 | NFR-07 | Error isolation: invalid extracted data cannot corrupt supply or demand. |
 | NFR-08 | ESG boundary: distinct avoided emission estimates vs official corporate inventory/carbon credits/waste diversion. |
 | NFR-09 | Demo security: no secrets/public privileged writes; repository contains synthetic, non-sensitive data. |
-| NFR-10 | Honest claims: source distinctions, limitations, synthetic values, no fake integration or real AI calls. |
+| NFR-10 | Honest reporting: distinguish demonstration results from real inventory/verified environmental performance, preserve actual evidence limitations and never invent integration or executed AI-call claims. This does not require announcing fixture origin to the model during local tests. |
 | NFR-11 | Idempotent seed: repeat command does not inflate stock, events or carbon. |
 | NFR-12 | Provider compatibility: actual `.gql` schema/connector operations compile on Firebase SQL Connect emulator, or blockers are explicitly recorded. |
 | NFR-13 | Python integration proof: demonstrate named REST read/write/read-back with verified credentials/routing, operation error handling and replay-safe behavior; distinguish local/cloud results and blocked steps. |
 | NFR-14 | Module separation: business calculations/transitions can be tested as Python functions without FastAPI or Firebase. React uses FastAPI; no persistent Node application backend. |
 
-## 4. Seed-specific acceptance scenarios: expected results
+## Canonical fixture and transaction acceptance
 
-| Test | Given | Expected |
+| ID | Given | Expected |
 |---|---|---|
 | A01 | Baseline fixture | 13 top-level arrays excluding metadata, correct counts, no `users`/`roles`. |
 | A02 | All FK relations | Every reference points to an existing row; IDs unique. |
@@ -84,31 +79,71 @@ These are future acceptance targets. The earlier documentation review ran consis
 | A19 | Two assessments for one allocation (forecast and actual) | Dashboard actual reuse/carbon uses only actual assessment, not sum. |
 | A20 | Run seed importer twice | Same row counts, no duplicated effects, stable IDs. |
 | A21 | Import into local SQL Connect emulator | All tables/query paths read back, FK constraints hold, no provider-syntax errors. |
-| A22 | Same 500 pcs confirmed stock, two concurrent reservation commands each 500 | At most one succeeds; later MVP test if not part of initial seed task. |
-| A23 | Scenario index IDs in README | Every listed scenario ID has valid referenced records. |
+| A22 | Same 500 pcs confirmed stock, two concurrent reservation commands each 500 | At most one succeeds; operational transaction test. |
+| A23 | Documented seed scenario IDs | Every listed scenario ID has valid referenced records. |
 | A24 | Data source assertions | Every example has `synthetic=true` metadata; real-file URI/hash absent; factors labelled demo. |
 | A25 | Minimal standalone Python REST adapter proof | Read/write/read-back and repeat behavior observed through named operations; authentication/authorization, routing and errors documented. No full FastAPI server required. |
 | A26 | Historical partial reuse and current commitments | Actual-use quantity counts once; unused/missing residuals explained and not silently released/restocked. Undefined cost allocation leaves net incomplete. |
 
-Tests A01–A21/A23–A26 are seed milestone targets. A25 may remain explicitly blocked if a safe Python path cannot be proven; Node import success does not pass it. A26 requires documented fixture assumptions and must flag unresolved closure/cost policy from Document 07 rather than invent a rule. A22 requires operational transactional mutation implementation and can be documented as an explicit subsequent task if first implementation scope stays seed-only. Later concurrency coverage must include two sources competing for the same recipient need as well as two requests competing for the same stock.
+Historical seed eligibility uses its saved inputs/event time; new reservations revalidate current inputs. Fixture quantities may include legacy partial physical movements. Current full-receipt controls must not claim support for creating those discrepancy cases.
 
-Historical eligibility uses the run's saved inputs and event time; new reservation uses current stock, demand and confirmation state. Do not reject a valid past transfer solely because its stock is now depleted or demand fulfilled. For immediate baseline impact checks, use one assessment per entity/basis; later revisions need an explicit authoritative-record rule.
+## Test map
 
-## 5. P1 and P2
+| Area | Representative test files |
+|---|---|
+| Canonical data/tooling | test_seed.py, test_seeding_lock.py, test_dev_tooling.mjs |
+| Fresh-clone integrated demo | test_demo_workspace.py: date rebasing, mixed units/carbon, guarded empty-only bootstrap, draft refusal, repeat preservation and full transfer/export |
+| Intake/storage/access | test_ingestion.py, test_ingestion_emulator.py, test_workspace.py |
+| Provider orchestration/prompts | test_analysis.py, test_analysis_improvements.py, test_analysis_coverage.py |
+| Material resolution | test_material_search.py, test_project_material_workflow.py, test_reviewed_catalogue_matching.py |
+| Formats/large inputs | test_pdf_preparation.py, test_office_readers.py, test_large_documents.py |
+| Output recovery | test_duplicate_json.py, test_batched_repairs.py, test_ingestion_cleanup.py |
+| Review/conversion/publication | test_review.py, test_prepared_review.py, test_material_editor.py, test_publication.py |
+| Allocation/forecast/impact | test_eligibility.py, test_allocation_objectives.py, test_forecast_preview.py, test_impact_service.py |
+| Connected transactions | test_checkpoint_a.py, test_checkpoint_b.py, test_checkpoint_c.py, test_ab_corrections.py |
+| Client contracts | test_live_client.mjs, test_ingestion_client.mjs, test_workspace_client.mjs, test_workspace_presentation.mjs |
 
-**P1:** expanded PDF layouts/OCR, future surplus predictions, sensitivity analysis, alerts, advanced material matching rules, richer waste prevention vs diversion charts.
+Tests live under `tests/`. The historical nine-tool/FileDraft compatibility snapshot is a dedicated JSON fixture at `tests/fixtures/ingestion_contract_v1.json`, not embedded in a documentation report. Scripted provider tests verify mechanisms, not measured model accuracy.
 
-**P2:** real SDP ERP/BIM and Pantas connectors (only with permission and provided specs); enterprise identity and project access policy; evidence vault; verified lifecycle calculations; investigate but **do not promise** carbon-credit certification/BCX revenue.
+## Running checks
 
-## 6. Demo/dashboard fixture queries to support
+```sh
+npm test
+npm run build:frontend
+npm run python -- scripts/generate_seed.py --check
+npm run demo:check
+npm run python -- scripts/generate_provider.py --check
+npm run test:integration
+```
 
-- Projects grouped by location/status.
-- Materials grouped by category.
-- Confirmed eligible supply remaining by material/category/project.
-- Potential supply shown separately, never included in "ready to reserve".
-- Open/committed demand by category; not summed across incompatible units.
-- Count of proposals by run/strategy/status.
-- Transfers by current workflow stage and date.
-- **Confirmed** material reuse mass (not dispatch or receipts), separately from proposal forecast.
-- Estimated actual carbon outcome with missing-factor/assumption flags.
-- Synthetic ESG export preview (future read model).
+The integration runner starts disposable 9499 and refuses an occupied test port; it does not use the owner's 9399 database. Dedicated connected suites are `test:checkpoint-a`, `test:checkpoint-b` and `test:checkpoint-c`; their names are retained executable interfaces, not required phases for contributors. Run them sequentially, without manually enabling destructive flags against an existing workspace. Default unit/client suites use temporary/scripted fixtures with no live model call.
+
+## Evidence and acceptance limits
+
+The 24 October repository preparation run reported 27 tooling/client tests and 468 Python tests with 73 skipped and no failures. A separate disposable-emulator integration run passed all 49 tests, including the new-clone demo journey. These counts describe those runs; skipped database tests are not passed integration proof. The frontend build and seed/demo/provider generator checks passed. Native/cloud/provider acceptance must name the actual environment, source files and results; CI configuration alone is not evidence of execution.
+
+The owner completed an initial integrated walkthrough. Remaining scenarios and refinements are tested after the first integrated version rather than repeatedly blocking delivery on exhaustive manual sandbox work. Existing validation/atomicity/provenance safeguards are not deferred.
+
+### Remaining scenarios
+
+The first integrated version is available. The items below remain representative acceptance/refinement work, rather than claims that their underlying services are absent. Existing automated coverage is retained.
+
+| ID | Scenario | Existing evidence | Acceptance still to run |
+|---|---|---|---|
+| DA-01 | Existing project quantities and newer documents | Existing identities recognised; automated add/replace/history and supersession checks. | Use meaningful prior quantities plus newer documents. Verify repeated evidence, additions and corrections without double counting or losing history. |
+| DA-02 | Verified units and operational quantities | Conversion preview exercised; unit-conflicted rows used history/exclusion in the owner publication. | Use supported conversion evidence or the agreed same-unit representation. Verify original/converted values, complete stock scopes, local need/net demand, confirmed release/timing and matching-ready quantities. Never auto-confirm calculated surplus. |
+| DA-03 | Multiple documents, duplicates, revisions and conflicts | Scripted file isolation, duplicate lookup, added-file reuse/rebase, edit preservation and approval checks. | Test representative live documents together and over time, including semantic overlaps, conflicting statements, reviewed supersession and affected reconfirmation. |
+| DA-04 | New projects and multi-project documents | Proposal/reference validation and published multi-project examples; repeat with independently prepared evidence. | Publish a genuinely new project; assign several projects in one document and resolve ambiguous shared quantities without invented allocations. |
+| DA-05 | Provider/file failures and recovery | Scripted/mechanical errors, retained partial files/groups, retry, skip/manual replacement and restoration tests; some historical provider failures. | Exercise the assembled UI with provider/network/backend interruptions. Verify retained successes/edits, explicit retry, truthful manual provenance, fresh restored context and no early publication or silent paid replay. |
+| DA-06 | Representative formats and completeness | Generic Office/PDF/image, hidden-cell/formula and page/group/provenance tests. | Test owner-provided construction Word/Excel, scanned/mixed/large documents, missing formula caches and full relevant-item/source coverage. Unsupported content must remain explicit. |
+| DA-07 | Matching, transfer and impact journey | Component and connected local transaction tests; automatic matching and impact processing are implemented. | Verify the implemented path from upload through eligible matching/alternative selection, reserve/dispatch/receive/use and impact/export, including timing, capacities, missing carbon inputs and no double counting of alternatives. |
+| DA-08 | Replay, stale state, competing writes and handoff failure | Unit/isolated database coverage for replay, rollback, staleness and some concurrency. | Verify these through the assembled workflow, including duplicate publications/reservations, actual matcher retries and protected active-transfer corrections. Matching failure must not roll back publication or silently lose notification. |
+| DA-09 | Native platforms | Native macOS and portable tooling checks; simulated paths do not prove another OS. | Verify native Windows and the complete macOS workflow: setup, Unicode/source paths, emulator, model configuration and recovery. Record Linux separately if exercised. |
+
+
+
+## Known limitations and future scope
+
+Model omissions, mistaken identity/meaning/source references, ambiguous conversions and context-only project gaps can still require operator correction/exclusion. Coverage checks do not establish semantic correctness. Current workspace/publication read and transaction capacities fail explicitly rather than truncating a supposedly complete batch. Indexed catalogue performance at production scale, broad native accessibility, hard-crash/engine-upgrade persistence, complete exception workflows and cloud access remain separate acceptance work.
+
+P1 possibilities include future surplus forecasting, sensitivity/alerts and richer visual analysis. P2 includes separately approved ERP/BIM/Pantas integration, enterprise access, evidence vault and verified lifecycle assurance. No carbon-credit certification or revenue is promised.

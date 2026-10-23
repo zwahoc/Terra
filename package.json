@@ -10,8 +10,12 @@
     "firebase-tools": "15.33.0"
   },
   "scripts": {
+    "demo:seed": "node scripts/run_python.mjs scripts/demo_workspace.py seed",
+    "demo:validate": "node scripts/run_python.mjs scripts/demo_workspace.py validate",
+    "demo:check": "node scripts/run_python.mjs scripts/demo_workspace.py check-template",
     "emulator": "firebase emulators:start --only dataconnect --project demo-terra-local",
-    "test:integration": "firebase emulators:exec --only dataconnect --project demo-terra-local \"node scripts/run_python.mjs scripts/run_emulator_tests.py\"",
+    "test:integration": "node scripts/run_integration.mjs",
+    "test:checkpoint-a": "node scripts/run_checkpoint_a.mjs",
     "test": "npm run test:tooling && npm run test:python",
     "dev:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build",
@@ -22,7 +26,11 @@
     "seed:validate": "node scripts/run_python.mjs scripts/seed_terra.py validate",
     "seed:verify": "node scripts/run_python.mjs scripts/seed_terra.py verify",
     "seed:reset": "node scripts/run_python.mjs scripts/seed_terra.py reset",
-    "test:tooling": "node --test tests/test_dev_tooling.mjs",
-    "test:python": "node scripts/run_python.mjs -m unittest discover -s tests -v"
+    "test:tooling": "node --test tests/test_dev_tooling.mjs tests/test_live_client.mjs tests/test_ingestion_client.mjs tests/test_workspace_client.mjs tests/test_workspace_presentation.mjs",
+    "test:python": "node scripts/run_python.mjs -m unittest discover -s tests -v",
+    "test:checkpoint-b": "node scripts/run_checkpoint_b.mjs",
+    "test:checkpoint-c": "node scripts/run_checkpoint_c.mjs",
+    "workspace:archive": "node scripts/run_python.mjs scripts/local_workspace.py archive",
+    "workspace:cutover": "node scripts/run_python.mjs scripts/local_workspace.py cutover"
   }
 }

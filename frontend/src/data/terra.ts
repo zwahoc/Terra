@@ -1,204 +1,81 @@
-import seed from '../../../data/terra_seed.json';
+import { formatQuantity, type Quantity } from '../lib/quantities';
+import { resetPendingCommands } from '../lib/action-request';
+import type { CurrentMatching } from '../lib/current-matching';
+import { useSyncExternalStore } from 'react';
+import type { Transfer, ImpactAssessment } from '../lib/terra-api';
 
 export type SupplyStatus = 'POTENTIAL' | 'CONFIRMED' | 'SUSPENDED' | 'CLOSED';
-export type TransferStatus =
-  | 'REQUESTED'
-  | 'APPROVED'
-  | 'RESERVED'
-  | 'IN_TRANSIT'
-  | 'RECEIVED'
-  | 'REUSED'
-  | 'CANCELLED';
+export type TransferStatus = Transfer['status'];
+export interface Project { id: string; name: string; code: string; township: string }
+export interface Material { id: string; canonical_name: string; standard_unit: string; category: string; reference_code: string | null; specifications: Record<string, unknown>; mass_kg_per_unit: number | null }
+export interface Supply { id: string; source_project_id: string; material_id: string; unit: string; surplus_status: SupplyStatus; condition: string; declared_quantity: Quantity; confirmed_quantity: Quantity | null; reserved_active_quantity: Quantity; transferred_out_quantity: Quantity; available_from: string; available_until: string | null }
+export interface Demand { id: string; destination_project_id: string; material_id: string; required_quantity: Quantity; fulfilled_quantity: Quantity; unit: string; needed_from: string; required_by: string; request_status: string }
+export interface Proposal { id: string; run_id: string; supply_offer_id: string; demand_request_id: string; proposed_quantity: Quantity; unit: string; compatibility_result: string; status: string }
+export interface Observation { id: string; project_id: string; material_id: string; quantity: string | null; unit: string | null; record_kind: string; application: string; is_effective: boolean; superseded_by: string | null; source: { kind: string; label: string } }
+export interface Workspace {
+ terra: { metadata: { as_of_date: string; observed_at: string; workspace_epoch: string }; projects: Project[]; materials: Material[]; supply_offers: Supply[]; demand_requests: Demand[]; allocation_proposals: Proposal[]; transfers: Transfer[]; impact_assessments: ImpactAssessment[]; published_records: Observation[] };
+ supply_views: (Supply & { project_name: string; material_name: string; reservable_quantity: Quantity })[];
+ demand_views: (Demand & { project_name: string; material_name: string; remaining_unfulfilled_quantity: Quantity; newly_allocatable_quantity: Quantity })[];
+ transfer_views: (Transfer & { source_project_id:string; destination_project_id:string; unit: string; received_but_unused_quantity: Quantity; material_name: string; source_project_name: string; destination_project_name: string })[];
+ candidate_matches: (Proposal & { source_project_id:string; destination_project_id:string; material_name: string; source_project_name: string; destination_project_name: string; maximum_preview_quantity: Quantity })[];
+ matching: CurrentMatching;
+ dashboard: { by_project:Record<string,{confirmed_by_unit:Record<string,Quantity>;demand_by_unit:Record<string,Quantity>;actual_reuse_tonnes:number|null}>; confirmed_by_unit: Record<string, Quantity>; demand_by_unit: Record<string, Quantity>; actual_reuse_tonnes: number | null; known_reuse_tonnes: number; unknown_mass_transfer_ids: string[] };
+}
+let snapshot: Workspace | null = null;
+let failure = '';
+let revision = 0;
+let pending: Promise<void> | null = null;
+const listeners = new Set<() => void>();
+export let terra: Workspace['terra'];
+export let supplyViews: Workspace['supply_views'];
+export let demandViews: Workspace['demand_views'];
+export let transferViews: Workspace['transfer_views'];
+export let candidateMatches: Workspace['candidate_matches'];
+export let dashboard: Workspace['dashboard'];
+export let matching: Workspace['matching'];
+const notify = () => { revision++; listeners.forEach(fn => fn()); };
+export function refreshWorkspace(): Promise<void> {
+ if (pending) return pending;
+ pending = (async () => {
+  try {
+   const response = await fetch('/api/workspace'); const result = await response.json();
+   if (!response.ok || !result.data) throw new Error(result.error?.message ?? 'Current Terra data is unavailable.');
+   snapshot = result.data as Workspace;
+   syncWorkspaceEpoch(snapshot.terra.metadata.workspace_epoch);
+   ({ terra, supply_views: supplyViews, demand_views: demandViews, transfer_views: transferViews, candidate_matches: candidateMatches, dashboard, matching } = snapshot);
+   failure = '';
+  } catch (error) { failure = error instanceof Error ? error.message : 'Current data could not be loaded.'; throw error; }
+  finally { pending = null; notify(); }
+ })();
+ return pending;
+}
+export function useWorkspaceState() {
+ useSyncExternalStore(fn => { listeners.add(fn); return () => { listeners.delete(fn); }; }, () => revision);
+ return { ready: snapshot !== null, error: failure, epoch: snapshot?.terra.metadata.workspace_epoch };
+}
+export const projectName = (id: string) => terra.projects.find(p => p.id === id)?.name ?? id;
+export const materialName = (id: string) => terra.materials.find(m => m.id === id)?.canonical_name ?? id;
+export const transferStages: TransferStatus[] = ['REQUESTED', 'APPROVED', 'RESERVED', 'IN_TRANSIT', 'RECEIVED', 'REUSED'];
+export const formatUnits = (values: Record<string, Quantity>) => Object.entries(values).map(([unit,value]) => `${formatQuantity(value)} ${unit}`).join(' · ') || '0';
 
-export const terra = seed;
-
-const byId = <T extends { id: string }>(items: T[]) =>
-  new Map(items.map((item) => [item.id, item]));
-
-const projects = byId(seed.projects);
-const materials = byId(seed.materials);
-const offers = byId(seed.supply_offers);
-const demands = byId(seed.demand_requests);
-const proposals = byId(seed.allocation_proposals);
-
-const routeFor = (fromProjectId: string, toProjectId: string) =>
-  seed.route_distances.find(
-    (route) =>
-      (route.from_project_id === fromProjectId && route.to_project_id === toProjectId) ||
-      (route.to_project_id === fromProjectId && route.from_project_id === toProjectId),
-  );
-
-export const projectName = (id: string) => projects.get(id)?.name ?? id;
-export const materialName = (id: string) => materials.get(id)?.canonical_name ?? id;
-
-export const reservableQuantity = (offer: (typeof seed.supply_offers)[number]) =>
-  offer.surplus_status === 'CONFIRMED' && offer.condition === 'UNUSED'
-    ? Math.max(0, (offer.confirmed_quantity ?? 0) - offer.reserved_active_quantity - offer.transferred_out_quantity)
-    : 0;
-
-export const supplyViews = seed.supply_offers.map((offer) => ({
-  ...offer,
-  project_name: projectName(offer.source_project_id),
-  material_name: materialName(offer.material_id),
-  reservable_quantity: reservableQuantity(offer),
-}));
-
-export const demandViews = seed.demand_requests.map((demand) => ({
-  ...demand,
-  project_name: projectName(demand.destination_project_id),
-  material_name: materialName(demand.material_id),
-  remaining_unfulfilled_quantity: Math.max(0, demand.required_quantity - demand.fulfilled_quantity),
-}));
-
-export const proposalViews = seed.allocation_proposals.map((proposal) => {
-  const offer = offers.get(proposal.supply_offer_id);
-  const demand = demands.get(proposal.demand_request_id);
-  return {
-    ...proposal,
-    source_project_id: offer?.source_project_id ?? null,
-    destination_project_id: demand?.destination_project_id ?? null,
-    material_name: offer ? materialName(offer.material_id) : 'Unknown material',
-    source_project_name: offer ? projectName(offer.source_project_id) : 'Unknown source',
-    destination_project_name: demand ? projectName(demand.destination_project_id) : 'Unknown destination',
-    route: offer && demand ? routeFor(offer.source_project_id, demand.destination_project_id) : undefined,
-  };
-});
-
-/**
- * Fixture-derived matching preview. It is intentionally read-only: one offer
- * can appear against several demands and no candidate changes stock.
- * Exact canonical material identity is the temporary specification check;
- * the API/optimiser becomes authoritative when connected.
- */
-export const candidateMatches = supplyViews.flatMap((offer) =>
-  demandViews
-    .filter(
-      (demand) =>
-        demand.request_status === 'OPEN' &&
-        offer.source_project_id !== demand.destination_project_id &&
-        offer.material_id === demand.material_id,
-    )
-    .map((demand) => {
-      const availableByRequiredDate = offer.available_from <= demand.required_by;
-      const maximumPreviewQuantity = Math.min(
-        offer.reservable_quantity,
-        demand.remaining_unfulfilled_quantity,
-      );
-      const isEligible =
-        offer.surplus_status === 'CONFIRMED' &&
-        offer.condition === 'UNUSED' &&
-        availableByRequiredDate &&
-        maximumPreviewQuantity > 0;
-
-      return {
-        id: `${offer.id}:${demand.id}`,
-        supply_offer_id: offer.id,
-        demand_request_id: demand.id,
-        source_project_id: offer.source_project_id,
-        destination_project_id: demand.destination_project_id,
-        source_project_name: offer.project_name,
-        destination_project_name: demand.project_name,
-        material_name: offer.material_name,
-        unit: materials.get(offer.material_id)?.standard_unit ?? 'units',
-        available_from: offer.available_from,
-        required_by: demand.required_by,
-        supply_available_quantity: offer.reservable_quantity,
-        demand_open_quantity: demand.remaining_unfulfilled_quantity,
-        maximum_preview_quantity: maximumPreviewQuantity,
-        compatibility_result: isEligible ? 'ELIGIBLE' : 'REVIEW_REQUIRED',
-      };
-    }),
-);
-
-export const optimisationPlanViews = seed.optimisation_runs.map((run) => {
-  const allocations = proposalViews.filter((proposal) => proposal.run_id === run.id);
-  const forecastAssessments = seed.impact_assessments.filter(
-    (assessment) =>
-      assessment.basis === 'PROPOSAL_FORECAST' &&
-      assessment.proposal_id !== null &&
-      allocations.some((proposal) => proposal.id === assessment.proposal_id),
-  );
-  const eligibleAllocations = allocations.filter(
-    (proposal) => proposal.compatibility_result === 'ELIGIBLE',
-  );
-  const forecastByProposal = new Map(
-    forecastAssessments.map((assessment) => [assessment.proposal_id, assessment]),
-  );
-  const carbonKnownAllocations = eligibleAllocations.filter((proposal) =>
-    forecastByProposal.get(proposal.id)?.net_avoided_kgco2e !== null &&
-    forecastByProposal.has(proposal.id),
-  );
-  const totalRouteKm = eligibleAllocations.reduce(
-    (total, proposal) => total + (proposal.route?.distance_km ?? 0),
-    0,
-  );
-  const routesWithDistance = eligibleAllocations.filter((proposal) => proposal.route !== undefined);
-  return {
-    ...run,
-    allocations,
-    total_proposed_quantity: allocations.reduce((total, proposal) => total + proposal.proposed_quantity, 0),
-    eligible_quantity: eligibleAllocations
-      .reduce((total, proposal) => total + proposal.proposed_quantity, 0),
-    eligible_allocation_count: eligibleAllocations.length,
-    carbon_known_allocation_count: carbonKnownAllocations.length,
-    carbon_evidence_status: carbonKnownAllocations.length === eligibleAllocations.length
-      ? 'COMPLETE'
-      : carbonKnownAllocations.length > 0
-        ? 'PARTIAL'
-        : 'MISSING',
-    total_route_km: routesWithDistance.length === eligibleAllocations.length ? totalRouteKm : null,
-    forecast_net_kgco2e: carbonKnownAllocations.length !== eligibleAllocations.length
-      ? null
-      : carbonKnownAllocations.reduce(
-          (total, proposal) => total + (forecastByProposal.get(proposal.id)?.net_avoided_kgco2e ?? 0),
-          0,
-        ),
-  };
-});
-
-export const transferViews = seed.transfers.map((transfer) => {
-  const proposal = proposals.get(transfer.proposal_id);
-  const offer = proposal ? offers.get(proposal.supply_offer_id) : undefined;
-  const demand = proposal ? demands.get(proposal.demand_request_id) : undefined;
-  return {
-    ...transfer,
-    material_name: offer ? materialName(offer.material_id) : 'Unknown material',
-    source_project_name: offer ? projectName(offer.source_project_id) : 'Unknown source',
-    destination_project_name: demand ? projectName(demand.destination_project_id) : 'Unknown destination',
-  };
-});
-
-const actualUseTransfers = seed.transfers.filter((transfer) => transfer.actually_used_quantity > 0);
-const actualReuseKg = actualUseTransfers.reduce((total, transfer) => {
-  const proposal = proposals.get(transfer.proposal_id);
-  const offer = proposal ? offers.get(proposal.supply_offer_id) : undefined;
-  const material = offer ? materials.get(offer.material_id) : undefined;
-  return total + transfer.actually_used_quantity * (material?.mass_kg_per_unit ?? 0);
-}, 0);
-
-export const dashboard = {
-  confirmed_reservable: supplyViews
-    .filter((offer) => offer.surplus_status === 'CONFIRMED')
-    .reduce((total, offer) => total + offer.reservable_quantity, 0),
-  open_demand: demandViews
-    .filter((demand) => demand.request_status === 'OPEN')
-    .reduce((total, demand) => total + demand.remaining_unfulfilled_quantity, 0),
-  active_transfers: transferViews.filter((transfer) =>
-    ['RESERVED', 'IN_TRANSIT', 'RECEIVED'].includes(transfer.status),
-  ).length,
-  actual_reuse_tonnes: actualReuseKg / 1000,
-  actual_net_kgco2e: seed.impact_assessments
-    .filter((assessment) => assessment.basis === 'ACTUAL_CONFIRMED_USE' && assessment.net_avoided_kgco2e !== null)
-    .reduce((total, assessment) => total + (assessment.net_avoided_kgco2e ?? 0), 0),
-  incomplete_actual_assessments: seed.impact_assessments.filter(
-    (assessment) => assessment.basis === 'ACTUAL_CONFIRMED_USE' && assessment.calculation_status === 'INSUFFICIENT_DATA',
-  ).length,
-};
-
-export const transferStages: TransferStatus[] = [
-  'REQUESTED',
-  'RESERVED',
-  'IN_TRANSIT',
-  'RECEIVED',
-  'REUSED',
-];
+export function syncWorkspaceEpoch(epoch: string) {
+ if (!epoch || epoch === 'legacy' || epoch === 'unassigned') return;
+ try {
+  const key = 'terra.workspace.epoch';
+  const previousEpoch=sessionStorage.getItem(key);
+  if (previousEpoch === epoch) return;
+  resetPendingCommands();
+  const oldBatch = sessionStorage.getItem('terra.upload.batch');
+  if (oldBatch) sessionStorage.setItem('terra.history.previous-batch',oldBatch);
+  for (let i=sessionStorage.length-1;i>=0;i--) {
+   const name=sessionStorage.key(i);
+   if (name && (name==='terra.upload.batch' || name==='terra.active_optimisation_run_id' || name.startsWith('terra.publish.') || name.startsWith('terra.pending-command.'))) sessionStorage.removeItem(name);
+  }
+  const url = new URL(location.href);
+  if (previousEpoch !== null) {
+   url.searchParams.delete('intake');
+   history.replaceState(null,'',url.pathname+url.search+url.hash);
+  }
+  sessionStorage.setItem(key,epoch);
+ } catch { /* Database generation and command guards remain authoritative. */ }
+}

@@ -1,107 +1,97 @@
-# 01 — Terra business workflow and domain rules
+# 01 — Business workflow and quantity rules
 
-**Runtime boundary:** All application actions enter through FastAPI from the React/TypeScript/Tailwind frontend. Framework-independent Python services perform the rules below; a repository/Python REST adapter persists through Firebase SQL Connect backed by PostgreSQL. Server authentication/connectivity and concurrent-write behavior still need validation. This document describes future behavior; it does not authorize application implementation. The separately authorized local seed milestone is documented in LOCAL_DEVELOPMENT.md.
+## Material information has distinct meanings
 
-## 1. Domain vocabulary: never merge these concepts
-
-| Record type | Means | Eligible for reservation? |
+| Information | Meaning | Reservable? |
 |---|---|---|
-| BOQ (bill of quantities) | Planned work/material quantities | No |
-| Purchase order | Quantity ordered, not necessarily delivered | No |
-| Inventory | Recorded on-hand material, may still be needed locally | No, not by itself |
-| Potential surplus | Forecast release or calculated excess, not confirmed | No; suggestions only |
-| Confirmed surplus offer | Quantity physically identified and declared releasable | Yes, subject to positive stock and compatibility |
-| Demand request | Validated outstanding need by another project | Receives an allocation, not automatically a purchase |
-| Allocation proposal | What algorithm recommends | No stock impact |
-| Transfer | Approved/committed movement with quantities and status | May reserve/dispatch stock |
-| Confirmed use | Actual reused quantity evidenced/recorded | Counts toward reuse metrics |
+| BOQ/planned requirement | Work or material planned for a project | No |
+| Purchase order | Committed procurement, not receipt | No |
+| Receipt | Evidence of delivery/acceptance in its source scope | Not by itself |
+| On-hand inventory | Observed physical stock that may still be needed locally | Not by itself |
+| Remaining local requirement | Material still required for unfinished local work before applying stock | No |
+| Outstanding demand | Uncovered need already net of applicable local stock/fulfilment | Recipient of an allocation |
+| Potential surplus | Possible excess, not an authorised release | No |
+| Confirmed surplus | Identified unused material authorised for release | Subject to all eligibility guards |
+| Allocation proposal | A recommended source/recipient quantity | No stock effect |
+| Transfer | A separately confirmed movement with reservation and physical stages | Holds stock after reservation |
+| Actual use | Material confirmed used by the recipient | Counts as reuse once |
 
-An LLM can classify/extract a BOQ or PO row and *suggest* its meaning; deterministic Python code calculates potential surplus and outstanding demand from documented stock, local needs, procurement/fulfilment and commitment inputs. Review determines whether it becomes a valid demand/supply record. A BOQ is **not** proof of outstanding demand without procurement/fulfilment context. The prototype's confirmations represent human checks, not engineering certification or proof of ownership.
+## End-to-end process
 
-## 2. Step-by-step end-to-end business workflow
+1. Upload related files blindly or with an optional project hint. Start analysis explicitly; upload alone does not approve or publish anything.
+2. AI classifies/interprets documents with controlled Terra lookups and provisional project/material proposals. Saved extraction is reconciled against fresh stored records, followed by a batch cross-check.
+3. The operator reviews projects, material identities, quantities, meanings, treatments, conversions and timing. They edit disagreements, answer real questions or exclude values without a mandatory written reason.
+4. Supported recommendations may be prepared for reading. One explicit file approval accepts its displayed values/identities/conversions and applicable stock/release acknowledgements. Every included file or manual submission needs approval.
+5. Failed files must succeed on retry, be explicitly skipped or be replaced by reviewed manual information. Only the complete resolved/approved batch publishes, atomically and replay-safely.
+6. Matching-relevant commits trigger automatic three-method matching across affected materials and all their projects. Draft edits and previews do not trigger matching. A matching failure does not undo publication.
+7. The operator chooses an alternative, reviews an individual transfer and explicitly confirms suitability and quantity. One transaction confirms and reserves source stock and recipient capacity together.
+8. Dispatch the full reserved quantity, confirm full receipt separately, then record positive actual-use increments up to the received remainder.
+9. Saved use and applicable confirmed input corrections trigger automatic immutable actual-impact revisions. Current reporting excludes stale estimates while an update is pending or failed.
 
-**A. Existing data enters:** project A inventory or project B material requirement is recorded in the system. Document metadata and extract rows track origin; raw source files arrive later.
+## Quantity invariants
 
-**B. AI extraction and review:** classify source type; parse raw descriptions, quantities/units/specifications; map to canonical catalogue. Pending/unverified rows remain drafts. A human-like demo review action may mark a row `ACCEPTED` or `CORRECTED`. Do not auto-confirm surplus based on AI confidence.
+For a confirmed released offer with quantity Q, active reservation R and cumulative dispatched amount D:
 
-**C. Supply and demand verification:** the source confirms unused stock and permission for potential release; destination confirms outstanding requirement and need-by date. Offers might be potential, confirmed, suspended or closed. Only confirmed stock participates in reservation.
+```text
+available_to_reserve = max(0, Q - R - D)
+0 <= R + D <= Q
+```
 
-**D. Eligibility and optimisation:** validate source != destination, material dimensions/grade/finish/canonical units, timing, available quantities, reservations, incoming demand commitments, and any other required business restrictions. Construct proposals with explanations and reason codes. Multiple competing demands and supplies are supported.
+For recipient required quantity N, actually fulfilled F and active incoming commitments C:
 
-**E. Environmental comparison:** for each *feasible* allocation, calculate hypothetical production emissions avoided and additional route/handling impacts. If factors are incomplete, report `INSUFFICIENT_DATA` and keep the operational match separately eligible. Prefer an environmental objective that makes assumptions transparent.
+```text
+newly_allocatable_need = max(0, N - F - C)
+remaining_unfulfilled = max(0, N - F)
+0 <= F + C <= N
+```
 
-**F. Review and confirmation:** a single demo operator performs representative source/destination confirmation steps. Selected eligible proposal -> transfer request -> confirmations/approval -> reservation. Requests, selection and approval alone establish no stock hold; successful atomic reservation establishes the source hold and recipient incoming commitment together. No separate project-user identities are required.
+Incoming commitments begin at reservation and persist through dispatch/receipt until use or valid pre-dispatch cancellation. A used status alone does not release unused received material. Never sum alternative recommendations as simultaneous commitments.
 
-**G. Dispatch and receipt:** upon dispatch, issue stock out of the source while adjusting active reservation exactly once. Record actual quantity dispatched/received. For the initial MVP API, dispatch and receipt are each one full-quantity operation; the receipt endpoint cannot record a partial or missing delivery. Existing discrepancies remain explicit and untouched pending a separately defined resolution workflow. Receipt is *not* equivalent to reuse.
+```text
+0 <= actually_used <= received <= dispatched <= approved <= proposed
+reserved + dispatched <= approved
+```
 
-**H. Actual reuse:** destination confirms how much was actually incorporated or otherwise reused. Count actual use only once; never claim the whole proposed or dispatched amount was reused.
+Surplus is a subset of stock. A stock count of150 with100 released remains150 physical pieces, not 250. An explicit net gap is not reduced by local stock a second time. Missing remaining need is unknown, not zero.
 
-**I. Environmental evidence and export:** create/recalculate a forecast assessment for proposals and a separate actual-use-based assessment for completed usage. Export project/source/receiver/material/units/quantity/time/factor assumptions/evidence/reuse and estimated avoided emissions. This is Pantas-*ready* only as a **proposed** exchange, not integrated with Pantas.
+## Additions, corrections and evidence
 
-## 3. Worked allocation example (entirely synthetic)
+Each published contribution retains project, material, source and meaning. Different specifications and incomparable units stay separate.
 
-- `PRJ-A` holds `SUP-A`: 1,000 **confirmed** grey concrete pavers, 200×100×60 mm, `pcs`, releasable 20 Oct 2026.
-- `PRJ-B` needs 600 matching pavers by 25 Oct.
-- `PRJ-C` needs 400 matching pavers by 29 Oct.
-- **One possible proposal:** A→B 600, A→C 400. Other feasible suppliers/distances may produce a different environmental optimum.
-- Merely generating those two proposals leaves available stock at 1,000.
-- If A→B 600 is **reserved**, A's `reserved_active_quantity` becomes 600; available-for-new-reservation becomes 400.
-- If 600 are **dispatched**, A's reservation decreases by 600 and `transferred_out_quantity` increases by 600. Available remains 400.
-- If B **receives** 580 and **actually uses** 550, B's confirmed reused count is 550, not 600. Discrepancies must be recorded; B's open demand is still 50 at minimum unless the shortage is resolved another way. Do not implicitly return the 20 missing units to A's stock.
-- If one unit is counted in actual reuse, never count it again from another stage, transfer-event row or alternative optimisation proposal.
+- ADD records separate information/contributions.
+- REPLACE supersedes exact eligible earlier observations, preserving original evidence and history.
+- HISTORY_ONLY retains evidence with no active quantity effect.
+- EXCLUDED resolves a value without publishing it.
 
-## 4. Quantities and invariants
+A newer count of 120 after 100 may mean a corrected120 or separate stock totalling 220; it is not automatically a new delivery. AI recommends a treatment, and the operator approves it. Stock-based calculations require a confirmed complete, non-overlapping input scope. Corrections to transfer-linked stock are blocked for transfer resolution; ingestion never cancels or restocks a transfer.
 
-For each offer with confirmed quantity `Q`, active reserved `R`, dispatched/transferred-out `D`:
+## Transfer lifecycle
 
-`reservable = max(0, Q - R - D)`
+The normal journey is:
 
-Require `Q >= 0`, `R >= 0`, `D >= 0`, `R + D <= Q`. The reference time is the snapshot time; future scheduled transfers are commitments, not physical dispatches.
+```text
+current proposal → explicit confirmation + atomic reservation → RESERVED
+    → full dispatch → IN_TRANSIT
+    → full receipt → RECEIVED
+    → positive actual-use increment → REUSED
+```
 
-For each demand with required quantity `N`, actual fulfilled `F`, active incoming commitments `C`:
+REQUESTED/APPROVED remain for historical compatibility; approved-but-unreserved is not a normal new-plan stage. The operator confirms each transfer individually, not an entire plan atomically.
 
-`available_to_plan = max(0, N - F - C)`  
-`remaining_unfulfilled = max(0, N - F)`.
+A proposed quantity can be reduced before confirmation subject to fresh checks/forecast. Changing a reserved quantity requires cancellation, release and a fresh confirmation. No in-place reservation amendment or post-dispatch cancellation is allowed. Partial shipments, shortages, returns, damage and discard resolution are not implemented in this version; never mark a short receipt as full.
 
-`F` increases only upon valid confirmed use, not on mere receipt. Other procurement/fulfilment records are not modelled in the seed. `C` begins at successful reservation and includes unfulfilled promises through dispatch, receipt and partial use until used or explicitly resolved. Requested/approved transfers have no commitment yet. Count each transfer once, not once per status/event.
+For 600 received and 550 used, 50 remain allocated to the recipient. Later use can consume that remainder. Receipt alone contributes no actual reuse. Cancellation before dispatch releases both holds exactly once; dispatched goods cannot be silently restored to source.
 
-For example, 600 promised units with 550 used leave 50 unfulfilled. The unused/missing 50 remain committed until their disposition is explicitly resolved; a `REUSED` label alone must not make them available for a second allocation. The exact partial-transfer closure representation needs confirmation, recorded in Document 07. The seed must explain its discrepancy/resolution assumptions through notes and event payloads rather than fabricate a return or completion.
+## Compatibility and timing
 
-For a transfer: `0 <= actually_used_quantity <= received_quantity <= dispatched_quantity <= approved_quantity`. A transfer may be `RECEIVED` with used quantity zero. A partially reused transfer must expose the actual amount, not force `actually_used = received`.
+Use the same specific reviewed catalogue identity and consistent material snapshots. Known specification conflicts, different material IDs and unconfirmed suitability remain guarded. Categories are open-ended; no preset family whitelist or implicit engineering certification applies. Explicit extra specification requirements remain possible.
 
-A `CANCELLED` transfer releases **only still-active reservation**, not stock that was already dispatched. Returning goods after dispatch needs a separate documented reversal/return action; do not manufacture stock on cancellation.
+Units must match or have an explicitly confirmed product-specific conversion. Dimensions, unit mass and pieces-per-area ratios are not interchangeable. Preserve original source quantities and the confirmed conversion basis; no silent rounding.
 
-All coupled changes (`transfers`, `supply_offers`, `demand_requests`, `transfer_events`) happen atomically and are idempotent by command/event ID. Individual status updates cannot leap over prerequisites.
+Future opportunities remain visible, but confirmation must satisfy current timing. Earliest dispatch/reservation is the maximum of planning date, source availability and recipient needed-from date. Same-township planning uses one day lead time; different townships use two. This is an internal documented assumption, not verified haulage duration. Arrival must meet the deadline and dispatch the source availability window.
 
-## 5. Allowed example transition path
+## Carbon and reporting
 
-`PROPOSAL -> (operator approval) -> REQUESTED -> RESERVED -> IN_TRANSIT -> RECEIVED -> REUSED`.
+Production avoidance uses confirmed used quantity. Transport and combined loading/unloading use the full moved quantity, including during partial use. Missing factor, weight, route or required boundary leaves the relevant component/net unknown. No zero substitution or unsupported distance/weight is invented.
 
-Approving a proposal creates the `REQUESTED` transfer with demo confirmations, without real authenticated identities. The operator may cancel a request before dispatch with recorded reason; once dispatched, cancellation/restock must not silently roll back physical movement. Keep append-only event timestamps logically ordered. `APPROVED` remains only for historical seed compatibility, not the new transition path. Dispatch, receipt and use remain required stages in the API and seed histories.
-
-## 6. Compatibility rules for three starter categories
-
-- Same canonical material ID is ideal; explicit alternative catalogue equivalences may be supported but only after required properties agree.
-- **Paver:** type/material, length, width, thickness, colour/finish if critical.
-- **Brick:** type (clay/concrete), dimensions, stated grade/strength if applicable; missing technical suitability means `REVIEW_REQUIRED`, not automatic equivalence.
-- **Tile:** ceramic/porcelain/type, dimensions, thickness if specified, finish, slip-rating/grade if critical; different floor/wall intended use may block match.
-- Unit normalization: `PCS`, `pieces`, `units` may convert to canonical `pcs` where semantics are unambiguous; `m²` to `pcs` requires explicit tile face dimensions **and** defensible coverage/wastage assumptions; no silent conversion.
-- Condition `UNUSED` and traceability are initial reuse eligibility requirements. `RECOVERED`, `UNKNOWN`, damaged or missing-condition supply should be held for review.
-- Availability date must be no later than demand deadline, with transport/handling lead time if modelled. Flag borderline cases.
-- Never propose a source and receiving project be the same, unless modelling local reuse separately (not MVP).
-
-## 7. Carbon and ESG arithmetic example
-
-**ALL numbers below are fictional demonstration assumptions.** For 600 blocks, 2.5 kg/block, 0.75 kgCO2e/block assumed new-production factor, 25 km additional transfer, 0.12 kgCO2e/(tonne·km) assumed transport factor:
-
-- Hypothetical avoided new production = `600 pcs * 0.75 kgCO2e/pcs = 450 kgCO2e`.
-- Freight mass = `600 * 2.5 / 1000 = 1.5 tonnes`.
-- Additional transport = `1.5 tonnes * 25 km * 0.12 kgCO2e/(tonne·km) = 4.5 kgCO2e`.
-- If additional handling is **unknown**, `net_avoided_kgco2e = null`, NOT `445.5`; status `INSUFFICIENT_DATA`.
-- If an **explicit synthetic assumption** says handling = `10 kgCO2e`, simplified net = `450 - 4.5 - 10 = 435.5 kgCO2e`.
-
-Real comparisons must define both baseline and reuse scenarios consistently (including baseline transport/disposal if within scope), functional equivalence, material provenance, lifecycle boundary and appropriate emission factor source and geography. Proposed savings and post-confirmation savings must never be summed as two separate results.
-
-After partial reuse, avoided production uses only confirmed used quantity. Transport/handling must account for the movement actually performed, including discrepancies according to an explicit assessment boundary. Do not silently scale all trip emissions down to used quantity. The policy for allocating these costs remains open in Document 07; an undefined boundary means an incomplete net estimate.
-
-**ESG metrics:** separately report `proposed_reuse_mass_t`, `confirmed_reuse_mass_t`, `possibly_prevented_waste_t` only when supported by baseline evidence, and `estimated_net_avoided_tco2e`. Avoided emissions must not be subtracted from official Scope 1/2/3 inventory automatically. An internal material transfer is not inherently waste-diversion reporting and does not generate a carbon credit.
+Forecast, chosen-quantity confirmation forecast and actual-use results have separate provenance. Preserve immutable revisions and select one current assessment per scope; never add forecast and actual as achieved benefit. See [Impact API](IMPACT_API.md) for factor applicability and equations.

@@ -2,7 +2,8 @@
 
 from typing import Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
+from backend.app.routes.ingestion import local_operator
 from fastapi.responses import JSONResponse, Response
 
 from backend.app.schemas.impact import (
@@ -35,7 +36,7 @@ from backend.app.services.impact_service import (
 )
 
 
-router = APIRouter(prefix="/api", tags=["impact"])
+router = APIRouter(prefix="/api", tags=["impact"],dependencies=[Depends(local_operator)])
 Basis = Literal["PROPOSAL_FORECAST", "ACTUAL_CONFIRMED_USE"]
 
 
@@ -56,11 +57,22 @@ def _error(exc: ImpactError) -> JSONResponse:
 
 def _calculation(basis: str, entity_id: str, body: ImpactCalculationRequest):
     try:
-        return calculate_impact(
+        if basis=='ACTUAL_CONFIRMED_USE':
+            from terra.local_adapter import LocalDataConnect
+            from backend.app.services.automatic_impact_service import AutomaticImpactService
+            adapter=LocalDataConnect()
+            if adapter.execute('GetQuantityEncoding')['quantityEncoding'] and adapter.execute('GetImpactIntent',{'id':entity_id})['impactRefreshIntent']:
+                AutomaticImpactService(adapter).refresh(retry_failed=True)
+                head=ImpactRepository(adapter).persistence_state('ACTUAL_CONFIRMED_USE:'+entity_id,'none').head
+                intent=adapter.execute('GetImpactIntent',{'id':entity_id})['impactRefreshIntent']
+                if intent['status']!='COMPLETED':raise ImpactConflict('IMPACT_UPDATE_PENDING','Use is saved. The current impact update is not complete.')
+                response=get_assessment(head['current_assessment_id'],ImpactRepository(adapter))
+                return preview_json({'data':{'assessment':response['data'],'current':True,'replayed':True},'meta':response['meta'],'error':None})
+        return preview_json(calculate_impact(
             basis,
             entity_id,
             ImpactCalculationInput(**body.model_dump()),
-        )
+        ))
     except ImpactError as exc:
         return _error(exc)
 
@@ -113,7 +125,7 @@ def comparison_preview(body: OptimisationComparisonRequest):
 @router.post('/optimisation-comparisons', status_code=201, response_model=None)
 def create_comparison(body: OptimisationComparisonCreateRequest):
     try:
-        return persist_optimisation_comparison(OptimisationComparisonInput(**body.model_dump()))
+        return preview_json(persist_optimisation_comparison(OptimisationComparisonInput(**body.model_dump())))
     except OptimisationRunError as exc:
         return _optimisation_error(exc)
 
@@ -122,7 +134,7 @@ def create_comparison(body: OptimisationComparisonCreateRequest):
 def persist_optimisation(body: OptimisationRunCreateRequest):
     """Save one selected plan and linked forecasts; no transfers/reservations."""
     try:
-        return persist_optimisation_run(OptimisationRunInput(**body.model_dump()))
+        return preview_json(persist_optimisation_run(OptimisationRunInput(**body.model_dump())))
     except OptimisationRunError as exc:
         return _optimisation_error(exc)
 
@@ -130,7 +142,7 @@ def persist_optimisation(body: OptimisationRunCreateRequest):
 @router.get('/optimisation-runs/{run_id}', response_model=None)
 def read_optimisation_run(run_id: str):
     try:
-        return get_optimisation_run(run_id)
+        return preview_json(get_optimisation_run(run_id))
     except OptimisationRunError as exc:
         return _optimisation_error(exc)
 
@@ -150,7 +162,7 @@ def read_assessments(
     basis: Basis | None = None, current_only: bool = Query(default=True)
 ):
     try:
-        return list_assessments(basis=basis, current_only=current_only)
+        return preview_json(list_assessments(basis=basis, current_only=current_only))
     except ImpactError as exc:
         return _error(exc)
 
@@ -158,7 +170,7 @@ def read_assessments(
 @router.get("/impact-assessments/{assessment_id}", response_model=None)
 def read_assessment(assessment_id: str):
     try:
-        return get_assessment(assessment_id)
+        return preview_json(get_assessment(assessment_id))
     except ImpactError as exc:
         return _error(exc)
 
@@ -170,7 +182,7 @@ def impact_export(
 ):
     try:
         if format == "json":
-            return export_json(basis, project_id=project_id, transfer_id=transfer_id)
+            return preview_json(export_json(basis, project_id=project_id, transfer_id=transfer_id))
         content = export_csv(basis, project_id=project_id, transfer_id=transfer_id)
         return Response(
             content=content,
@@ -179,3 +191,16 @@ def impact_export(
         )
     except ImpactError as exc:
         return _error(exc)
+
+
+@router.get('/impact-refresh')
+def impact_refresh_status():
+    from backend.app.routes.ingestion import run
+    from backend.app.services.automatic_impact_service import AutomaticImpactService
+    return run(lambda:AutomaticImpactService().view(),stage='IMPACT_STATUS')
+
+@router.post('/impact-refresh/retry')
+def retry_automatic_impact():
+    from backend.app.routes.ingestion import run
+    from backend.app.services.automatic_impact_service import AutomaticImpactService
+    return run(lambda:AutomaticImpactService().refresh(retry_failed=True),stage='IMPACT_RETRY',operational_writes=True)

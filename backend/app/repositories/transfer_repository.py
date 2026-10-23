@@ -234,7 +234,7 @@ class TransferRepository:
     @staticmethod
     def _map_proposal(row: dict[str, Any]) -> dict[str, Any]:
         return {
-            "id": row["id"], "proposed_quantity": row["proposedQuantity"],
+            "id": row["id"], "run_id":row.get('runId'), "proposed_quantity": row["proposedQuantity"],
             "unit": row["unit"], "compatibility_result": row["compatibilityResult"],
             "status": row["status"], "supply_offer_id": row["supplyOfferId"],
             "demand_request_id": row["demandRequestId"],
@@ -416,6 +416,8 @@ class TransferRepository:
         if "previous_used_quantity" in command:
             variables["previousUsedQuantity"] = command["previous_used_quantity"]
             variables["newUsedQuantity"] = command["new_used_quantity"]
+        if 'matching_scopes' in command: variables['matchingScopes']=command['matching_scopes']
+        if 'impact_intents' in command: variables['impactIntents']=command['impact_intents']
         try:
             self._adapter.execute(operation, variables, write=True)
         except AdapterUnavailableError as exc:

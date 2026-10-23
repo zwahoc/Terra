@@ -205,12 +205,15 @@ class ForecastPreviewTests(unittest.TestCase):
         payload = {'supply_offer_id': 'SUP-003', 'demand_request_id': 'DEM-003',
                    'quantity': 200, 'planning_date': '2026-10-12', 'factor_dataset_version': 'demo-v1'}
         repo = ReadOnlyRepository(self.records)
-        for change, expected in (({'quantity': 201}, 400), ({'quantity': '200'}, 422),
+        for change, expected in (({'quantity': 201}, 400), ({'quantity': 200.0}, 422),
                                   ({'quantity': 0}, 422), ({'proposal_id': 'fake'}, 422)):
             with patch('backend.app.routes.impact.ImpactRepository', return_value=repo):
                 status, _, _ = asyncio.run(request('POST', '/api/impact-assessments/forecast-preview',
                                                    body={**payload, **change}))
             self.assertEqual(status, expected)
+        with patch('backend.app.routes.impact.ImpactRepository', return_value=ReadOnlyRepository(self.records)):
+            status, _, body = asyncio.run(request('POST', '/api/impact-assessments/forecast-preview',body={**payload,'quantity':'200'}))
+        self.assertEqual(status,200,body)
         with patch('backend.app.routes.impact.ImpactRepository', return_value=ReadOnlyRepository(self.records, True)):
             status, _, body = asyncio.run(request('POST', '/api/impact-assessments/forecast-preview', body=payload))
         self.assertEqual(status, 503)

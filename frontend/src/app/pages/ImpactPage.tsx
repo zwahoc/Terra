@@ -1,78 +1,37 @@
-import { useEffect, useState } from "react";
-import StatusBadge from "../../components/StatusBadge";
-import { materialName, terra } from "../../data/terra";
-import { downloadImpactCsv, listImpactAssessments, type ImpactAssessment } from "../../lib/terra-api";
-import "./impact-reporting.css";
-
-type ImpactPageProps = { projectId: string };
-const value = (number: number | null) => number === null ? "Incomplete" : `${number.toLocaleString(undefined, { maximumFractionDigits: 2 })} kgCO2e`;
-const dateTime = (value: string) => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-
-export default function ImpactPage({ projectId: _projectId }: ImpactPageProps) {
-  const [assessments, setAssessments] = useState<ImpactAssessment[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [selectedProject, setSelectedProject] = useState("");
-  const [exporting, setExporting] = useState(false);
-
-  useEffect(() => {
-    listImpactAssessments().then((rows) => {
-      setAssessments(rows);
-      setSelectedId((current) => current ?? rows.find((row) => row.basis === "ACTUAL_CONFIRMED_USE")?.id ?? null);
-      setState("ready");
-    }).catch((error: unknown) => {
-      setMessage(error instanceof Error ? error.message : "Impact data is unavailable.");
-      setState("error");
-    });
-  }, []);
-
-  const actual = assessments.filter((assessment) => assessment.basis === "ACTUAL_CONFIRMED_USE");
-  const projectActual = actual.filter((assessment) => belongsToProject(assessment, selectedProject));
-  const selected = projectActual.find((assessment) => assessment.id === selectedId) ?? projectActual[0];
-  const exportActual = async () => {
-    if (exporting) return;
-    setExporting(true);
-    try {
-      await downloadImpactCsv({ projectId: selectedProject });
-      setMessage("Downloaded the selected project report CSV.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Export is unavailable."); }
-    finally { setExporting(false); }
-  };
-
-  if (state === "ready" && !selectedProject) return <ProjectList actual={actual} chooseProject={setSelectedProject} />;
-
-  return <section className="terra-page-section"><header className="terra-intro"><p>Report</p><h1>Material carbon report</h1><span>Select a material to inspect its confirmed-use carbon estimate.</span></header>{message && <p className="terra-workflow-message" role="status">{message}</p>}<section className="terra-impact"><header className="terra-impact-actions"><button className="terra-report-back" type="button" onClick={() => { setSelectedProject(""); setSelectedId(null); }}>‹ Projects</button><div><span>Selected project</span><h2>{projectActual.length} material record{projectActual.length === 1 ? "" : "s"}</h2></div><button className="terra-download-button" type="button" onClick={exportActual} disabled={state !== "ready" || projectActual.length === 0 || exporting}><span className="terra-download-button__text">{exporting ? "Preparing…" : "Export CSV"}</span><span className="terra-download-button__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 19h14" /></svg></span></button></header>{state === "loading" && <div className="terra-empty">Loading current impact assessments from Terra.</div>}{state === "error" && <div className="terra-empty">{message}</div>}{state === "ready" && <section className="terra-impact-workbench"><section className="terra-impact-material-list"><header><span>Confirmed-use materials</span><b>{projectActual.length}</b></header>{projectActual.map((item) => <button type="button" className={`terra-impact-material-row ${item.id === selected?.id ? "is-selected" : ""}`} key={item.id} onClick={() => setSelectedId(item.id)}><div><span>{item.transfer_id ?? item.id}</span><strong>{assessmentMaterialName(item)}</strong><small>{item.quantity_assessed.toLocaleString()} {item.unit} confirmed use</small></div><b>{value(item.net_avoided_kgco2e)}</b></button>)}{!projectActual.length && <div className="terra-empty">No confirmed-use calculation is available for this project.</div>}</section><aside className="terra-impact-preview">{selected ? <ActualUseReport item={selected} /> : <div className="terra-empty">Select a material to view its carbon estimate.</div>}</aside></section>}</section></section>;
+import { useEffect, useState } from 'react';
+import { materialName, projectName, terra } from '../../data/terra';
+import { downloadImpactCsv, listImpactAssessments, listImpactIntents, retryImpactUpdates, type ImpactIntent, type ImpactAssessment } from '../../lib/terra-api';
+import { formatQuantity } from '../../lib/quantities';
+import { Empty, ErrorNotice, Feedback, MissingInputs, PageHeader, Pagination, TechnicalDetails } from '../components-workspace';
+const value=(number:number|null)=>number===null?'Not available':`${number.toLocaleString(undefined,{maximumFractionDigits:2})} kgCO₂e`;
+function proposalFor(a:ImpactAssessment){const t=terra.transfers.find(t=>t.id===a.transfer_id);return t&&terra.allocation_proposals.find(p=>p.id===t.proposal_id);}
+function belongsToProject(a:ImpactAssessment,id:string){const p=proposalFor(a);return terra.supply_offers.find(s=>s.id===p?.supply_offer_id)?.source_project_id===id||terra.demand_requests.find(d=>d.id===p?.demand_request_id)?.destination_project_id===id;}
+function assessmentMaterial(a:ImpactAssessment){const p=proposalFor(a),s=terra.supply_offers.find(s=>s.id===p?.supply_offer_id),d=terra.demand_requests.find(d=>d.id===p?.demand_request_id);return s||d?materialName(s?.material_id??d!.material_id):'Material unavailable';}
+export default function ImpactPage({projectId,initialTransfer}:{projectId:string;initialTransfer?:string}){
+ const [project,setProject]=useState(projectId==='ALL'?'':projectId),[selection,setSelection]=useState(initialTransfer||''),[assessments,setAssessments]=useState<ImpactAssessment[]>([]),[intents,setIntents]=useState<ImpactIntent[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState<unknown>(null),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[query,setQuery]=useState(''),[page,setPage]=useState(1),[connected,setConnected]=useState(false);
+ const [readError,setReadError]=useState<unknown>(null);
+ const load=async()=>{const [rows,states]=await Promise.all([listImpactAssessments(),listImpactIntents()]);setAssessments(rows);setIntents(states);setConnected(true);setLoading(false);};
+ useEffect(()=>{let active=true;const read=async()=>{try{const [rows,states]=await Promise.all([listImpactAssessments(),listImpactIntents()]);if(active){setAssessments(rows);setIntents(states);setConnected(true);setReadError(null);setLoading(false);}}catch(e){if(active){setReadError(e);setConnected(false);setLoading(false);}}};void read();const t=setInterval(()=>void read(),4000);return()=>{active=false;clearInterval(t);};},[]);
+ const actual=assessments.filter(a=>a.basis==='ACTUAL_CONFIRMED_USE');
+ const projectActual=actual.filter(a=>belongsToProject(a,project));
+ const searched=projectActual.filter(a=>assessmentMaterial(a).toLowerCase().includes(query.toLowerCase()));
+ const selected=selection?projectActual.find(a=>a.id===selection||a.transfer_id===selection):searched[0];
+ const scopedIntents=intents.filter(i=>{const t=terra.transfers.find(t=>t.id===i.id),p=t&&terra.allocation_proposals.find(p=>p.id===t.proposal_id);return !project||terra.supply_offers.find(s=>s.id===p?.supply_offer_id)?.source_project_id===project||terra.demand_requests.find(d=>d.id===p?.demand_request_id)?.destination_project_id===project;}).filter(i=>i.status!=='COMPLETED');
+ const pages=Math.max(1,Math.ceil(searched.length/10)),current=Math.min(page,pages);
+ const exportCsv=async()=>{if(busy||!connected)return;setBusy(true);setMessage('');setError(null);try{await downloadImpactCsv({projectId:project});setMessage('Report downloaded.');}catch(e){setError(e);}finally{setBusy(false);}};
+ const back=()=>{setProject('');setSelection('');setQuery('');setPage(1);};
+ return <section><PageHeader title={project?projectName(project):'Reports'} onBack={project?back:undefined} back="Back to projects" actions={project?<button className="workspace-primary" disabled={busy||loading||!connected||!projectActual.length} onClick={()=>void exportCsv()}>{busy?'Preparing…':'Export CSV'}</button>:undefined}>{project&&'Confirmed material use'}</PageHeader>
+ {!!(error||readError)&&<ErrorNotice error={error||readError}><button onClick={()=>void load().then(()=>{setError(null);setReadError(null);}).catch(setReadError)}>Retry connection</button></ErrorNotice>}{message&&<Feedback>{message}</Feedback>}{loading&&<p role="status">Loading reports…</p>}
+ {scopedIntents.length>0&&<div className="workspace-feedback is-warning" role="status">{scopedIntents.some(i=>i.status==='FAILED')?'Some carbon estimates need a retry.':'Updating carbon estimates…'}{scopedIntents.some(i=>i.status==='FAILED')&&<button disabled={busy} onClick={async()=>{setBusy(true);try{await retryImpactUpdates();await load();}catch(e){setError(e);}finally{setBusy(false);}}}>Retry estimates</button>}</div>}
+ {!loading&&!project&&<section className="workspace-panel"><h2>Choose a project</h2>{terra.projects.map(p=>{const count=actual.filter(a=>belongsToProject(a,p.id)).length;return <button className="workspace-list-row" key={p.id} onClick={()=>{setProject(p.id);setSelection('');}}><span><strong>{p.name}</strong><small>{p.code} · {p.township}</small></span><span>{count} use report{count===1?'':'s'}</span><span className="workspace-row-action">View reports</span></button>;})}{!terra.projects.length&&<Empty>No projects have been published yet.</Empty>}</section>}
+ {!loading&&project&&<><label className="workspace-report-project">Project<select value={project} onChange={e=>{setProject(e.target.value);setSelection('');setQuery('');setPage(1);}}>{terra.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><div className="workspace-report-layout"><aside className="workspace-panel"><h2>Material use</h2><label>Search materials<input type="search" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/></label>{searched.slice((current-1)*10,current*10).map(a=><button className="workspace-report-choice" aria-pressed={selected?.id===a.id} key={a.id} onClick={()=>setSelection(a.id)}><strong>{assessmentMaterial(a)}</strong><small>{formatQuantity(a.quantity_assessed)} {a.unit} used</small><span>{a.net_avoided_kgco2e===null?'Estimate unavailable':value(a.net_avoided_kgco2e)}</span></button>)}{!searched.length&&<Empty>No current use reports match this view.</Empty>}<Pagination page={current} pages={pages} onChange={setPage}/></aside>
+ <section className="workspace-panel">{selected?<ActualUseReport item={selected}/>:<Empty>{initialTransfer?'This delivery does not yet have a current use assessment.':'Select a material use report.'}</Empty>}</section></div></>}
+ </section>;
 }
-
-function ProjectList({ actual, chooseProject }: { actual: ImpactAssessment[]; chooseProject: (id: string) => void }) {
-  return <section className="terra-page-section"><header className="terra-intro"><p>Report</p><h1>Choose a project</h1><span>Open confirmed material-use reports for one project.</span></header><section className="terra-impact-group terra-report-project-list">{terra.projects.map((project) => {
-    const count = actual.filter((assessment) => belongsToProject(assessment, project.id)).length;
-    return <button type="button" className="terra-impact-choice" key={project.id} onClick={() => chooseProject(project.id)}><span>{project.id}</span><strong>{project.name}</strong><small>{count} confirmed-use report{count === 1 ? "" : "s"}</small><b>View reports</b></button>;
-  })}</section></section>;
-}
-
-function proposalFor(assessment: ImpactAssessment) {
-  const transfer = terra.transfers.find((item) => item.id === assessment.transfer_id);
-  return transfer && terra.allocation_proposals.find((item) => item.id === transfer.proposal_id);
-}
-
-function belongsToProject(assessment: ImpactAssessment, projectId: string) {
-  if (!projectId) return true;
-  const proposal = proposalFor(assessment);
-  const supply = proposal && terra.supply_offers.find((item) => item.id === proposal.supply_offer_id);
-  const demand = proposal && terra.demand_requests.find((item) => item.id === proposal.demand_request_id);
-  return supply?.source_project_id === projectId || demand?.destination_project_id === projectId;
-}
-
-function assessmentMaterialName(assessment: ImpactAssessment) {
-  const proposal = proposalFor(assessment);
-  const supply = proposal && terra.supply_offers.find((item) => item.id === proposal.supply_offer_id);
-  const demand = proposal && terra.demand_requests.find((item) => item.id === proposal.demand_request_id);
-  return materialName(supply?.material_id ?? demand?.material_id ?? "Material");
-}
-
-function ActualUseReport({ item }: { item: ImpactAssessment }) {
-  const missing = Array.isArray(item.assumptions.missing_data) ? item.assumptions.missing_data.join(", ") : "None recorded";
-  return <article className="terra-actual-report"><header><div><span>Selected material</span><h2>{assessmentMaterialName(item)}</h2><p>{item.transfer_id ?? "Transfer not linked"} · {item.quantity_assessed.toLocaleString()} {item.unit} confirmed</p></div><StatusBadge status={item.calculation_status} /></header><div className="terra-actual-report__headline"><div><span>Estimated avoided emissions</span><strong>{value(item.net_avoided_kgco2e)}</strong></div></div><dl><div><dt>Avoided new-material production</dt><dd>{value(item.avoided_production_kgco2e)}</dd></div><div><dt>Additional transport</dt><dd>{value(item.additional_transport_kgco2e)}</dd></div><div><dt>Additional processing</dt><dd>{value(item.additional_processing_kgco2e)}</dd></div><div><dt>Evidence state</dt><dd>{item.calculation_status === "INSUFFICIENT_DATA" ? `Missing: ${missing}` : "Complete"}</dd></div></dl><small className="terra-impact-calculated">Calculated {dateTime(item.calculated_at)}</small></article>;
+function ActualUseReport({item}:{item:ImpactAssessment}){
+ const codes=Array.isArray(item.assumptions.missing_data)?item.assumptions.missing_data.map(String):[],p=proposalFor(item),s=terra.supply_offers.find(s=>s.id===p?.supply_offer_id),d=terra.demand_requests.find(d=>d.id===p?.demand_request_id);
+ return <article className="workspace-use-report"><h2>{assessmentMaterial(item)}</h2><p>{s&&projectName(s.source_project_id)} → {d&&projectName(d.destination_project_id)}</p><p><strong>{formatQuantity(item.quantity_assessed)} {item.unit}</strong> confirmed use</p>{item.net_avoided_kgco2e===null?<MissingInputs codes={codes}/>:<div className="workspace-emissions"><span>Estimated avoided emissions</span><strong>{value(item.net_avoided_kgco2e)}</strong>{item.calculation_status==='DEMO'&&<small>Demonstration factors</small>}</div>}
+ <details className="workspace-disclosure" open={item.net_avoided_kgco2e!==null}><summary>Calculation breakdown</summary><dl className="workspace-report-breakdown">{[['Avoided material production',item.avoided_production_kgco2e],['Additional transport',item.additional_transport_kgco2e],['Loading and unloading',item.additional_processing_kgco2e]].map(([label,n])=><div key={label}><dt>{label}</dt><dd>{value(n as number|null)}</dd></div>)}</dl></details>
+ <details className="workspace-disclosure"><summary>Calculation basis</summary><p>Production avoidance uses confirmed used quantity. Transport and handling use dispatched quantity.</p><p>{item.baseline_description}</p><p>Comparative estimates are separate from official emissions inventories and carbon credits.</p><p>Calculated {new Date(item.calculated_at).toLocaleString('en-MY')}</p></details><TechnicalDetails values={{'Transfer ID':item.transfer_id,'Assessment ID':item.id,'Revision':(item.assumptions.revision as {number?:number}|undefined)?.number??1,'Factor IDs':item.factor_ids}}/>
+ </article>;
 }

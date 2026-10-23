@@ -1,12 +1,16 @@
 # Terra seed data dictionary
 
-This implementation mapping supplements the [logical field meanings in Document 02](02_DATA_MODEL_CONTRACT.md). It does not replace the domain contract. The canonical fixture is [data/terra_seed.json](../data/terra_seed.json), version 1.0.0, snapshot 2026-10-12, all synthetic.
+This canonical-fixture mapping supplements the [logical field meanings in Document 02](02_DATA_MODEL_CONTRACT.md). It does not replace the domain contract. The canonical fixture is [data/terra_seed.json](../data/terra_seed.json), version 1.0.0, snapshot 2026-10-12, all synthetic.
 
 There are exactly 13 entity arrays plus metadata. Metadata stays in the JSON/API envelope and is not an extra database table. Each ID is an explicit string primary key. IDs do not use an auth identity or implicit UUID. PostgreSQL tables use the entity names below. GraphQL field casing is explicit; @col names match the JSON snake_case keys, including kgco2e suffixes. Nested JSON keys remain snake_case.
 
-Types: int is a nonnegative whole-piece quantity unless stated otherwise; float values use kg, km, factor units or kgCO2e as indicated in Document 02. Net avoided emissions may be negative. Date is ISO YYYY-MM-DD; timestamp represents an instant with +08:00 in the portable fixture. JSON objects map to Any/jsonb; string lists map to PostgreSQL text arrays. Enum values are enforced by Pydantic and the compiled database schema.
+The tables below describe the portable seed values and their field mappings. Seed quantity values are whole pcs; current runtime SQL quantity fields use Int64 millionths and runtime material category/unit fields permit strings. These are distinct validation layers, not contradictory new seed values. Read [Document 02](02_DATA_MODEL_CONTRACT.md) for exact encoding and provider-only intake/publication/matching/impact records.
+
+Dates are ISO YYYY-MM-DD, timestamps preserve +08:00 instants, and JSON objects remain ordinary-unit evidence. Provider floating values apply to weight/distance/factors/results, not authoritative stock. Historical fixture events and quantities are not a claim that current controls support creating partial shipments.
 
 Foreign keys have actual @ref relationships and database constraints. Optional references default to Firebase generated SET NULL behavior and required references to CASCADE; admin deletion is for local reset only and is not a business/audit deletion API. `projects.code` and `transfers.proposal_id` also have unique constraints. `impact_assessments.factor_ids` is a logical reference array validated offline, not an SQL FK array; it may later be normalized without changing the portable JSON.
+
+The separate [integrated demo](DEMO_WORKSPACE.md) uses the same 13 entity collections with runtime category/unit validation and date-relative scenario values. Its counts differ from the canonical counts below.
 
 ## projects
 
@@ -31,10 +35,10 @@ Foreign keys have actual @ref relationships and database constraints. Optional r
 | JSON field | GraphQL field | Type / permitted values | Nullable |
 |---|---|---|---|
 | `id` | `id` | string PK | no |
-| `category` | `category` | Category: PAVING_BLOCK, BRICK, TILE | no |
+| `category` | `category` | Seed category: PAVING_BLOCK, BRICK, TILE; runtime string | no |
 | `canonical_name` | `canonicalName` | str | no |
 | `specifications` | `specifications` | json | no |
-| `standard_unit` | `standardUnit` | Unit: pcs | no |
+| `standard_unit` | `standardUnit` | Seed unit: pcs; runtime string | no |
 | `mass_kg_per_unit` | `massKgPerUnit` | float | yes |
 | `mass_source` | `massSource` | str | yes |
 | `reference_code` | `referenceCode` | str | yes |
@@ -90,7 +94,7 @@ Foreign keys have actual @ref relationships and database constraints. Optional r
 | `confirmed_quantity` | `confirmedQuantity` | int | yes |
 | `reserved_active_quantity` | `reservedActiveQuantity` | int | no |
 | `transferred_out_quantity` | `transferredOutQuantity` | int | no |
-| `unit` | `unit` | Unit: pcs | no |
+| `unit` | `unit` | Seed unit: pcs; runtime string | no |
 | `surplus_status` | `surplusStatus` | SurplusStatus: POTENTIAL, CONFIRMED, SUSPENDED, CLOSED | no |
 | `condition` | `condition` | Condition: UNUSED, RECOVERED, UNKNOWN | no |
 | `available_from` | `availableFrom` | date | no |
@@ -111,7 +115,7 @@ Foreign keys have actual @ref relationships and database constraints. Optional r
 | `origin_document_row_id` | `originDocumentRowId` | string FK → extracted_rows.id | yes |
 | `required_quantity` | `requiredQuantity` | int | no |
 | `fulfilled_quantity` | `fulfilledQuantity` | int | no |
-| `unit` | `unit` | Unit: pcs | no |
+| `unit` | `unit` | Seed unit: pcs; runtime string | no |
 | `needed_from` | `neededFrom` | date | no |
 | `required_by` | `requiredBy` | date | no |
 | `request_status` | `requestStatus` | RequestStatus: OPEN, FULFILLED, CANCELLED | no |
@@ -157,7 +161,7 @@ Foreign keys have actual @ref relationships and database constraints. Optional r
 | `supply_offer_id` | `supplyOfferId` | string FK → supply_offers.id | no |
 | `demand_request_id` | `demandRequestId` | string FK → demand_requests.id | no |
 | `proposed_quantity` | `proposedQuantity` | int | no |
-| `unit` | `unit` | Unit: pcs | no |
+| `unit` | `unit` | Seed unit: pcs; runtime string | no |
 | `compatibility_result` | `compatibilityResult` | Compatibility: ELIGIBLE, REVIEW_REQUIRED, INELIGIBLE | no |
 | `status` | `status` | ProposalStatus: PROPOSED, SELECTED, REJECTED, EXPIRED | no |
 | `reason_codes` | `reasonCodes` | array | no |
@@ -207,7 +211,7 @@ Foreign keys have actual @ref relationships and database constraints. Optional r
 | `id` | `id` | string PK | no |
 | `factor_type` | `factorType` | FactorType: NEW_MATERIAL_PRODUCTION, TRANSPORT, PROCESSING | no |
 | `material_id` | `materialId` | string FK → materials.id | yes |
-| `material_category` | `materialCategory` | Category: PAVING_BLOCK, BRICK, TILE | yes |
+| `material_category` | `materialCategory` | Seed category: PAVING_BLOCK, BRICK, TILE; runtime string | yes |
 | `transport_mode` | `transportMode` | TransportMode: ROAD_FREIGHT | yes |
 | `value` | `value` | float | no |
 | `unit` | `unit` | str | no |
@@ -230,7 +234,7 @@ Foreign keys have actual @ref relationships and database constraints. Optional r
 | `proposal_id` | `proposalId` | string FK → allocation_proposals.id | yes |
 | `transfer_id` | `transferId` | string FK → transfers.id | yes |
 | `quantity_assessed` | `quantityAssessed` | int | no |
-| `unit` | `unit` | Unit: pcs | no |
+| `unit` | `unit` | Seed unit: pcs; runtime string | no |
 | `baseline_description` | `baselineDescription` | str | no |
 | `avoided_production_kgco2e` | `avoidedProductionKgco2E` | float | yes |
 | `additional_transport_kgco2e` | `additionalTransportKgco2E` | float | yes |
@@ -258,4 +262,8 @@ Foreign keys have actual @ref relationships and database constraints. Optional r
 
 Confirmed reuse mass sums transfer actual-use quantities once, multiplied by known material mass. The baseline has 950 used pavers, 2.375 t. Project count includes both source and destination, yielding 3. Actual net carbon totals include complete actual assessments only, 291.04 kgCO2e, with incomplete IMP-005 reported separately. Forecast rows and alternative runs are never added to actual results.
 
-The enum REUSED means positive recorded use in this fixture; it is not sufficient to release unresolved residual promises. General terminal closure/revision semantics remain in Document 07. The Python validator and importer protect this baseline; future application commands need separate transactional enforcement.
+The enum REUSED means positive recorded use in this fixture; it is not sufficient to release unresolved residual promises. Current lifecycle/revision semantics are in Documents 01/02. The validator/importer protect this baseline; application commands additionally use guarded operational transactions.
+
+## Maintenance
+
+Generate/check the immutable fixture with `scripts/generate_seed.py --check`; validate with `npm run seed:validate`. Provider schema/operations come from the shared registry/generator. Do not regenerate or reseed an active workspace as documentation cleanup. [Seed specification](03_SEED_DATABASE_SPEC.md) defines scenario coverage, and [Local development](LOCAL_DEVELOPMENT.md) separates new empty setup from protected persistence/recovery.

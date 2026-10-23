@@ -47,11 +47,15 @@ def seed_local(seed,adapter=None,reset_confirmation=None):
         actual=adapter.snapshot()
         if reset_confirmation is not None:
             adapter.execute('ClearBaseline',write=True)
+            if not adapter.execute('GetQuantityEncoding').get('quantityEncoding'):
+                adapter.execute('InitializeExactQuantities',write=True)
             adapter.execute('ImportBaseline',variables(seed),write=True)
             action='reset and reseeded'
         elif equivalent(actual,seed):action='unchanged'
         elif any(actual.values()):raise ValueError('Local data differs from baseline. Refusing overwrite; use explicit reset only when intended.')
         else:
+            if not adapter.execute('GetQuantityEncoding').get('quantityEncoding'):
+                adapter.execute('InitializeExactQuantities',write=True)
             adapter.execute('ImportBaseline',variables(seed),write=True)
             action='seeded'
         counts=verify(adapter,seed)

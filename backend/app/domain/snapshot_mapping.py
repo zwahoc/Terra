@@ -12,7 +12,8 @@ from math import isfinite
 from types import MappingProxyType
 from typing import Iterable, Mapping
 
-from terra.contract import MODELS, fields
+from terra.contract import RUNTIME_MODELS as MODELS, fields
+from terra.quantities import amount, ordinary, unit
 from .eligibility import Demand, DemandQuantity, Material, Supply, SupplyQuantity
 from .lead_time import demo_township_lead_time_days
 
@@ -73,7 +74,12 @@ def _index(entity: str, records: Iterable[Mapping], as_of: date) -> dict[str, di
     result = {}
     for original in records:
         try:
-            row = MODELS[entity].model_validate(dict(original)).model_dump()
+            data=dict(original)
+            for name,spec,_ in fields(entity):
+                if spec=='int' and data.get(name) is not None:
+                    data[name]=ordinary(amount(data[name],unit_name=data.get('unit')))
+                if spec.startswith('Unit=') or name=='standard_unit':data[name]=unit(data[name])
+            row = MODELS[entity].model_validate(data).model_dump()
         except (ValueError, TypeError) as exc:
             raise SnapshotMappingError(f"{entity}: invalid shared record shape: {exc}") from exc
         rid = row['id']

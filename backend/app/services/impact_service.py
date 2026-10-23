@@ -11,6 +11,7 @@ from typing import Any, Callable
 
 from backend.app.domain.carbon import (
     CarbonResult,
+    CALCULATION_POLICY_VERSION, activity_factor_units, assessment_factor_units_valid,
     PROCESSING_UNITS,
     PRODUCTION_UNITS,
     TRANSPORT_UNIT,
@@ -72,8 +73,9 @@ def _index(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 
 
 def _hash(value: Any) -> str:
+    from terra.quantities import json_default
     encoded = json.dumps(
-        value, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        value, sort_keys=True, ensure_ascii=False, separators=(",", ":"),default=json_default
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
@@ -180,11 +182,10 @@ def _context(
                 "Actual impact requires a positive confirmed-use quantity.",
             )
         moved_quantity = transfer["dispatched_quantity"] or None
-        fully_used = moved_quantity is not None and quantity == moved_quantity
-        processed_quantity = moved_quantity if fully_used else None
-        handling_allocation = (
-            "ALL_MOVED_UNITS" if fully_used else "UNDEFINED_PARTIAL_USE"
-        )
+        processed_quantity = moved_quantity
+        handling_allocation = 'ALL_MOVED_UNITS'
+        # Loading/unloading applies to the full movement even when only part
+        # has been used. Unknown additional processing is never assumed zero.
         activity_at = transfer["reuse_confirmed_at"]
 
     supply = supplies.get(proposal["supply_offer_id"])
@@ -244,7 +245,7 @@ def calculate_context_components(
         factors,
         factor_type="NEW_MATERIAL_PRODUCTION",
         transport_mode=None,
-        supported_units=PRODUCTION_UNITS,
+        supported_units=activity_factor_units(material['standard_unit']),
         **common,
     )
     transport = select_factor(
@@ -258,7 +259,7 @@ def calculate_context_components(
         factors,
         factor_type="PROCESSING",
         transport_mode=None,
-        supported_units=PROCESSING_UNITS,
+        supported_units=activity_factor_units(material['standard_unit']),
         **common,
     )
     selected = [choice.factor for choice in (production, transport)]
@@ -280,12 +281,14 @@ def calculate_context_components(
         if material["mass_kg_per_unit"] is not None
         else None
     )
+    if material['standard_unit']=='kg': mass=Decimal(1)
     distance = (
         decimal(context["route"]["distance_km"])
         if context["route"] is not None
         else None
     )
     result = calculate_components(
+        quantity_unit=material['standard_unit'],
         quantity_assessed=decimal(context["quantity"]),
         moved_quantity=(
             decimal(context["moved_quantity"])
@@ -324,6 +327,7 @@ def _build_assessment(
     result, selected_factors = calculate_context_components(context, factors)
     source_input = {
         "basis": context["basis"],
+        "calculation_policy_version": CALCULATION_POLICY_VERSION,
         "proposal_id": context["proposal"]["id"],
         "transfer_id": context["transfer"]["id"] if context["transfer"] else None,
         "quantity_assessed": context["quantity"],
@@ -349,6 +353,7 @@ def _build_assessment(
         else None
     )
     assumptions = {
+        "calculation_policy_version": CALCULATION_POLICY_VERSION,
         "symmetric_route_id": source_input["route_id"],
         "distance_km": source_input["distance_km"],
         "transport_mode": "ROAD_FREIGHT",
@@ -370,7 +375,8 @@ def _build_assessment(
             "previous_assessment_id": previous_assessment_id,
             "reason": revision_reason,
             "actor_label": actor_label,
-            "operator_reviewed_at": calculated_at,
+            "operator_reviewed_at": None if actor_label == "Terra automatic impact" else calculated_at,
+            "automatically_calculated": actor_label == "Terra automatic impact",
             "operator_review_is_not_independent_environmental_verification": True,
             "input_fingerprint": input_fingerprint,
         },
@@ -537,6 +543,9 @@ def list_assessments(
     repository: ImpactRepository | None = None,
 ) -> dict[str, Any]:
     repository = repository or ImpactRepository()
+    adapter=getattr(repository,'_adapter',None)
+    guarded=adapter is not None and adapter.execute('GetQuantityEncoding')['quantityEncoding']
+    read_version=adapter.execute('GetOperationalVersion')['operationalVersion'] if guarded else None
     snapshot = _load(repository)
     rows = snapshot["impact_assessments"]
     if basis is not None:
@@ -553,7 +562,15 @@ def list_assessments(
             raise ImpactUnavailable("IMPACT_DATA_UNAVAILABLE", "The local emulator is unavailable.") from exc
         except ImpactRepositoryError as exc:
             raise ImpactError("IMPACT_DATA_ERROR", "Current impact selection failed.") from exc
-        rows = [row for row in rows if row["id"] in current_ids]
+        rows = [row for row in rows if row["id"] in current_ids
+                and assessment_factor_units_valid(row,snapshot['emission_factors'])]
+    adapter=getattr(repository,'_adapter',None)
+    if current_only and adapter is not None and adapter.execute('GetQuantityEncoding')['quantityEncoding']:
+        from backend.app.services.matching_service import pages
+        pending={r['id'] for r in pages(adapter,'PageImpactIntents') if r['status']!='COMPLETED'}
+        rows=[r for r in rows if r['basis']!='ACTUAL_CONFIRMED_USE' or r['transfer_id'] not in pending]
+    if guarded and adapter.execute('GetOperationalVersion')['operationalVersion'] != read_version:
+        raise ImpactConflict('IMPACT_INPUT_STALE','Impact changed while loading. Refresh current results.')
     rows = sorted(rows, key=lambda row: (row["calculated_at"], row["id"]))
     return {"data": rows, "meta": load_baseline_metadata(), "error": None}
 

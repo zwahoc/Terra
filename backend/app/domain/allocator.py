@@ -1,6 +1,6 @@
 """Exact quantity, deadline and supplied-linear-carbon allocation; no I/O/writes."""
 from collections import defaultdict, deque
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
 from types import MappingProxyType
@@ -11,7 +11,7 @@ import hashlib
 import json
 
 from .candidates import generate_candidate_pairs
-from .eligibility import EligibilityResult
+from .eligibility import EligibilityResult, ELIGIBILITY_POLICY_VERSION
 from .snapshot_mapping import DomainSnapshot
 
 
@@ -62,7 +62,8 @@ def allocation_snapshot_hash(snapshot: DomainSnapshot) -> str:
         if isinstance(value, (date, Decimal)):
             return str(value)
         return value
-    return hashlib.sha256(json.dumps(canonical(snapshot), sort_keys=True,
+    return hashlib.sha256(json.dumps({'eligibility_policy_version': ELIGIBILITY_POLICY_VERSION,
+                                     'snapshot': canonical(snapshot)}, sort_keys=True,
                                      separators=(',', ':')).encode()).hexdigest()
 
 
@@ -178,7 +179,7 @@ def _rank_pairs(snapshot, pairs):
     return ranked, distances, distance_fallback
 
 
-def allocate_max_reuse(snapshot: DomainSnapshot) -> AllocationPlan:
+def _allocate_max_reuse(snapshot: DomainSnapshot) -> AllocationPlan:
     """Maximise pcs, then maximise each ranked pair quantity at that same total.
 
     First compute maximum flow F. For each preferred pair, find the greatest
@@ -313,7 +314,7 @@ def _lexicographic_flow(supplies, demands, pairs, rewards):
     return {pair: edges[index ^ 1][2] for pair, index in pair_edges.items()}
 
 
-def allocate(snapshot: DomainSnapshot, *, objective: str,
+def _allocate(snapshot: DomainSnapshot, *, objective: str,
              carbon_scores: LinearCarbonScores | None = None,
              factor_dataset_version: str | None = None,
              carbon_context_id: str | None = None) -> AllocationPlan:
@@ -327,7 +328,7 @@ def allocate(snapshot: DomainSnapshot, *, objective: str,
     if objective == 'MAX_REUSE':
         if any(v is not None for v in (carbon_scores, factor_dataset_version, carbon_context_id)):
             raise ValueError('MAX_REUSE does not consume carbon scoring inputs')
-        return allocate_max_reuse(snapshot)
+        return _allocate_max_reuse(snapshot)
     if objective == 'EARLIEST_DEADLINE' and any(
             v is not None for v in (carbon_scores, factor_dataset_version, carbon_context_id)):
         raise ValueError('EARLIEST_DEADLINE does not consume carbon scoring inputs')
@@ -426,3 +427,76 @@ def allocate(snapshot: DomainSnapshot, *, objective: str,
         MappingProxyType(dict(sorted(demands.items()))),
         tuple(sorted(pid for pid, route in routes.items() if route is None)),
         MappingProxyType(assumptions), estimated, bool(unscored), unscored, negative, available)
+
+
+def allocate(snapshot, *, objective='MAX_REUSE', carbon_scores=None,
+             factor_dataset_version=None, carbon_context_id=None):
+    """Solve independent material problems, scaling fractions exactly internally."""
+    from terra.quantities import SCALE, ordinary, text
+    if carbon_scores is not None and carbon_scores.allocation_snapshot_hash != allocation_snapshot_hash(snapshot):
+        raise ValueError('Carbon scores do not match the expected snapshot/factor/context')
+    if carbon_scores is not None:
+        eligible={_pair_id(p) for p in generate_candidate_pairs(snapshot).eligible}
+        if set(carbon_scores.net_kgco2e_per_piece)-eligible:
+            raise ValueError('Carbon scores reference unknown or noneligible pairs')
+    plans=[]
+    for mid in sorted(snapshot.materials):
+        supplies={k:v for k,v in snapshot.supplies.items() if v.material_id==mid}
+        demands={k:v for k,v in snapshot.demands.items() if v.material_id==mid}
+        if not supplies and not demands: continue
+        fractional=any(Decimal(q)!=Decimal(q).to_integral_value()
+            for v in [*supplies.values(),*demands.values()]
+            for q in vars(v.quantity).values() if q is not None)
+        scale=SCALE if fractional else 1
+        def scaled(value):
+            return replace(value,quantity=replace(value.quantity,**{
+                k:None if q is None else int(Decimal(q)*scale) for k,q in vars(value.quantity).items()}))
+        part=replace(snapshot,supplies={k:scaled(v) for k,v in supplies.items()},
+                     demands={k:scaled(v) for k,v in demands.items()},materials={mid:snapshot.materials[mid]})
+        scores=None
+        if carbon_scores is not None:
+            scores=replace(carbon_scores,allocation_snapshot_hash=allocation_snapshot_hash(part),
+                net_kgco2e_per_piece={pair:None if q is None else q if scale==1 else Decimal((q.as_tuple().sign,q.as_tuple().digits,q.as_tuple().exponent-6))
+                    for pair,q in carbon_scores.net_kgco2e_per_piece.items()
+                    if pair[0] in supplies and pair[1] in demands})
+        plan=_allocate(part,objective=objective,carbon_scores=scores,
+                       factor_dataset_version=factor_dataset_version,carbon_context_id=carbon_context_id)
+        allocations=tuple(replace(a,proposed_quantity=ordinary(Decimal(a.proposed_quantity)/scale),
+                                 unit=snapshot.materials[mid].standard_unit) for a in plan.allocations)
+        plans.append(replace(plan,allocations=allocations,
+            total_proposed_quantity=ordinary(Decimal(plan.total_proposed_quantity)/scale),
+            remaining_uncommitted_quantity_by_supply={k:ordinary(Decimal(q)/scale) for k,q in plan.remaining_uncommitted_quantity_by_supply.items()},
+            remaining_newly_allocatable_quantity_by_demand={k:ordinary(Decimal(q)/scale) for k,q in plan.remaining_newly_allocatable_quantity_by_demand.items()}))
+    if not plans:
+        plan = _allocate(snapshot,objective=objective,carbon_scores=carbon_scores,
+                         factor_dataset_version=factor_dataset_version,carbon_context_id=carbon_context_id)
+        return replace(plan, assumptions=MappingProxyType({**plan.assumptions,
+            'eligibility_policy_version': ELIGIBILITY_POLICY_VERSION}))
+    allocations=tuple(a for p in plans for a in p.allocations)
+    units={snapshot.materials[mid].standard_unit for mid in snapshot.materials}
+    total=sum(p.total_proposed_quantity for p in plans) if len(units)==1 else None
+    assumptions=dict(plans[0].assumptions)
+    assumptions.update(eligibility_policy_version=ELIGIBILITY_POLICY_VERSION,
+        quantity_unit=next(iter(units)) if len(units)==1 else 'SEPARATE_UNITS',
+        totals_by_material={mid:{'quantity':text(sum((a.proposed_quantity for a in allocations if a.material_id==mid),0)),
+            'unit':m.standard_unit} for mid,m in snapshot.materials.items()},
+        allocation_snapshot_hash=allocation_snapshot_hash(snapshot),quantity_policy='INDEPENDENT_MATERIALS')
+    from decimal import localcontext
+    with localcontext() as ctx:
+        ctx.prec=max(100,sum(len(str(p.estimated_net_avoided_kgco2e)) for p in plans)+10)
+        estimate=(sum((p.estimated_net_avoided_kgco2e for p in plans if p.estimated_net_avoided_kgco2e is not None),Decimal(0))
+                  if any(p.estimated_net_avoided_kgco2e is not None and p.carbon_scoring_available for p in plans) else None)
+    return replace(plans[0],total_proposed_quantity=total,allocations=allocations,assumptions=MappingProxyType(assumptions),
+        remaining_uncommitted_quantity_by_supply=MappingProxyType({k:q for p in plans for k,q in p.remaining_uncommitted_quantity_by_supply.items()}),
+        remaining_newly_allocatable_quantity_by_demand=MappingProxyType({k:q for p in plans for k,q in p.remaining_newly_allocatable_quantity_by_demand.items()}),
+        missing_distance_pairs=tuple(sorted(pair for p in plans for pair in p.missing_distance_pairs)),
+        estimated_net_avoided_kgco2e=estimate,
+        incomplete_carbon=any(p.incomplete_carbon for p in plans),
+        unscored_pairs=tuple(sorted(pair for p in plans for pair in p.unscored_pairs)),
+        negative_carbon_pairs=tuple(sorted(pair for p in plans for pair in p.negative_carbon_pairs)),
+        carbon_scoring_available=(len([pair for p in plans for pair in p.unscored_pairs]) < len(generate_candidate_pairs(snapshot).eligible)
+            or not generate_candidate_pairs(snapshot).eligible) if carbon_scores else None)
+
+
+def allocate_max_reuse(snapshot):
+    return allocate(snapshot,objective='MAX_REUSE')

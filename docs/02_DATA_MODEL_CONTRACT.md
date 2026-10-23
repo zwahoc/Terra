@@ -1,21 +1,24 @@
-# 02 — Canonical logical data model for Terra
+# 02 — Data model contract
 
-**Scope:** Proposed logical **relational** contract for an MVP, written independently of Firebase. This is a revised and expanded version of `legacy/CircularFlow_Data_Model_v0.1.md`. It is **not** a deployed schema, SQL DDL or a representation of actual SDP/Pantas fields.
+## Scope and sources
 
-**Application ownership:** React/TypeScript/Tailwind consumes FastAPI DTOs. Independent Python services own business calculations and transitions; repositories use a Python SQL Connect REST adapter to the PostgreSQL-backed Firebase service. Named administrative reads/writes are verified on the local emulator; cloud authentication/read-write validation remains pending. Node.js may support Firebase tooling or a justified one-off utility, never a second application backend. Provider-neutral field meanings below do not authorize a generic PostgreSQL or Supabase integration.
+The portable canonical seed has 13 arrays with fixed demonstration entities/enums and an as-of date of 2026-10-12. The implemented runtime extends it with open-ended material identities/units, exact quantities, provisional intake and immutable publication evidence. Do not apply old seed-only category/pcs restrictions to new runtime materials or rewrite the seed to match current operations.
 
-## 1. General conventions
+`terra/contract.py` defines FIELDS and seed/runtime validators; generated `.gql` defines provider relations. Python validates JSON evidence where a database FK does not cover an embedded member. React uses FastAPI DTOs, not provider rows. [Document 09](09_ARCHITECTURE_UPDATE.md) governs access.
 
-- Dataset JSON: top-level arrays named `snake_case` (listed below), each row has `id: String` with readable stable IDs. FKs are **string IDs** from parent arrays; never store only display names as FK.
-- Database: PostgreSQL via Firebase SQL Connect. `.gql` uses camelCase field identifiers, mapped to SQL column names as needed; see architecture reference. Use explicit primary-key `String` where supported, not default implicit UUID keys.
-- Numeric quantities and factor values are nonnegative exact decimals in application validators; calculated net avoided emissions can be negative if reuse impacts exceed avoided production. Avoid binary floating-point for quantity math and financial figures. For sample whole-unit `pcs`, quantities are integers. JSON numeric representation plus unit string; validate precision in DB/application.
-- Dates: `YYYY-MM-DD`; timestamps: RFC3339 `2026-10-07T14:30:00+08:00`. `null` ≠ `0`; factor unknown stays `null`.
-- Units: canonical unit `pcs` for the starter material catalogue; mass `kg` (per item), distance `km`, emissions `kgCO2e`, optionally money `MYR` where used.
-- Seed metadata: `metadata.dataset_name`, `version`, `as_of_date: "2026-10-12"`, `synthetic: true`, `timezone: "Asia/Kuala_Lumpur"`, `currency: "MYR"`, `carbon_unit: "kgCO2e"`, `disclaimer`, matching Document 03.
-- Mutable counters on `supply_offers` / `demand_requests` are cached projections of transfer state. Reconcile and validate against transfer records so they never drift.
-- Every table's ID must be stable across repeat imports. `created_at`/`updated_at` may be added consistently where useful, but no `created_by`, `approved_by_user_id`, `user_id`, `role_id` or `auth_uid`.
+## General conventions
 
-## 2. Tables: names, core fields and constraints
+- String IDs are stable identities, never names/array positions. Existing database IDs and temporary run-local proposal IDs remain distinct until publication resolves them.
+- API/portable JSON fields use snake_case; SQL Connect fields use camelCase. Dates are YYYY-MM-DD; timestamps preserve instants with the local +08:00 display/mapping convention.
+- Null means unknown/absent, not zero. Never silently discard provenance or map an unknown material quantity to a source-work number.
+- Operational exact quantities use Python integers/Decimal and SQL Int64 millionths. Persisted QuantityEncoding.version=millionths-v1 governs the adapter. Six decimal places are supported up to 9223372036854.775807 ordinary units. Whole counts apply to pcs, bag, sheet, roll and length. Unsupported precision/range fails without rounding.
+- JSON evidence/source snapshots retain ordinary units. Seed JSON stays unchanged. A missing encoding marker denotes legacy whole-unit data; never initialise a marker over populated legacy rows.
+- Original source fields, reviewed current fields, conversion factor/basis and operator-edit flags are separate. Revisions and physical events are not replaced by a regenerated summary.
+- Current offer/demand counters reconcile to transfers. See [Document 01](01_BUSINESS_WORKFLOW.md) for budgets and physical lifecycle.
+
+The following field tables describe the canonical entities and fixed sample counts, not the owner's current database. Synthetic/metadata-only flags remain truthful in seed storage; local model-facing business context need not repeat fixture-origin labels. Unknown evidence remains visible.
+
+## Canonical entity field reference
 
 ### `projects` — 5 records
 
@@ -37,10 +40,10 @@ No project record may claim to be verified from SDP's internal systems.
 | Field | Type | Constraint / semantics |
 |---|---|---|
 | `id` | string PK | `MAT-001` etc. |
-| `category` | enum | `PAVING_BLOCK`, `BRICK`, `TILE` |
+| `category` | enum | Existing seed: `PAVING_BLOCK`, `BRICK`, `TILE`; runtime registration uses open-ended category strings |
 | `canonical_name` | string | specific material/spec name |
 | `specifications` | object | typed dictionary: dimensions in `*_mm`; grade/type/colour/finish where relevant |
-| `standard_unit` | enum | MVP `pcs` |
+| `standard_unit` | enum | Existing seed `pcs`; runtime registration/conversion accepts validated comparable units |
 | `mass_kg_per_unit` | decimal/null | numeric only if explicitly demo-estimated or sourced |
 | `mass_source` | string/null | `SYNTHETIC_ASSUMPTION` or named source; not invented verified weight |
 | `reference_code` | string/null | example SKU, not real manufacturer certification |
@@ -53,13 +56,13 @@ Catalogue uniqueness must combine category + identifying specs (not name alone).
 | Field | Type | Constraint / semantics |
 |---|---|---|
 | `id` | string PK | `DOC-001` |
-| `project_id` | string FK | `projects.id` |
+| `project_id` | string FK | `projects.id` in the seed; multi-project runtime provenance uses the publication records below |
 | `document_type` | enum | `BOQ`, `PURCHASE_ORDER`, `INVENTORY`, `DEMAND`, `OTHER` |
 | `display_filename` | string | `example_project_inventory.xlsx` synthetic label |
 | `file_uri` | string/null | **null until a real test fixture is provided** |
 | `file_hash` | string/null | **null**, don't forge SHA values for absent files |
-| `source_availability` | enum | `METADATA_ONLY`, later `FILE_AVAILABLE` |
-| `processing_status` | enum | `SIMULATED`, later `QUEUED`, `PROCESSED`, `FAILED`, `REVIEWED` |
+| `source_availability` | enum | `METADATA_ONLY`, `FILE_AVAILABLE` for actual uploaded evidence |
+| `processing_status` | enum | `SIMULATED`, `QUEUED`, `PROCESSED`, `FAILED`, `REVIEWED` for actual processing |
 | `recorded_at` | timestamp | before/as-of seed date |
 | `is_simulated` | bool | true |
 
@@ -83,7 +86,7 @@ The existence of a document *record* is not evidence an actual XLSX/PDF is prese
 
 Use `parsed_fields.record_kind`: `PLANNED_REQUIREMENT`, `PURCHASE_ORDER`, `ON_HAND_INVENTORY`, `POTENTIAL_SURPLUS`, `CONFIRMED_SURPLUS`, `OUTSTANDING_DEMAND`. **A document type alone does not prove actual surplus or outstanding demand**. Reject invalid quantities/units, preserve both raw and corrected values. A source document row might be linked to a supply or demand via an explicit reviewed action.
 
-The seed retains BOQ, PO and on-hand facts in reviewed extraction rows; it does not introduce a separate procurement or inventory ledger. Deterministic Python services can calculate potential surplus/outstanding need only from sufficient documented inputs. These calculations and accepted row status do not confirm releasable stock. Real-ingestion review modes and richer reconciliation are future contract items in Document 07.
+The seed retains BOQ, PO and on-hand facts in reviewed extraction rows; it does not introduce a separate procurement or inventory ledger. Deterministic Python services can calculate potential surplus/outstanding need only from sufficient documented inputs. These calculations and accepted row status do not confirm releasable stock. Runtime review/publication use the separate records described below.
 
 ### `supply_offers` — 20–25 rows
 
@@ -122,7 +125,7 @@ For seeded `POTENTIAL` offers, `confirmed_quantity=null` and active reservation/
 | `request_status` | enum | `OPEN`, `FULFILLED`, `CANCELLED` |
 | `is_outstanding_need_confirmed` | bool | BOQ-only estimates false until reviewed |
 
-For planning, subtract not only fulfilled quantity but **active incoming committed** transfers, established at reservation and retained until use or explicit resolution. A requested transfer created by proposal approval does not hold demand. `APPROVED` is retained only for historical seed compatibility and likewise does not hold demand. Seed `fulfilled_quantity` reconciles to transfer actual-use quantities; `FULFILLED` requires `fulfilled_quantity=required_quantity`. Alternative procurement fulfilment records are outside this seed model. Cancelled demands are not available for fresh allocations; cancellation must not silently discard an active incoming commitment.
+For planning, subtract not only fulfilled quantity but **active incoming committed** transfers, established at reservation and retained until use or explicit resolution. New individual approval/reservation creates RESERVED and holds demand atomically. A historical requested transfer does not hold demand. `APPROVED` is retained only for historical seed compatibility and likewise does not hold demand. Seed `fulfilled_quantity` reconciles to transfer actual-use quantities; `FULFILLED` requires `fulfilled_quantity=required_quantity`. Alternative procurement fulfilment records are outside this seed model. Cancelled demands are not available for fresh allocations; cancellation must not silently discard an active incoming commitment.
 
 ### `route_distances` — 10 unordered inter-project pairs for 5 projects
 
@@ -185,9 +188,9 @@ Only `ELIGIBLE` selectable; `REVIEW_REQUIRED` means human check before reclassif
 | `requested_at`, `delivered_at`, `reuse_confirmed_at` | timestamp/null | chronologically consistent |
 | `notes` | string/null | synthetic exceptions |
 
-`reserved + dispatched <= approved`. No `approved_by_user_id` or auth FK. For a terminal `REUSED` record, actual usage must be positive; no claim of real operator verification in synthetic seed. The flow may include partial deliveries/usages; dashboard aggregates actual-use quantities only.
+`reserved + dispatched <= approved`. No `approved_by_user_id` or auth FK. For a terminal `REUSED` record, actual usage must be positive; no claim of real operator verification in synthetic seed. Historical fixtures may contain partial deliveries/usages. The current first-version runtime permits full dispatch/full receipt and partial/repeated use; dashboard aggregates actual-use quantities only.
 
-Selection, request and approval alone have no stock/demand commitment effect. Successful reservation atomically establishes both commitments; dispatch moves units from reservation to transferred-out exactly once. For partial reuse, residual quantities require explicit disposition before an incoming commitment is released. The current fields do not fully specify partial-transfer closure; see Document 07. A historical terminal fixture must document that resolution, and cannot imply missing units were returned to source stock.
+Selection alone has no stock/demand effect. Current combined confirmation creates a RESERVED transfer with both commitments; historical unreserved requests/approvals retain zero holds. Successful reservation atomically establishes both commitments; dispatch moves units from reservation to transferred-out exactly once. For partial reuse, received-but-unused quantities stay committed and later positive use increments reduce the remainder. Cancellation is allowed before dispatch and releases both holds. Returns/partial-shipment closure remain outside the first version; A historical terminal fixture must document that resolution, and cannot imply missing units were returned to source stock.
 
 ### `transfer_events` — 15–25 rows
 
@@ -243,56 +246,48 @@ Missing factors are **absent records**, not factors with `value=0`. Explain what
 
 Do not sum forecast and actual for the same underlying material. The transfer actual-use assessment is authoritative for confirmed-reuse display. **Environmental estimates are never carbon-credit balances**.
 
-`quantity_assessed` defines production substitution, not automatically freight quantity. Undefined partial-use cost allocation means `INSUFFICIENT_DATA`. For the seed, use one assessment per proposal/basis or transfer/basis so dashboard values cannot double-count revisions. Revision selection for later recalculation requires a contract decision; the relationship map permits history but does not define a revision selector.
+`quantity_assessed` defines production substitution. Current runtime freight and loading/unloading handling use full moved quantity even during partial use. Unknown component inputs keep net null. Seed assessments remain unchanged. Runtime immutable revisions use ImpactAssessmentHead to select one current assessment per scope, with pending/failed refreshes excluded from current reporting. Original forecasts remain separate from actual use and chosen-quantity execution forecasts.
 
-## 3. Relationship map
+
+## Runtime and provider-only records
+
+| Record | Contract |
+|---|---|
+| IngestionBatch/IngestionRevision | Typed provisional batch JSON and immutable revisions; source submissions/context, isolated comparisons, working review, file resolutions and approvals. CAS protects edits. |
+| Original source store | Private content-addressed original bytes and checkpoints referenced by metadata/hash; a multi-project upload is not forced into one operational document FK. |
+| Model preference/usage ledger | Private local configuration and accounting, separate from inventory and human approval; exact model/slot selection, estimated/uncertain usage and provenance. |
+| OperationalVersion | GLOBAL guard revision shared by participating operational transactions. |
+| QuantityEncoding | Persisted exact-wire marker; initialisation requires empty legacy operational data. |
+| ProjectMaterialRecord | Immutable approved document/manual contribution with project/material, original/reviewed payload, meaning, treatment, timing, quantity/unit and source. |
+| SupersededRecord | Exact predecessor→successor relation; earlier evidence remains readable but has no active effect. |
+| ProjectStockHead | Confirmed scope/member state and dispatch baseline; a stock head is not another additive observation. |
+| IngestionPublication | Unique batch publication/key/fingerprint, receipt, resolved IDs, approved snapshot and durable matching handoff. |
+| RegisteredMaterial | Historical JSON registration compatibility. New reviewed materials use Material with open-ended categories/units; do not silently promote/duplicate old identities. |
+| MatchingScope/MatchingGeneration | Per-material pending/failed/current scope and immutable same-input three-objective alternatives, dependencies/day and current generation. |
+| RuntimeAudit | Confirmed project/master/carbon-input correction with basis and before/after values. Association alone does not change project masters. |
+| TransferWorkflowOperation | Command identity/fingerprint and replay-safe lifecycle effects; confirmation events retain original/chosen quantity and forecast. |
+| ImpactAssessmentHead | Current revision per forecast/actual scope; old immutable assessments remain available. |
+| ImpactRefreshIntent | Transfer-keyed token/status/payload, atomically enqueued with use/applicable corrections; calculation failure does not undo physical facts. |
+| WorkspaceIdentity | Dataset epoch; prevents cross-workspace replay of commands and recommendations. |
+| Archive manifests | Private ordered table/source backups with encoding, revisions, counts and checksums; read-only historical evidence, not a live operational fallback. |
+
+## Relationship and write boundaries
 
 ```text
-projects 1--N documents 1--N extracted_rows
-projects 1--N supply_offers N--1 materials
-projects 1--N demand_requests N--1 materials
-projects 1--N route_distances (both endpoints)
-extracted_rows 1--0..N supply_offers / demand_requests (optional provenance)
-optimisation_runs 1--N allocation_proposals
-supply_offers 1--N allocation_proposals N--1 demand_requests
-allocation_proposals 1--0..1 transfers 1--N transfer_events
-allocation_proposals 1--N impact_assessments (forecast)
-transfers 1--N impact_assessments (actual, revisioned)
-impact_assessments N--N emission_factors (via factor ID array for MVP)
+project/material → source observations → effective reviewed contributions
+                                  ↘ confirmed released offer / validated demand
+current generation → run/proposal → transfer → physical events / actual-use assessment
+batch → immutable review/source history → one publication receipt → matching intent
 ```
 
-Because `factor_ids` is an array for MVP, Codex may normalise it into an `assessment_factors` join table if required by the provider. Keep external JSON contract stable and document the mapping. No `users` FK anywhere.
+A publication transaction resolves approved proposal IDs, writes contributions/supersession/heads, new catalogue/master facts, validated offer/demand projections, audit and handoff together. Partial batch writes are forbidden. Legacy registered materials remain readable; embedded JSON references receive explicit service validation.
 
-## 4. Example: linked records (minimal only, not a seed)
+New transfers use one confirm/reserve operation rather than request→approve→reserve. REQUESTED/APPROVED remain historical compatibility states. Partial/repeated use consumes the received remainder; unused received quantities stay committed. Head/intent/source checks select current actual-impact revisions without rewriting old results.
 
-```json
-{
-  "supply_offers": [{
-    "id": "SUP-001", "source_project_id": "PRJ-001", "material_id": "MAT-001",
-    "declared_quantity": 1000, "confirmed_quantity": 1000,
-    "reserved_active_quantity": 400, "transferred_out_quantity": 200,
-    "unit": "pcs", "surplus_status": "CONFIRMED", "condition": "UNUSED",
-    "available_from": "2026-10-01", "available_until": null,
-    "origin_document_row_id": null, "batch_or_lot_code": "DEMO-LOT-001"
-  }],
-  "demand_requests": [{
-    "id": "DEM-001", "destination_project_id": "PRJ-002", "material_id": "MAT-001",
-    "required_quantity": 600, "fulfilled_quantity": 200, "unit": "pcs",
-    "needed_from": "2026-10-01", "required_by": "2026-10-20",
-    "request_status": "OPEN", "is_outstanding_need_confirmed": true
-  }]
-}
-```
+## Unit and carbon consistency
 
-This short excerpt only illustrates FK names and counter semantics; its counters **cannot be validated alone** without corresponding transfer records. The eventual complete seed MUST reconcile all counters against those records.
+Aliases such as m³/m3 and pieces/pcs normalise without changing source text. Genuine unit conversion requires a product-specific confirmed basis. Production/handling factors must use kgCO2e per catalogue unit or a valid explicit mass basis; freight uses kgCO2e/t-km. An incompatible per-piece factor cannot silently become per-kg for a metre/kg material.
 
-## 5. The six highest-risk invariants
+Factor/source snapshots, calculation_policy_version and source/head revisions preserve assessment provenance. Pending/failed actual refreshes exclude older results from current reports/exports. A completed calculation can still be INSUFFICIENT_DATA.
 
-1. No orphan FK; no missing enum values; no repeated PK; no self-project source-to-destination allocations.
-2. Source available stock never negative: `confirmed >= active_reserved + dispatched`.
-3. Recipient unmet **uncommitted** demand never negative: `required >= fulfilled + unfulfilled_active_incoming_commitment`.
-4. `actually_used <= received <= dispatched <= approved <= proposed` and event chronology/status agree.
-5. Units, dimensions and mass factor match the assessed material or have documented conversion.
-6. Forecast-impact records are never aggregated with actual-use records as if both occurred.
-
-See `03_SEED_DATABASE_SPEC.md` for exact dataset cases and `06_REQUIREMENTS_AND_TESTS.md` for validator checks.
+Schema sources: [shared registry](../terra/contract.py), [quantity codec](../terra/quantities.py), [generated schema](../dataconnect/schema/schema.gql), [analysis DTOs](../backend/app/schemas/analysis.py), [review DTOs](../backend/app/schemas/review.py).

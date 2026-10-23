@@ -1,428 +1,173 @@
-import { useEffect, useState } from "react";
-import StatusBadge from "../../components/StatusBadge";
-import { FileUpload } from "@/components/ui/file-upload";
-import { PageIntro } from "./page-primitives";
-import "./upload-animation.css";
-import "./upload-components.css";
-import "./upload-file-upload.css";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api, ApiError, modelNames } from '../../api';
+import type { Batch, Comparison, Project, Providers } from '../../api';
+import { reviewApi } from '../../reviewApi';
+import type { Catalogue, ReviewView } from '../../reviewApi';
+import { commandRequest } from '../../lib/action-request';
+import { refreshWorkspace } from '../../data/terra';
+import Publication from '../../Publication';
+import DocumentReview from '../ingestion/DocumentReview';
+import PreparedReview from '../ingestion/PreparedReview';
+import './prepared-intake.css';
+import AnalysisPreview from '../ingestion/AnalysisPreview';
+import HistoricalAnalyses from '../ingestion/HistoricalAnalyses';
+import FileRecovery from '../ingestion/FileRecovery';
+import { canReview, readable } from '../ingestion/review-groups';
+import './intake-workflow.css';
+import { ErrorNotice, Feedback, PageHeader, TechnicalDetails } from '../components-workspace';
 
-type DraftMaterial = {
-  id: number;
-  name: string;
-  quantity: string;
-  unit: string;
-  category: string;
-  length: string;
-  width: string;
-  thickness: string;
-  colour: string;
-  finish: string;
-  materialType: string;
-  intendedUse: string;
-  condition: string;
-  availableFrom: string;
-  massPerUnit: string;
-  checked: boolean;
-};
-const blankMaterial = (id: number): DraftMaterial => ({
-  id,
-  name: "",
-  quantity: "",
-  unit: "pcs",
-  category: "PAVING_BLOCK",
-  length: "",
-  width: "",
-  thickness: "",
-  colour: "",
-  finish: "",
-  materialType: "",
-  intendedUse: "",
-  condition: "",
-  availableFrom: "",
-  massPerUnit: "",
-  checked: false,
-});
+const initialBatch = () => { try { return new URLSearchParams(location.search).get('intake') ?? sessionStorage.getItem('terra.upload.batch') ?? ''; } catch { return ''; } };
+export default function UploadPage({resume=false,onMatching}:{resume?:boolean;onMatching?:()=>void}) {
+  const [id, setId] = useState(()=>resume?initialBatch():'');
+  const [resumeId,setResumeId]=useState(()=>{try{return sessionStorage.getItem('terra.upload.batch')||'';}catch{return '';}});
+  const [batch, setBatch] = useState<Batch | null>(null);
+  const [comparison, setComparison] = useState<Comparison | null>(null);
+  const [review, setReview] = useState<ReviewView | null>(null);
+  const [providers, setProviders] = useState<Providers | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [catalogue, setCatalogue] = useState<Catalogue[]>([]);
+  const [selectedProject, setSelectedProject] = useState('');
+  const [notes, setNotes] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState('');
+  const [publicationBusy, setPublicationBusy] = useState(false);
+  const [connectionError,setConnectionError]=useState<Error|null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [notice, setNotice] = useState('');
+  const [openId, setOpenId] = useState('');
+  const [selectedRun, setSelectedRun] = useState('');
+  const [manual, setManual] = useState(false);
+  const [manualReplacement, setManualReplacement] = useState<{submissionId:string;runId:string;label:string} | null>(null);
+  const [reviewEditing, setReviewEditing] = useState(false);
+  const [phase,setPhase] = useState(1);
+  useEffect(()=>{if(batch?.state==='PUBLISHED')setPhase(3);else if(batch?.review)setPhase(2);},[batch?.id,!!batch?.review,batch?.state]);
+  const [reanalyse, setReanalyse] = useState(false);
+  const [duplicates, setDuplicates] = useState<Awaited<ReturnType<typeof api.duplicates>>['matches']>([]);
+  const generation = useRef(0); const actionLock = useRef(false); const latestRevision = useRef(0);
+  const primary = providers?.preference.primary_model_slot;
+  const run = comparison?.runs.find(r => r.id === selectedRun)
+    ?? comparison?.runs.find(r => r.model_slot === primary)
+    ?? (comparison?.runs.length === 1 ? comparison.runs[0] : undefined);
+  const running = comparison?.runs.some(r => ['RUNNING', 'PENDING'].includes(r.status)) ?? false;
+  const locked = batch?.state === 'PUBLISHED';
+  const disabled = !!busy || publicationBusy || running;
+  const inputLocked = disabled || locked || reviewEditing || manual;
 
-function MaterialValidationCard({
-  row,
-  number,
-  editing,
-  onChange,
-  onEdit,
-  onSave,
-  onDelete,
-}: {
-  row: DraftMaterial;
-  number: number;
-  editing: boolean;
-  onChange: (
-    field: Exclude<keyof DraftMaterial, "id" | "checked">,
-    value: string,
-  ) => void;
-  onEdit: () => void;
-  onSave: () => void;
-  onDelete: () => void;
-}) {
-  const [selectedMatch, setSelectedMatch] = useState("");
-  const ready = [
-    row.name,
-    row.quantity,
-    row.unit,
-    row.category,
-    row.condition,
-    row.availableFrom,
-    row.length,
-    row.width,
-    row.thickness,
-    row.colour,
-    row.finish,
-    row.materialType,
-    row.intendedUse,
-  ].every(Boolean);
-  const matchState = selectedMatch
-    ? "Matched"
-    : row.name && row.quantity
-      ? "Partly matched"
-      : "Not matched";
-  const field = (
-    label: string,
-    key: Exclude<keyof DraftMaterial, "id" | "checked">,
-    type = "text",
-    hint?: string,
-  ) => (
-    <label className="terra-field">
-      <span>
-        {label}
-        {hint && <small>{hint}</small>}
-      </span>
-      <input
-        type={type}
-        value={row[key] as string}
-        disabled={!editing}
-        onChange={(event) => onChange(key, event.target.value)}
-      />
-    </label>
-  );
-  return (
-    <article className={`terra-material-card ${editing ? "is-editing" : ""}`}>
-      <header className="terra-material-card-head">
-        <div>
-          <span className="terra-material-number">
-            Material {String(number).padStart(2, "0")}
-          </span>
-          <h3>{row.name || "Unnamed material"}</h3>
-        </div>
-        <div className="terra-card-actions">
-          <StatusBadge status={row.checked ? "ACCEPTED" : "REVIEW_REQUIRED"} />
-          {editing ? (
-            <button
-              type="button"
-              className="terra-text-button"
-              disabled={!ready}
-              onClick={onSave}
-            >
-              Save
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="terra-icon-button"
-              onClick={onEdit}
-              aria-label={`Edit material ${number}`}
-              title="Edit material"
-            >
-              ✎
-            </button>
-          )}
-          <button
-            type="button"
-            className="terra-icon-button is-danger"
-            onClick={onDelete}
-            aria-label={`Remove material ${number}`}
-            title="Remove material"
-          >
-            ×
-          </button>
-        </div>
-      </header>
-      <fieldset disabled={!editing} className="terra-material-fields">
-        <div className="terra-material-grid primary">
-          {field("Material name", "name")}
-          {field("Quantity", "quantity", "number")}
-          {field("Unit", "unit")}
-          {field("Condition", "condition")}
-          {field("Available from", "availableFrom", "date")}
-          {field(
-            "Mass per unit",
-            "massPerUnit",
-            "number",
-            "optional · for carbon comparison",
-          )}
-        </div>
-        <details className="terra-specifications" open={editing}>
-          <summary>Specifications</summary>
-          <div className="terra-material-grid specifications">
-            {field("Category", "category")}
-            {field("Length (mm)", "length", "number")}
-            {field("Width (mm)", "width", "number")}
-            {field("Thickness (mm)", "thickness", "number")}
-            {field("Colour", "colour")}
-            {field("Finish", "finish")}
-            {field("Material type", "materialType")}
-            {field("Intended use", "intendedUse")}
-          </div>
-        </details>
-      </fieldset>
-      <div className="terra-catalogue-match">
-        <div>
-          <span>Catalogue match</span>
-          <strong
-            className={`is-${matchState.toLowerCase().replace(" ", "-")}`}
-          >
-            {matchState}
-          </strong>
-        </div>
-        <select
-          value={selectedMatch}
-          disabled={!editing}
-          onChange={(event) => setSelectedMatch(event.target.value)}
-          aria-label={`Choose a Terra material for material ${number}`}
-        >
-          <option value="">Choose a Terra material</option>
-          <option value="existing">Use the closest catalogue material</option>
-          <option value="new">Keep as a new material record</option>
-        </select>
-      </div>
-    </article>
-  );
-}
-
-
-export default function UploadPage() {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [documentState, setDocumentState] = useState<"idle" | "reading" | "ready">("idle");
-  const [projectName, setProjectName] = useState("");
-  const [projectCode, setProjectCode] = useState("");
-  const [location, setLocation] = useState("");
-  const [notes, setNotes] = useState("");
-  const [materialRows, setMaterialRows] = useState<DraftMaterial[]>([
-    blankMaterial(1),
-  ]);
-  const [editingId, setEditingId] = useState<number | null>(1);
-  const [lastDeleted, setLastDeleted] = useState<DraftMaterial | null>(null);
+  const load = useCallback(async (batchId: string, restoreNotes = false) => {
+    const ticket = generation.current;
+    const value = await api.batch(batchId);
+    const working = value.review ? await reviewApi.get(batchId) : null;
+    const comparisonId = value.comparisons.at(-1)?.id ?? working?.review.comparison_id;
+    const result = comparisonId ? await api.comparison(batchId, comparisonId) : null;
+    if (ticket !== generation.current || value.revision < latestRevision.current) return;
+    latestRevision.current = Math.max(value.revision, working?.revision ?? 0);
+    setConnectionError(null);setBatch({ ...value, revision: latestRevision.current }); setReview(working); setComparison(result);
+    if (restoreNotes) { setNotes(value.context.operator_notes); setSelectedProject(value.selected_project_id ?? ''); }
+  }, []);
   useEffect(() => {
-    if (documentState !== "reading") return;
-    const timer = window.setTimeout(() => setDocumentState("ready"), 1150);
-    return () => window.clearTimeout(timer);
-  }, [documentState]);
-  const reviewedCount = materialRows.filter((row) => row.checked).length;
-  const updateRow = (
-    id: number,
-    field: Exclude<keyof DraftMaterial, "id" | "checked">,
-    value: string,
-  ) =>
-    setMaterialRows((rows) =>
-      rows.map((row) =>
-        row.id === id ? { ...row, [field]: value, checked: false } : row,
-      ),
-    );
-  const addRow = () => {
-    const id = Date.now();
-    setMaterialRows((rows) => [...rows, blankMaterial(id)]);
-    setEditingId(id);
-  };
-  const removeRow = (id: number) => {
-    const removed = materialRows.find((row) => row.id === id);
-    if (
-      !removed ||
-      !window.confirm(
-        `Delete ${removed.name || "this material"} from the draft?`,
-      )
-    )
-      return;
-    setLastDeleted(removed);
-    setMaterialRows((rows) => rows.filter((row) => row.id !== id));
-    if (editingId === id) setEditingId(null);
-  };
-  const undoDelete = () => {
-    if (lastDeleted)
-      setMaterialRows((rows) =>
-        [...rows, lastDeleted].sort((a, b) => a.id - b.id),
-      );
-    setLastDeleted(null);
-  };
-  const registerReady =
-    projectName.trim() &&
-    projectCode.trim() &&
-    location.trim() &&
-    reviewedCount === materialRows.length &&
-    materialRows.length > 0;
-  return (
-    <>
-      <PageIntro label="Add a project" title="Create a project from a document">
-        Upload the source file, then review each material before it becomes
-        available for matching.
-      </PageIntro>
-      <section className="terra-upload-layout">
-        <form
-          className="terra-upload-card"
-          onSubmit={(event) => event.preventDefault()}
-        >
-          <section className="terra-upload-source">
-            <p className="terra-eyebrow">Project document</p>
-            <label
-              className={`terra-dropzone ${fileName ? "is-selected" : ""} is-${documentState}`}
-            >
-              <input
-                type="file"
-                accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg"
-                onChange={(event) => {
-                  const nextFile = event.target.files?.[0]?.name ?? null;
-                  setFileName(nextFile);
-                  setDocumentState(nextFile ? "reading" : "idle");
-                }}
-              />
-              <span className="terra-upload-icon">↑</span>
-              {documentState === "reading" && <span className="terra-document-scan" aria-hidden="true"><i /><i /><i /></span>}
-              <strong>{fileName ?? "Choose a document"}</strong>
-              <small>
-                {documentState === "reading"
-                  ? "Reading material rows"
-                  : fileName
-                    ? "Ready for your review"
-                    : "PDF, Excel, CSV, PNG or JPG"}
-              </small>
-              <span className="terra-file-button">
-                {fileName ? "Choose another file" : "Choose file"}
-              </span>
-            </label>
-            <div className="terra-aceternity-upload">
-              <FileUpload
-                onChange={(files) => {
-                  const nextFile = files[0]?.name ?? null;
-                  setFileName(nextFile);
-                  setDocumentState(nextFile ? "reading" : "idle");
-                }}
-              />
-            </div>
-            {fileName && (
-              <div className="terra-upload-progress" role="status">
-                <span>
-                  <i />
-                  {documentState === "reading" ? "Preparing review" : "Document ready"}
-                </span>
-                <small>
-                  {documentState === "reading" ? "Organising the draft material list…" : "Open the material cards below to check each detail."}
-                </small>
-              </div>
-            )}
-          </section>
-          <section className="terra-project-panel">
-            <div>
-              <p className="terra-eyebrow">New project details</p>
-              <h2>Where do these materials belong?</h2>
-            </div>
-            <div className="terra-project-fields">
-              <label className="terra-field">
-                <span>Project name</span>
-                <input
-                  value={projectName}
-                  onChange={(event) => setProjectName(event.target.value)}
-                  placeholder="e.g. Elmina Phase F"
-                />
-              </label>
-              <label className="terra-field">
-                <span>Project code</span>
-                <input
-                  value={projectCode}
-                  onChange={(event) => setProjectCode(event.target.value)}
-                  placeholder="e.g. DEMO-06"
-                />
-              </label>
-              <label className="terra-field">
-                <span>Township / location</span>
-                <input
-                  value={location}
-                  onChange={(event) => setLocation(event.target.value)}
-                  placeholder="e.g. Elmina"
-                />
-              </label>
-              <label className="terra-field">
-                <span>Document type</span>
-                <select defaultValue="Inventory list">
-                  <option>Inventory list</option>
-                  <option>Material schedule</option>
-                  <option>Site survey</option>
-                </select>
-              </label>
-            </div>
-            <label className="terra-field">
-              <span>
-                Notes <small>optional</small>
-              </span>
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Add context that will help with the review."
-              />
-            </label>
-            <button
-              className="terra-primary-button"
-              type="submit"
-              disabled={!registerReady}
-            >
-              Register project <span>→</span>
-            </button>
-          </section>
-        </form>
-        <section className="terra-manual-review">
-          <header className="terra-review-header">
-            <div>
-              <p className="terra-eyebrow">Material validation</p>
-              <h2>Review the material list</h2>
-              <p>
-                Open a material to correct it, then save it when you are
-                satisfied.
-              </p>
-            </div>
-            <span className="terra-review-count">
-              {reviewedCount}/{materialRows.length} saved
-            </span>
-          </header>
-          <div className="terra-manual-list">
-            {materialRows.map((row, index) => (
-              <MaterialValidationCard
-                key={row.id}
-                row={row}
-                number={index + 1}
-                editing={editingId === row.id}
-                onChange={(field, value) => updateRow(row.id, field, value)}
-                onEdit={() => setEditingId(row.id)}
-                onSave={() => {
-                  setMaterialRows((rows) =>
-                    rows.map((item) =>
-                      item.id === row.id ? { ...item, checked: true } : item,
-                    ),
-                  );
-                  setEditingId(null);
-                }}
-                onDelete={() => removeRow(row.id)}
-              />
-            ))}
-          </div>
-          {lastDeleted && (
-            <aside className="terra-undo">
-              <span>Material removed.</span>
-              <button type="button" onClick={undoDelete}>
-                Undo
-              </button>
-            </aside>
-          )}
-          <button type="button" className="terra-add-row" onClick={addRow}>
-            + Add another material
-          </button>
-        </section>
-      </section>
-    </>
-  );
+    let active = true;
+    Promise.all([api.providers(), api.projects(), reviewApi.catalogue()]).then(([p, projects, materials]) => {
+      if (active) { setProviders(p); setProjects(projects); setCatalogue(materials); }
+    }).catch(reason => { if (active) setError(reason); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    generation.current++; latestRevision.current = 0;
+    setBatch(null); setReview(null); setComparison(null); setSelectedRun('');
+    if (!id) return;
+    const ticket = generation.current;
+    setBusy('Loading batch'); setError(null);
+    load(id, true).catch(reason => { if (ticket === generation.current) setError(reason); })
+      .finally(() => { if (ticket === generation.current) setBusy(''); });
+    try { sessionStorage.setItem('terra.upload.batch', id); } catch { /* Server persistence remains. */ }
+    return () => { generation.current++; };
+  }, [id, load]);
+  useEffect(() => {
+    if (!id || !running) return;
+    let active = true; let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try { await load(id); } catch (reason) { if (active) setConnectionError(reason as Error); }
+      if (active) timer = setTimeout(poll, 2200);
+    };
+    timer = setTimeout(poll, 1000);
+    return () => { active = false; clearTimeout(timer); };
+  }, [id, running, load]);
+  async function action(label: string, task: () => Promise<void>) {
+    if (actionLock.current) return;
+    actionLock.current = true; const ticket = generation.current;
+    setBusy(label); setError(null); setNotice('');
+    try { await task(); } catch (reason) { if (ticket === generation.current) setError(reason as Error); if (id) await load(id).catch(() => {}); }
+    finally { actionLock.current = false; if (ticket === generation.current) setBusy(''); }
+  }
+  function open(batchId: string) {
+    if(!window.dispatchEvent(new Event('terra:before-editor-navigation',{cancelable:true})))return;
+    setFiles([]); setManual(false); setManualReplacement(null); setDuplicates([]); setError(null); setNotice(''); setId(batchId.trim());
+    const url = new URL(location.href);
+    if (batchId) url.searchParams.set('intake', batchId.trim()); else url.searchParams.delete('intake');
+    url.hash=batchId?'/upload?resume=1':'/upload';
+    history.replaceState(null, '', url.pathname + url.search+url.hash);
+    if(batchId)setResumeId(batchId.trim());
+    else {setNotes('');setSelectedProject('');setPhase(1);}
+  }
+  async function refresh() {
+    if (!batch) return;
+    await load(batch.id);
+    if ((await api.batch(batch.id)).state === 'PUBLISHED') {
+      await refreshWorkspace().catch(() => {});
+      const [p, c] = await Promise.all([api.projects(), reviewApi.catalogue()]); setProjects(p); setCatalogue(c);
+    }
+  }
+  async function upload() {
+    await action('Uploading files', async () => {
+      let value = batch ? await api.batch(batch.id) : await api.create(selectedProject);
+      const result = await api.upload(value.id, value.revision, files); value = result.batch;
+      if (notes !== value.context.operator_notes) value = await api.notes(value, notes);
+      setFiles([]); if (id !== value.id) open(value.id); else await load(value.id);
+      setNotice(result.files.every(f => f.duplicate_in_batch) ? 'These files are already in this batch.' : 'Files saved.');
+    });
+  }
+  async function analyse() {
+    if (!primary) return;
+    await action('Saving files and starting analysis', async () => {
+      let value = batch ? await api.batch(batch.id) : await api.create(selectedProject);
+      if(files.length){const uploaded=await api.upload(value.id,value.revision,files);value=uploaded.batch;setFiles([]);}
+      if (value.context.operator_notes !== notes) value = await api.notes(value, notes);
+      const runAgain = reanalyse; setReanalyse(false);
+      await commandRequest(`/api/ingestion/batches/${value.id}/analyse`, { expected_revision: value.revision, mode: 'DEFAULT', reanalyse: runAgain });
+      if(id!==value.id)open(value.id);else await load(value.id);
+      setPhase(1);
+    });
+  }
+  async function startReview(){if(!batch||!run||!comparison)return;
+    await action('Preparing recommendations',async()=>{const value=await api.batch(batch.id);
+      if(value.review&&value.review.run_id!==run.id){await reviewApi.rebase(id,value.revision,comparison.id,run.id);const latest=await api.batch(id);await reviewApi.prepare(id,latest.revision,comparison.id,run.id);}
+      else await reviewApi.prepare(id,value.revision,comparison.id,run.id);
+      await load(id);setPhase(2);
+    });
+  }
+  return <div className="terra-intake ingestion-flow">
+    <PageHeader title="Document intake" actions={<>{phase===1&&!locked&&<button disabled={disabled} onClick={()=>void action('Opening manual entry',async()=>{const value=batch??await api.create(selectedProject);if(!batch)open(value.id);setManualReplacement(null);setManual(true);})}>Enter information manually</button>}{!id&&resumeId&&<button disabled={disabled} onClick={()=>open(resumeId)}>Resume saved batch</button>}{id&&<button disabled={disabled||reviewEditing} onClick={()=>{open('');setPhase(1);}}>New batch</button>}</>}/>
+    <nav className="intake-phases" aria-label="Ingestion phases">{['Upload & analyse','Review','Publish'].map((label,i)=><button key={label} aria-current={phase===i+1?'step':undefined} disabled={disabled||reviewEditing||i>0&&!review} onClick={()=>setPhase(i+1)}><span>{i+1}</span>{label}</button>)}</nav>
+    {connectionError&&<ErrorNotice error={connectionError}><button disabled={disabled} onClick={()=>void load(id).catch(setConnectionError)}>Retry connection</button></ErrorNotice>}
+    {error&&<ErrorNotice error={error}>{error instanceof ApiError&&error.code==='DRAFT_RESTORE_REQUIRED'?<button disabled={disabled} onClick={()=>void action('Restoring draft',async()=>{await api.restore(id);await load(id,true);})}>Restore saved draft</button>:<button disabled={disabled} onClick={()=>void action('Refreshing connection',async()=>{const [p,c,m]=await Promise.all([api.providers(),api.projects(),reviewApi.catalogue()]);setProviders(p);setProjects(c);setCatalogue(m);if(id)await load(id);})}>Refresh connection</button>}</ErrorNotice>}
+    {notice&&<Feedback>{notice}</Feedback>}{busy&&<p role="status">{busy}…</p>}
+    {phase===1&&<>
+      <div className="flow-upload-layout"><section className="flow-upload-paper"><div className="review-section"><h2>{running?'Terra is connecting the evidence':canReview(run)?'Your documents are ready to review':'Start with your documents'}</h2>
+      {!locked&&<label className="flow-file-picker">Choose documents<input type="file" multiple disabled={inputLocked} onChange={e=>{const selected=Array.from(e.target.files??[]);setFiles(current=>[...current,...selected]);e.target.value='';}}/><small>PDF, supported images, Word DOCX, Excel XLSX/XLSM and UTF-8 text/CSV.</small></label>}
+      {files.map((file,index)=><div className="flow-upload-file" key={`${file.name}-${index}`}><div><strong>{file.name}</strong><small>Selected · not uploaded yet</small></div><button disabled={disabled} onClick={()=>setFiles(current=>current.filter((_,i)=>i!==index))}>Remove</button></div>)}
+      {batch?.submissions.map(source=>{const result=run?.files.find(f=>f.submission_id===source.id);const resolution=source.resolution;const status=resolution==='SKIPPED'?'Skipped':resolution==='MANUAL'?'Manual replacement':result?.error?'Needs attention':result?.status==='SUCCEEDED'?result.reconciliation?.status==='SUCCEEDED'?'Extraction and comparison complete':'Extraction saved · comparing project records':readable(result?.processing_stage??result?.status??'uploaded');return <div className="flow-upload-file" key={source.id}><div><strong>{source.source.display_filename}</strong><small role="status">{status}</small></div><a href={api.source(batch.id,source.id)} target="_blank" rel="noreferrer">View source</a></div>;})}
+
+
+      {run&&batch&&comparison&&!locked&&<FileRecovery batch={batch} comparison={comparison} run={run} disabled={disabled||reviewEditing||manual||!comparison.input_manifest_current||comparison.database_context_requires_refresh} onAction={(label,task)=>action(label,async()=>{await task();await load(id);})} onManual={(submissionId,runId,label)=>{setManualReplacement({submissionId,runId,label});setManual(true);}}/>}
+      {comparison&&batch&&<details className="flow-analysis-detail"><summary>Inspect saved results and processing details</summary><AnalysisPreview batch={batch} comparison={comparison} run={run}/>{comparison.runs.length>1&&<label>Analysis to review<select value={run?.id??''} disabled={disabled} onChange={e=>setSelectedRun(e.target.value)}>{comparison.runs.map(r=><option key={r.id} value={r.id}>{modelNames[r.model_slot]} · {readable(r.status)}</option>)}</select></label>}</details>}
+      {batch?.context.refresh_required&&<p className="intake-error">Context was restored or changed. Analyse against current records, then explicitly update review. Saved edits remain.</p>}
+            {!locked&&<div className="flow-extra-actions">{batch&&<details><summary>File options</summary><div className="workspace-actions"><button disabled={disabled||!files.length} onClick={()=>void upload()}>Save selected files without analysing</button>{comparison&&<><label className="intake-check"><input type="checkbox" disabled={disabled} checked={reanalyse} onChange={e=>setReanalyse(e.target.checked)}/>Run again instead of reusing saved extraction</label><button disabled={disabled} onClick={()=>void analyse()}>Analyse added files / run again</button></>}<button disabled={disabled} onClick={()=>void action('Checking identical uploads',async()=>{const result=await api.duplicates(batch.id);setDuplicates(result.matches);setNotice(result.matches.length?'Earlier identical uploads found.':'No identical files found in other current batches.');})}>Find earlier uploads</button>{duplicates.map(match=><p key={`${match.batch_id}:${match.submission_id}`}>{match.source_filename} · {match.state.toLowerCase()}<button disabled={disabled} onClick={()=>open(match.batch_id)}>Open earlier batch</button></p>)}</div></details>}</div>}</div><footer className="flow-upload-footer"><small>{batch?`${batch.submissions.length} saved file${batch.submissions.length===1?'':'s'}`:files.length?`${files.length} selected file${files.length===1?'':'s'}`:''}</small><div>{canReview(run)&&comparison?.input_manifest_current&&!comparison.database_context_requires_refresh&&!files.length&&notes===batch?.context.operator_notes?<button className="review-primary" disabled={disabled||reviewEditing||manual} onClick={()=>review?.review.prepared&&review.review.run_id===run?.id?setPhase(2):void startReview()}>{review?'Continue working review':'Review proposed changes'}</button>:<button className="review-primary" disabled={inputLocked||!providers?.enabled||!primary||!files.length&&!batch?.submissions.length} onClick={()=>void analyse()}>{running?'Analysing…':'Analyse documents'}</button>}</div></footer></section>
+      <aside className="flow-context-paper"><div className="review-section"><h3>Project context</h3><label>Associate with<select disabled={!!batch||disabled} value={selectedProject} onChange={e=>setSelectedProject(e.target.value)}><option value="">Let Terra identify projects</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label>Additional context <small>Optional</small><textarea rows={4} disabled={inputLocked} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Anything Terra should know about these files?"/></label></div><div className="review-section"><details><summary>Analysis settings</summary><small>{primary?`Using ${modelNames[primary]}.`:'Choose your primary model in the sandbox before analysing.'}</small>{providers&&!providers.enabled&&<p>Analysis is disabled in local configuration. Saved evidence and reviews remain available.</p>}</details></div></aside></div>
+
+    </>}
+    {(phase===2||manual)&&batch&&(review?.review.prepared||locked||manual?<PreparedReview onPublication={()=>setPhase(3)} onEditingChange={setReviewEditing} batch={batch} view={review} projects={projects} catalogue={catalogue} disabled={disabled} manual={manual} manualReplacement={manualReplacement} onManualClose={()=>{setManual(false);setManualReplacement(null);}} onManualOpen={()=>setManual(true)} onAction={(label,fn)=>action(label,async()=>{await fn();setManual(false);setManualReplacement(null);await load(id);})}/>:<><div className="review-notice"><h3>Saved review preserved</h3><p>This review uses the previous controls. Upgrade explicitly to prepare recommendations without discarding your edits.</p><button disabled={disabled||!run||!canReview(run)} onClick={()=>void startReview()}>Prepare this working review</button></div><DocumentReview onEditingChange={setReviewEditing} batch={batch} analysis={batch.comparisons.flatMap(c=>c.runs).find(r=>r.id===review?.review.run_id)} view={review} projects={projects} catalogue={catalogue} disabled={disabled} manual={manual} onManualClose={()=>setManual(false)} onManualOpen={()=>setManual(true)} onAction={(label,fn)=>action(label,async()=>{await fn();await load(id);})}/></>)}
+    {phase===3&&batch?.review&&<Publication fileApprovals={review?.approvals} disabled={!!busy||reviewEditing||manual} batch={batch} onChanged={refresh} onBusyChange={setPublicationBusy} onMatching={onMatching} onReview={()=>setPhase(2)}/>}
+    <details className="flow-history"><summary>Earlier analyses</summary><details><summary>Open by reference</summary><form onSubmit={e=>{e.preventDefault();if(openId.trim())open(openId);}}><label>Batch ID<input value={openId} onChange={e=>setOpenId(e.target.value)} placeholder="BAT-…"/></label><button disabled={!openId.trim()||disabled}>Open batch</button></form></details><HistoricalAnalyses/></details>
+    {batch&&<TechnicalDetails values={{'Batch ID':batch.id,Revision:batch.revision,State:batch.state}}/>}
+  </div>;
 }

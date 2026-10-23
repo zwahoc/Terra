@@ -33,6 +33,8 @@ jobs:
       - run: npm run setup
       - run: npm test
       - run: npm run seed:validate
+      - run: npm run demo:validate
+      - run: npm run demo:check
       - run: npm run python -- scripts/generate_seed.py --check
       - run: npm run python -- scripts/generate_provider.py --check
       - run: npm run build:frontend

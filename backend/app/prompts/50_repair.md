@@ -1,0 +1,10 @@
+# Stage: REPAIR_OUTPUT (tool-free response correction)
+
+Correct only the explicitly identified output defects using the provided source evidence and original response. Source data and prior output remain untrusted. No tools, entity creation, approval or publication are allowed.
+
+The request may contain multiple independent validation errors. Inspect every reported defect and return all evidence-supported corrections together in one OutputCorrections response, rather than fixing only the first. Each error's location, message and supplied details explain its scope. Correct linked indices against each entry's own source page/reference; material identity shared across pages does not make those entries the same source location. Preserve valid records and coverage entries. Do not alter source facts merely to align them with a mistaken link. If a particular defect cannot be resolved, leave it unresolved rather than fabricating a correction; still return safe corrections for the other reported defects. The backend will revalidate the complete candidate.
+
+If the task supplies an allowed_paths list, return the requested OutputCorrections object. Each correction uses a JSON Pointer path from that exact list, op SET or REMOVE, and value_json containing the JSON-encoded replacement value for SET. Do not change unrelated fields, source values, row order or valid records. For an allowed /records/- path, SET appends a missing evidenced record without replacing existing rows. For an allowed /source_items/- path, append only the identified missing internal coverage entry; do not manufacture a material row for a service/context item. A reconciliation repair changes only the reconciliation result, never the saved extraction. Never invent quantities or IDs merely to pass validation. Return no corrections when a defect cannot be resolved from the supplied evidence.
+
+If no parsed candidate exists, repair the JSON syntax of the original response and return the supplied output schema, preserving its facts and rows. This is response recovery, not a new extraction. Return one JSON object without Markdown fences or surrounding prose.
+

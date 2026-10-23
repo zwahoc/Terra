@@ -1,0 +1,3218 @@
+{
+  "metadata": {
+    "dataset_name": "Terra integrated demo",
+    "version": "1.0.0",
+    "as_of_date": "2026-10-24",
+    "synthetic": true,
+    "disclaimer": "Fictional workflow data and illustrative carbon assumptions, not verified environmental performance."
+  },
+  "projects": [
+    {
+      "id": "PRJ-DEMO-001",
+      "name": "Lakeview Gardens External Works",
+      "code": "LG-EW-P1",
+      "township": "Shah Alam",
+      "location": null,
+      "start_date": "2026-07-26",
+      "target_end_date": "2027-04-22",
+      "status": "ACTIVE",
+      "managing_organisation": "Meridian Civil Works Sdn. Bhd."
+    },
+    {
+      "id": "PRJ-DEMO-002",
+      "name": "Cedar Grove Community Park",
+      "code": "CGP-LW-01",
+      "township": "Klang",
+      "location": null,
+      "start_date": "2026-07-26",
+      "target_end_date": "2027-04-22",
+      "status": "ACTIVE",
+      "managing_organisation": "Crestfield Landscape Sdn. Bhd."
+    },
+    {
+      "id": "PRJ-DEMO-003",
+      "name": "Orchard Link Streetscape",
+      "code": "OL-ST-01",
+      "township": "Shah Alam",
+      "location": null,
+      "start_date": "2026-07-26",
+      "target_end_date": "2027-04-22",
+      "status": "ACTIVE",
+      "managing_organisation": "Orchard Civil Sdn. Bhd."
+    },
+    {
+      "id": "PRJ-DEMO-004",
+      "name": "Willow Lane Pocket Park",
+      "code": "WL-PP-01",
+      "township": "Subang Jaya",
+      "location": null,
+      "start_date": "2026-07-26",
+      "target_end_date": "2027-04-22",
+      "status": "ACTIVE",
+      "managing_organisation": "Willow Construction Sdn. Bhd."
+    }
+  ],
+  "materials": [
+    {
+      "id": "MAT-DEMO-001",
+      "category": "PAVING_BLOCK",
+      "canonical_name": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+      "specifications": {
+        "length_mm": 200,
+        "width_mm": 100,
+        "thickness_mm": 60,
+        "colour": "grey",
+        "finish": "smooth"
+      },
+      "standard_unit": "pcs",
+      "mass_kg_per_unit": 2.5,
+      "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+      "reference_code": "DEMO-SKU-001",
+      "is_synthetic": true
+    },
+    {
+      "id": "MAT-DEMO-002",
+      "category": "PAVING_BLOCK",
+      "canonical_name": "Grey concrete interlocking paver, 200 x 100 x 80 mm",
+      "specifications": {
+        "length_mm": 200,
+        "width_mm": 100,
+        "thickness_mm": 80,
+        "colour": "grey",
+        "finish": "smooth"
+      },
+      "standard_unit": "pcs",
+      "mass_kg_per_unit": 3.4,
+      "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+      "reference_code": "DEMO-SKU-002",
+      "is_synthetic": true
+    },
+    {
+      "id": "MAT-DEMO-003",
+      "category": "BRICK",
+      "canonical_name": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+      "specifications": {
+        "length_mm": 215,
+        "width_mm": 102.5,
+        "height_mm": 65,
+        "material_type": "clay",
+        "strength_mpa": 20
+      },
+      "standard_unit": "pcs",
+      "mass_kg_per_unit": 2.8,
+      "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+      "reference_code": "DEMO-SKU-003",
+      "is_synthetic": true
+    },
+    {
+      "id": "MAT-DEMO-004",
+      "category": "DRAINAGE_PIPE",
+      "canonical_name": "uPVC gravity drainage pipe, 110 mm, SN8",
+      "specifications": {
+        "material_type": "uPVC",
+        "diameter_mm": 110,
+        "stiffness_class": "SN8"
+      },
+      "standard_unit": "m",
+      "mass_kg_per_unit": 1.2,
+      "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+      "reference_code": "DEMO-SKU-004",
+      "is_synthetic": true
+    },
+    {
+      "id": "MAT-DEMO-005",
+      "category": "DRAINAGE_PIPE",
+      "canonical_name": "uPVC gravity drainage pipe, 110 mm, SN4",
+      "specifications": {
+        "material_type": "uPVC",
+        "diameter_mm": 110,
+        "stiffness_class": "SN4"
+      },
+      "standard_unit": "m",
+      "mass_kg_per_unit": 1.0,
+      "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+      "reference_code": "DEMO-SKU-005",
+      "is_synthetic": true
+    },
+    {
+      "id": "MAT-DEMO-006",
+      "category": "REINFORCEMENT",
+      "canonical_name": "Deformed reinforcement bar, 12 mm, B500B",
+      "specifications": {
+        "diameter_mm": 12,
+        "grade": "B500B"
+      },
+      "standard_unit": "kg",
+      "mass_kg_per_unit": 1.0,
+      "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+      "reference_code": "DEMO-SKU-006",
+      "is_synthetic": true
+    },
+    {
+      "id": "MAT-DEMO-007",
+      "category": "CEMENT",
+      "canonical_name": "Portland cement CEM I 42.5 N, sealed 50 kg bag",
+      "specifications": {
+        "cement_type": "CEM I",
+        "strength_class": "42.5 N",
+        "bag_mass_kg": 50,
+        "packaging": "sealed"
+      },
+      "standard_unit": "bag",
+      "mass_kg_per_unit": 50.0,
+      "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+      "reference_code": "DEMO-SKU-007",
+      "is_synthetic": true
+    },
+    {
+      "id": "MAT-DEMO-008",
+      "category": "GEOTEXTILE",
+      "canonical_name": "Non-woven separation geotextile, 200 gsm",
+      "specifications": {
+        "material_type": "non-woven",
+        "mass_gsm": 200,
+        "application": "separation"
+      },
+      "standard_unit": "m2",
+      "mass_kg_per_unit": 0.2,
+      "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+      "reference_code": "DEMO-SKU-008",
+      "is_synthetic": true
+    }
+  ],
+  "documents": [
+    {
+      "id": "DOC-DEMO-001",
+      "project_id": "PRJ-DEMO-001",
+      "document_type": "OTHER",
+      "display_filename": "LG-EW-P1 material register",
+      "file_uri": null,
+      "file_hash": null,
+      "source_availability": "METADATA_ONLY",
+      "processing_status": "SIMULATED",
+      "recorded_at": "2026-10-04T09:00:00+08:00",
+      "is_simulated": true
+    },
+    {
+      "id": "DOC-DEMO-002",
+      "project_id": "PRJ-DEMO-002",
+      "document_type": "OTHER",
+      "display_filename": "CGP-LW-01 material register",
+      "file_uri": null,
+      "file_hash": null,
+      "source_availability": "METADATA_ONLY",
+      "processing_status": "SIMULATED",
+      "recorded_at": "2026-10-04T09:00:00+08:00",
+      "is_simulated": true
+    },
+    {
+      "id": "DOC-DEMO-003",
+      "project_id": "PRJ-DEMO-003",
+      "document_type": "OTHER",
+      "display_filename": "OL-ST-01 material register",
+      "file_uri": null,
+      "file_hash": null,
+      "source_availability": "METADATA_ONLY",
+      "processing_status": "SIMULATED",
+      "recorded_at": "2026-10-04T09:00:00+08:00",
+      "is_simulated": true
+    },
+    {
+      "id": "DOC-DEMO-004",
+      "project_id": "PRJ-DEMO-004",
+      "document_type": "OTHER",
+      "display_filename": "WL-PP-01 material register",
+      "file_uri": null,
+      "file_hash": null,
+      "source_availability": "METADATA_ONLY",
+      "processing_status": "SIMULATED",
+      "recorded_at": "2026-10-04T09:00:00+08:00",
+      "is_simulated": true
+    }
+  ],
+  "extracted_rows": [
+    {
+      "id": "ROW-DEMO-001",
+      "document_id": "DOC-DEMO-001",
+      "source_locator": "Demo register item 1",
+      "raw_description": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+      "raw_quantity": "500",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": 500,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-001",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-002",
+      "document_id": "DOC-DEMO-002",
+      "source_locator": "Demo register item 2",
+      "raw_description": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+      "raw_quantity": "300",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 300,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-001",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-003",
+      "document_id": "DOC-DEMO-001",
+      "source_locator": "Demo register item 3",
+      "raw_description": "Grey concrete interlocking paver, 200 x 100 x 80 mm",
+      "raw_quantity": "250",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": 250,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-002",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-004",
+      "document_id": "DOC-DEMO-002",
+      "source_locator": "Demo register item 4",
+      "raw_description": "Grey concrete interlocking paver, 200 x 100 x 80 mm",
+      "raw_quantity": "100",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 100,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-002",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-005",
+      "document_id": "DOC-DEMO-001",
+      "source_locator": "Demo register item 5",
+      "raw_description": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+      "raw_quantity": "1000",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": 1000,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-003",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-006",
+      "document_id": "DOC-DEMO-002",
+      "source_locator": "Demo register item 6",
+      "raw_description": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+      "raw_quantity": "400",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 400,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-003",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-007",
+      "document_id": "DOC-DEMO-001",
+      "source_locator": "Demo register item 7",
+      "raw_description": "uPVC gravity drainage pipe, 110 mm, SN8",
+      "raw_quantity": "144.5",
+      "raw_unit": "m",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": "144.5",
+        "unit": "m",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-004",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-008",
+      "document_id": "DOC-DEMO-002",
+      "source_locator": "Demo register item 8",
+      "raw_description": "uPVC gravity drainage pipe, 110 mm, SN8",
+      "raw_quantity": "96.5",
+      "raw_unit": "m",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": "96.5",
+        "unit": "m",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-004",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-009",
+      "document_id": "DOC-DEMO-001",
+      "source_locator": "Demo register item 9",
+      "raw_description": "uPVC gravity drainage pipe, 110 mm, SN4",
+      "raw_quantity": "60",
+      "raw_unit": "m",
+      "parsed_fields": {
+        "record_kind": "POTENTIAL_SURPLUS",
+        "quantity": 60,
+        "unit": "m",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-005",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-010",
+      "document_id": "DOC-DEMO-002",
+      "source_locator": "Demo register item 10",
+      "raw_description": "uPVC gravity drainage pipe, 110 mm, SN4",
+      "raw_quantity": "48",
+      "raw_unit": "m",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 48,
+        "unit": "m",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-005",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-011",
+      "document_id": "DOC-DEMO-001",
+      "source_locator": "Demo register item 11",
+      "raw_description": "Deformed reinforcement bar, 12 mm, B500B",
+      "raw_quantity": "1500.5",
+      "raw_unit": "kg",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": "1500.5",
+        "unit": "kg",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-006",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-012",
+      "document_id": "DOC-DEMO-002",
+      "source_locator": "Demo register item 12",
+      "raw_description": "Deformed reinforcement bar, 12 mm, B500B",
+      "raw_quantity": "750.5",
+      "raw_unit": "kg",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": "750.5",
+        "unit": "kg",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-006",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-013",
+      "document_id": "DOC-DEMO-001",
+      "source_locator": "Demo register item 13",
+      "raw_description": "Portland cement CEM I 42.5 N, sealed 50 kg bag",
+      "raw_quantity": "60",
+      "raw_unit": "bag",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": 60,
+        "unit": "bag",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-007",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-014",
+      "document_id": "DOC-DEMO-002",
+      "source_locator": "Demo register item 14",
+      "raw_description": "Portland cement CEM I 42.5 N, sealed 50 kg bag",
+      "raw_quantity": "40",
+      "raw_unit": "bag",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 40,
+        "unit": "bag",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-007",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-015",
+      "document_id": "DOC-DEMO-001",
+      "source_locator": "Demo register item 15",
+      "raw_description": "Non-woven separation geotextile, 200 gsm",
+      "raw_quantity": "300",
+      "raw_unit": "m2",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": 300,
+        "unit": "m2",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-008",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-016",
+      "document_id": "DOC-DEMO-002",
+      "source_locator": "Demo register item 16",
+      "raw_description": "Non-woven separation geotextile, 200 gsm",
+      "raw_quantity": "200",
+      "raw_unit": "m2",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 200,
+        "unit": "m2",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-008",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-017",
+      "document_id": "DOC-DEMO-003",
+      "source_locator": "Demo register item 17",
+      "raw_description": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+      "raw_quantity": "200",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": 200,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-001",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-018",
+      "document_id": "DOC-DEMO-004",
+      "source_locator": "Demo register item 18",
+      "raw_description": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+      "raw_quantity": "200",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 200,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-001",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-019",
+      "document_id": "DOC-DEMO-003",
+      "source_locator": "Demo register item 19",
+      "raw_description": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+      "raw_quantity": "300",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": 300,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-003",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-020",
+      "document_id": "DOC-DEMO-004",
+      "source_locator": "Demo register item 20",
+      "raw_description": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+      "raw_quantity": "300",
+      "raw_unit": "pcs",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 300,
+        "unit": "pcs",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-003",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-021",
+      "document_id": "DOC-DEMO-003",
+      "source_locator": "Demo register item 21",
+      "raw_description": "uPVC gravity drainage pipe, 110 mm, SN8",
+      "raw_quantity": "60",
+      "raw_unit": "m",
+      "parsed_fields": {
+        "record_kind": "CONFIRMED_SURPLUS",
+        "quantity": 60,
+        "unit": "m",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-004",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    },
+    {
+      "id": "ROW-DEMO-022",
+      "document_id": "DOC-DEMO-004",
+      "source_locator": "Demo register item 22",
+      "raw_description": "uPVC gravity drainage pipe, 110 mm, SN8",
+      "raw_quantity": "60",
+      "raw_unit": "m",
+      "parsed_fields": {
+        "record_kind": "OUTSTANDING_DEMAND",
+        "quantity": 60,
+        "unit": "m",
+        "effective_date": "2026-10-04"
+      },
+      "suggested_material_id": "MAT-DEMO-004",
+      "confidence_score": null,
+      "review_status": "ACCEPTED",
+      "review_mode": "DEMO_PREAPPROVED",
+      "is_simulated": true
+    }
+  ],
+  "supply_offers": [
+    {
+      "id": "SUP-DEMO-001",
+      "source_project_id": "PRJ-DEMO-001",
+      "material_id": "MAT-DEMO-001",
+      "origin_document_row_id": "ROW-DEMO-001",
+      "declared_quantity": 500,
+      "confirmed_quantity": 500,
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 100,
+      "unit": "pcs",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-001",
+      "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-001; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-002",
+      "source_project_id": "PRJ-DEMO-001",
+      "material_id": "MAT-DEMO-002",
+      "origin_document_row_id": "ROW-DEMO-003",
+      "declared_quantity": 250,
+      "confirmed_quantity": 250,
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 0,
+      "unit": "pcs",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-29",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-002",
+      "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-003; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-003",
+      "source_project_id": "PRJ-DEMO-001",
+      "material_id": "MAT-DEMO-003",
+      "origin_document_row_id": "ROW-DEMO-005",
+      "declared_quantity": 1000,
+      "confirmed_quantity": 1000,
+      "reserved_active_quantity": 200,
+      "transferred_out_quantity": 0,
+      "unit": "pcs",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-003",
+      "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-005; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-004",
+      "source_project_id": "PRJ-DEMO-001",
+      "material_id": "MAT-DEMO-004",
+      "origin_document_row_id": "ROW-DEMO-007",
+      "declared_quantity": "144.5",
+      "confirmed_quantity": "144.5",
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 24,
+      "unit": "m",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-004",
+      "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-007; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-005",
+      "source_project_id": "PRJ-DEMO-001",
+      "material_id": "MAT-DEMO-005",
+      "origin_document_row_id": "ROW-DEMO-009",
+      "declared_quantity": 60,
+      "confirmed_quantity": null,
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 0,
+      "unit": "m",
+      "surplus_status": "POTENTIAL",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-005",
+      "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-009; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-006",
+      "source_project_id": "PRJ-DEMO-001",
+      "material_id": "MAT-DEMO-006",
+      "origin_document_row_id": "ROW-DEMO-011",
+      "declared_quantity": "1500.5",
+      "confirmed_quantity": "1500.5",
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 100,
+      "unit": "kg",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-006",
+      "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-011; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-007",
+      "source_project_id": "PRJ-DEMO-001",
+      "material_id": "MAT-DEMO-007",
+      "origin_document_row_id": "ROW-DEMO-013",
+      "declared_quantity": 60,
+      "confirmed_quantity": 60,
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 10,
+      "unit": "bag",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-007",
+      "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-013; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-008",
+      "source_project_id": "PRJ-DEMO-001",
+      "material_id": "MAT-DEMO-008",
+      "origin_document_row_id": "ROW-DEMO-015",
+      "declared_quantity": 300,
+      "confirmed_quantity": 300,
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 0,
+      "unit": "m2",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-008",
+      "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-015; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-009",
+      "source_project_id": "PRJ-DEMO-003",
+      "material_id": "MAT-DEMO-001",
+      "origin_document_row_id": "ROW-DEMO-017",
+      "declared_quantity": 200,
+      "confirmed_quantity": 200,
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 0,
+      "unit": "pcs",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-009",
+      "material_owner_label": "Orchard Civil Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-017; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-010",
+      "source_project_id": "PRJ-DEMO-003",
+      "material_id": "MAT-DEMO-003",
+      "origin_document_row_id": "ROW-DEMO-019",
+      "declared_quantity": 300,
+      "confirmed_quantity": 300,
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 0,
+      "unit": "pcs",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-010",
+      "material_owner_label": "Orchard Civil Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-019; no real inspection"
+      ]
+    },
+    {
+      "id": "SUP-DEMO-011",
+      "source_project_id": "PRJ-DEMO-003",
+      "material_id": "MAT-DEMO-004",
+      "origin_document_row_id": "ROW-DEMO-021",
+      "declared_quantity": 60,
+      "confirmed_quantity": 60,
+      "reserved_active_quantity": 0,
+      "transferred_out_quantity": 0,
+      "unit": "m",
+      "surplus_status": "CONFIRMED",
+      "condition": "UNUSED",
+      "available_from": "2026-10-04",
+      "available_until": "2026-12-23",
+      "batch_or_lot_code": "LOT-DEMO-011",
+      "material_owner_label": "Orchard Civil Sdn. Bhd.",
+      "evidence_refs": [
+        "Demo register release ROW-DEMO-021; no real inspection"
+      ]
+    }
+  ],
+  "demand_requests": [
+    {
+      "id": "DEM-DEMO-001",
+      "destination_project_id": "PRJ-DEMO-002",
+      "material_id": "MAT-DEMO-001",
+      "origin_document_row_id": "ROW-DEMO-002",
+      "required_quantity": 300,
+      "fulfilled_quantity": 100,
+      "unit": "pcs",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-002",
+      "destination_project_id": "PRJ-DEMO-002",
+      "material_id": "MAT-DEMO-002",
+      "origin_document_row_id": "ROW-DEMO-004",
+      "required_quantity": 100,
+      "fulfilled_quantity": 0,
+      "unit": "pcs",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-003",
+      "destination_project_id": "PRJ-DEMO-002",
+      "material_id": "MAT-DEMO-003",
+      "origin_document_row_id": "ROW-DEMO-006",
+      "required_quantity": 400,
+      "fulfilled_quantity": 0,
+      "unit": "pcs",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-004",
+      "destination_project_id": "PRJ-DEMO-002",
+      "material_id": "MAT-DEMO-004",
+      "origin_document_row_id": "ROW-DEMO-008",
+      "required_quantity": "96.5",
+      "fulfilled_quantity": 0,
+      "unit": "m",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-005",
+      "destination_project_id": "PRJ-DEMO-002",
+      "material_id": "MAT-DEMO-005",
+      "origin_document_row_id": "ROW-DEMO-010",
+      "required_quantity": 48,
+      "fulfilled_quantity": 0,
+      "unit": "m",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-006",
+      "destination_project_id": "PRJ-DEMO-002",
+      "material_id": "MAT-DEMO-006",
+      "origin_document_row_id": "ROW-DEMO-012",
+      "required_quantity": "750.5",
+      "fulfilled_quantity": 50,
+      "unit": "kg",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-007",
+      "destination_project_id": "PRJ-DEMO-002",
+      "material_id": "MAT-DEMO-007",
+      "origin_document_row_id": "ROW-DEMO-014",
+      "required_quantity": 40,
+      "fulfilled_quantity": 0,
+      "unit": "bag",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-008",
+      "destination_project_id": "PRJ-DEMO-002",
+      "material_id": "MAT-DEMO-008",
+      "origin_document_row_id": "ROW-DEMO-016",
+      "required_quantity": 200,
+      "fulfilled_quantity": 0,
+      "unit": "m2",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-009",
+      "destination_project_id": "PRJ-DEMO-004",
+      "material_id": "MAT-DEMO-001",
+      "origin_document_row_id": "ROW-DEMO-018",
+      "required_quantity": 200,
+      "fulfilled_quantity": 0,
+      "unit": "pcs",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-010",
+      "destination_project_id": "PRJ-DEMO-004",
+      "material_id": "MAT-DEMO-003",
+      "origin_document_row_id": "ROW-DEMO-020",
+      "required_quantity": 300,
+      "fulfilled_quantity": 0,
+      "unit": "pcs",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    },
+    {
+      "id": "DEM-DEMO-011",
+      "destination_project_id": "PRJ-DEMO-004",
+      "material_id": "MAT-DEMO-004",
+      "origin_document_row_id": "ROW-DEMO-022",
+      "required_quantity": 60,
+      "fulfilled_quantity": 0,
+      "unit": "m",
+      "needed_from": "2026-10-09",
+      "required_by": "2026-11-23",
+      "request_status": "OPEN",
+      "is_outstanding_need_confirmed": true
+    }
+  ],
+  "route_distances": [
+    {
+      "id": "RTE-DEMO-001",
+      "from_project_id": "PRJ-DEMO-001",
+      "to_project_id": "PRJ-DEMO-002",
+      "distance_km": 25.0,
+      "assumption_type": "SIMULATED_ROAD_DISTANCE",
+      "transport_mode": "ROAD_FREIGHT",
+      "is_synthetic": true
+    },
+    {
+      "id": "RTE-DEMO-002",
+      "from_project_id": "PRJ-DEMO-001",
+      "to_project_id": "PRJ-DEMO-003",
+      "distance_km": 8.0,
+      "assumption_type": "SIMULATED_ROAD_DISTANCE",
+      "transport_mode": "ROAD_FREIGHT",
+      "is_synthetic": true
+    },
+    {
+      "id": "RTE-DEMO-003",
+      "from_project_id": "PRJ-DEMO-001",
+      "to_project_id": "PRJ-DEMO-004",
+      "distance_km": 35.0,
+      "assumption_type": "SIMULATED_ROAD_DISTANCE",
+      "transport_mode": "ROAD_FREIGHT",
+      "is_synthetic": true
+    },
+    {
+      "id": "RTE-DEMO-004",
+      "from_project_id": "PRJ-DEMO-002",
+      "to_project_id": "PRJ-DEMO-003",
+      "distance_km": 30.0,
+      "assumption_type": "SIMULATED_ROAD_DISTANCE",
+      "transport_mode": "ROAD_FREIGHT",
+      "is_synthetic": true
+    },
+    {
+      "id": "RTE-DEMO-005",
+      "from_project_id": "PRJ-DEMO-002",
+      "to_project_id": "PRJ-DEMO-004",
+      "distance_km": 18.0,
+      "assumption_type": "SIMULATED_ROAD_DISTANCE",
+      "transport_mode": "ROAD_FREIGHT",
+      "is_synthetic": true
+    },
+    {
+      "id": "RTE-DEMO-006",
+      "from_project_id": "PRJ-DEMO-003",
+      "to_project_id": "PRJ-DEMO-004",
+      "distance_km": 28.0,
+      "assumption_type": "SIMULATED_ROAD_DISTANCE",
+      "transport_mode": "ROAD_FREIGHT",
+      "is_synthetic": true
+    }
+  ],
+  "optimisation_runs": [
+    {
+      "id": "RUN-DEMO-HISTORY",
+      "created_at": "2026-10-10T08:00:00+08:00",
+      "objective": "MAX_REUSE",
+      "input_snapshot": {
+        "projects": [
+          {
+            "id": "PRJ-DEMO-001",
+            "name": "Lakeview Gardens External Works",
+            "code": "LG-EW-P1",
+            "township": "Shah Alam",
+            "location": null,
+            "start_date": "2026-07-26",
+            "target_end_date": "2027-04-22",
+            "status": "ACTIVE",
+            "managing_organisation": "Meridian Civil Works Sdn. Bhd."
+          },
+          {
+            "id": "PRJ-DEMO-002",
+            "name": "Cedar Grove Community Park",
+            "code": "CGP-LW-01",
+            "township": "Klang",
+            "location": null,
+            "start_date": "2026-07-26",
+            "target_end_date": "2027-04-22",
+            "status": "ACTIVE",
+            "managing_organisation": "Crestfield Landscape Sdn. Bhd."
+          },
+          {
+            "id": "PRJ-DEMO-003",
+            "name": "Orchard Link Streetscape",
+            "code": "OL-ST-01",
+            "township": "Shah Alam",
+            "location": null,
+            "start_date": "2026-07-26",
+            "target_end_date": "2027-04-22",
+            "status": "ACTIVE",
+            "managing_organisation": "Orchard Civil Sdn. Bhd."
+          },
+          {
+            "id": "PRJ-DEMO-004",
+            "name": "Willow Lane Pocket Park",
+            "code": "WL-PP-01",
+            "township": "Subang Jaya",
+            "location": null,
+            "start_date": "2026-07-26",
+            "target_end_date": "2027-04-22",
+            "status": "ACTIVE",
+            "managing_organisation": "Willow Construction Sdn. Bhd."
+          }
+        ],
+        "materials": [
+          {
+            "id": "MAT-DEMO-001",
+            "category": "PAVING_BLOCK",
+            "canonical_name": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+            "specifications": {
+              "length_mm": 200,
+              "width_mm": 100,
+              "thickness_mm": 60,
+              "colour": "grey",
+              "finish": "smooth"
+            },
+            "standard_unit": "pcs",
+            "mass_kg_per_unit": 2.5,
+            "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+            "reference_code": "DEMO-SKU-001",
+            "is_synthetic": true
+          },
+          {
+            "id": "MAT-DEMO-002",
+            "category": "PAVING_BLOCK",
+            "canonical_name": "Grey concrete interlocking paver, 200 x 100 x 80 mm",
+            "specifications": {
+              "length_mm": 200,
+              "width_mm": 100,
+              "thickness_mm": 80,
+              "colour": "grey",
+              "finish": "smooth"
+            },
+            "standard_unit": "pcs",
+            "mass_kg_per_unit": 3.4,
+            "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+            "reference_code": "DEMO-SKU-002",
+            "is_synthetic": true
+          },
+          {
+            "id": "MAT-DEMO-003",
+            "category": "BRICK",
+            "canonical_name": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+            "specifications": {
+              "length_mm": 215,
+              "width_mm": 102.5,
+              "height_mm": 65,
+              "material_type": "clay",
+              "strength_mpa": 20
+            },
+            "standard_unit": "pcs",
+            "mass_kg_per_unit": 2.8,
+            "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+            "reference_code": "DEMO-SKU-003",
+            "is_synthetic": true
+          },
+          {
+            "id": "MAT-DEMO-004",
+            "category": "DRAINAGE_PIPE",
+            "canonical_name": "uPVC gravity drainage pipe, 110 mm, SN8",
+            "specifications": {
+              "material_type": "uPVC",
+              "diameter_mm": 110,
+              "stiffness_class": "SN8"
+            },
+            "standard_unit": "m",
+            "mass_kg_per_unit": 1.2,
+            "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+            "reference_code": "DEMO-SKU-004",
+            "is_synthetic": true
+          },
+          {
+            "id": "MAT-DEMO-005",
+            "category": "DRAINAGE_PIPE",
+            "canonical_name": "uPVC gravity drainage pipe, 110 mm, SN4",
+            "specifications": {
+              "material_type": "uPVC",
+              "diameter_mm": 110,
+              "stiffness_class": "SN4"
+            },
+            "standard_unit": "m",
+            "mass_kg_per_unit": 1.0,
+            "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+            "reference_code": "DEMO-SKU-005",
+            "is_synthetic": true
+          },
+          {
+            "id": "MAT-DEMO-006",
+            "category": "REINFORCEMENT",
+            "canonical_name": "Deformed reinforcement bar, 12 mm, B500B",
+            "specifications": {
+              "diameter_mm": 12,
+              "grade": "B500B"
+            },
+            "standard_unit": "kg",
+            "mass_kg_per_unit": 1.0,
+            "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+            "reference_code": "DEMO-SKU-006",
+            "is_synthetic": true
+          },
+          {
+            "id": "MAT-DEMO-007",
+            "category": "CEMENT",
+            "canonical_name": "Portland cement CEM I 42.5 N, sealed 50 kg bag",
+            "specifications": {
+              "cement_type": "CEM I",
+              "strength_class": "42.5 N",
+              "bag_mass_kg": 50,
+              "packaging": "sealed"
+            },
+            "standard_unit": "bag",
+            "mass_kg_per_unit": 50.0,
+            "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+            "reference_code": "DEMO-SKU-007",
+            "is_synthetic": true
+          },
+          {
+            "id": "MAT-DEMO-008",
+            "category": "GEOTEXTILE",
+            "canonical_name": "Non-woven separation geotextile, 200 gsm",
+            "specifications": {
+              "material_type": "non-woven",
+              "mass_gsm": 200,
+              "application": "separation"
+            },
+            "standard_unit": "m2",
+            "mass_kg_per_unit": 0.2,
+            "mass_source": "Declared fictional demo weight; not a manufacturer measurement",
+            "reference_code": "DEMO-SKU-008",
+            "is_synthetic": true
+          }
+        ],
+        "documents": [
+          {
+            "id": "DOC-DEMO-001",
+            "project_id": "PRJ-DEMO-001",
+            "document_type": "OTHER",
+            "display_filename": "LG-EW-P1 material register",
+            "file_uri": null,
+            "file_hash": null,
+            "source_availability": "METADATA_ONLY",
+            "processing_status": "SIMULATED",
+            "recorded_at": "2026-10-04T09:00:00+08:00",
+            "is_simulated": true
+          },
+          {
+            "id": "DOC-DEMO-002",
+            "project_id": "PRJ-DEMO-002",
+            "document_type": "OTHER",
+            "display_filename": "CGP-LW-01 material register",
+            "file_uri": null,
+            "file_hash": null,
+            "source_availability": "METADATA_ONLY",
+            "processing_status": "SIMULATED",
+            "recorded_at": "2026-10-04T09:00:00+08:00",
+            "is_simulated": true
+          },
+          {
+            "id": "DOC-DEMO-003",
+            "project_id": "PRJ-DEMO-003",
+            "document_type": "OTHER",
+            "display_filename": "OL-ST-01 material register",
+            "file_uri": null,
+            "file_hash": null,
+            "source_availability": "METADATA_ONLY",
+            "processing_status": "SIMULATED",
+            "recorded_at": "2026-10-04T09:00:00+08:00",
+            "is_simulated": true
+          },
+          {
+            "id": "DOC-DEMO-004",
+            "project_id": "PRJ-DEMO-004",
+            "document_type": "OTHER",
+            "display_filename": "WL-PP-01 material register",
+            "file_uri": null,
+            "file_hash": null,
+            "source_availability": "METADATA_ONLY",
+            "processing_status": "SIMULATED",
+            "recorded_at": "2026-10-04T09:00:00+08:00",
+            "is_simulated": true
+          }
+        ],
+        "extracted_rows": [
+          {
+            "id": "ROW-DEMO-001",
+            "document_id": "DOC-DEMO-001",
+            "source_locator": "Demo register item 1",
+            "raw_description": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+            "raw_quantity": "500",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": 500,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-001",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-002",
+            "document_id": "DOC-DEMO-002",
+            "source_locator": "Demo register item 2",
+            "raw_description": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+            "raw_quantity": "300",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 300,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-001",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-003",
+            "document_id": "DOC-DEMO-001",
+            "source_locator": "Demo register item 3",
+            "raw_description": "Grey concrete interlocking paver, 200 x 100 x 80 mm",
+            "raw_quantity": "250",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": 250,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-002",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-004",
+            "document_id": "DOC-DEMO-002",
+            "source_locator": "Demo register item 4",
+            "raw_description": "Grey concrete interlocking paver, 200 x 100 x 80 mm",
+            "raw_quantity": "100",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 100,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-002",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-005",
+            "document_id": "DOC-DEMO-001",
+            "source_locator": "Demo register item 5",
+            "raw_description": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+            "raw_quantity": "1000",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": 1000,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-003",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-006",
+            "document_id": "DOC-DEMO-002",
+            "source_locator": "Demo register item 6",
+            "raw_description": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+            "raw_quantity": "400",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 400,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-003",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-007",
+            "document_id": "DOC-DEMO-001",
+            "source_locator": "Demo register item 7",
+            "raw_description": "uPVC gravity drainage pipe, 110 mm, SN8",
+            "raw_quantity": "144.5",
+            "raw_unit": "m",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": "144.5",
+              "unit": "m",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-004",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-008",
+            "document_id": "DOC-DEMO-002",
+            "source_locator": "Demo register item 8",
+            "raw_description": "uPVC gravity drainage pipe, 110 mm, SN8",
+            "raw_quantity": "96.5",
+            "raw_unit": "m",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": "96.5",
+              "unit": "m",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-004",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-009",
+            "document_id": "DOC-DEMO-001",
+            "source_locator": "Demo register item 9",
+            "raw_description": "uPVC gravity drainage pipe, 110 mm, SN4",
+            "raw_quantity": "60",
+            "raw_unit": "m",
+            "parsed_fields": {
+              "record_kind": "POTENTIAL_SURPLUS",
+              "quantity": 60,
+              "unit": "m",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-005",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-010",
+            "document_id": "DOC-DEMO-002",
+            "source_locator": "Demo register item 10",
+            "raw_description": "uPVC gravity drainage pipe, 110 mm, SN4",
+            "raw_quantity": "48",
+            "raw_unit": "m",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 48,
+              "unit": "m",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-005",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-011",
+            "document_id": "DOC-DEMO-001",
+            "source_locator": "Demo register item 11",
+            "raw_description": "Deformed reinforcement bar, 12 mm, B500B",
+            "raw_quantity": "1500.5",
+            "raw_unit": "kg",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": "1500.5",
+              "unit": "kg",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-006",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-012",
+            "document_id": "DOC-DEMO-002",
+            "source_locator": "Demo register item 12",
+            "raw_description": "Deformed reinforcement bar, 12 mm, B500B",
+            "raw_quantity": "750.5",
+            "raw_unit": "kg",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": "750.5",
+              "unit": "kg",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-006",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-013",
+            "document_id": "DOC-DEMO-001",
+            "source_locator": "Demo register item 13",
+            "raw_description": "Portland cement CEM I 42.5 N, sealed 50 kg bag",
+            "raw_quantity": "60",
+            "raw_unit": "bag",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": 60,
+              "unit": "bag",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-007",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-014",
+            "document_id": "DOC-DEMO-002",
+            "source_locator": "Demo register item 14",
+            "raw_description": "Portland cement CEM I 42.5 N, sealed 50 kg bag",
+            "raw_quantity": "40",
+            "raw_unit": "bag",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 40,
+              "unit": "bag",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-007",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-015",
+            "document_id": "DOC-DEMO-001",
+            "source_locator": "Demo register item 15",
+            "raw_description": "Non-woven separation geotextile, 200 gsm",
+            "raw_quantity": "300",
+            "raw_unit": "m2",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": 300,
+              "unit": "m2",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-008",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-016",
+            "document_id": "DOC-DEMO-002",
+            "source_locator": "Demo register item 16",
+            "raw_description": "Non-woven separation geotextile, 200 gsm",
+            "raw_quantity": "200",
+            "raw_unit": "m2",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 200,
+              "unit": "m2",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-008",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-017",
+            "document_id": "DOC-DEMO-003",
+            "source_locator": "Demo register item 17",
+            "raw_description": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+            "raw_quantity": "200",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": 200,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-001",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-018",
+            "document_id": "DOC-DEMO-004",
+            "source_locator": "Demo register item 18",
+            "raw_description": "Grey concrete interlocking paver, 200 x 100 x 60 mm",
+            "raw_quantity": "200",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 200,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-001",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-019",
+            "document_id": "DOC-DEMO-003",
+            "source_locator": "Demo register item 19",
+            "raw_description": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+            "raw_quantity": "300",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": 300,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-003",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-020",
+            "document_id": "DOC-DEMO-004",
+            "source_locator": "Demo register item 20",
+            "raw_description": "Red fired-clay masonry brick, 215 x 102.5 x 65 mm, 20 MPa",
+            "raw_quantity": "300",
+            "raw_unit": "pcs",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 300,
+              "unit": "pcs",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-003",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-021",
+            "document_id": "DOC-DEMO-003",
+            "source_locator": "Demo register item 21",
+            "raw_description": "uPVC gravity drainage pipe, 110 mm, SN8",
+            "raw_quantity": "60",
+            "raw_unit": "m",
+            "parsed_fields": {
+              "record_kind": "CONFIRMED_SURPLUS",
+              "quantity": 60,
+              "unit": "m",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-004",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          },
+          {
+            "id": "ROW-DEMO-022",
+            "document_id": "DOC-DEMO-004",
+            "source_locator": "Demo register item 22",
+            "raw_description": "uPVC gravity drainage pipe, 110 mm, SN8",
+            "raw_quantity": "60",
+            "raw_unit": "m",
+            "parsed_fields": {
+              "record_kind": "OUTSTANDING_DEMAND",
+              "quantity": 60,
+              "unit": "m",
+              "effective_date": "2026-10-04"
+            },
+            "suggested_material_id": "MAT-DEMO-004",
+            "confidence_score": null,
+            "review_status": "ACCEPTED",
+            "review_mode": "DEMO_PREAPPROVED",
+            "is_simulated": true
+          }
+        ],
+        "supply_offers": [
+          {
+            "id": "SUP-DEMO-001",
+            "source_project_id": "PRJ-DEMO-001",
+            "material_id": "MAT-DEMO-001",
+            "origin_document_row_id": "ROW-DEMO-001",
+            "declared_quantity": 500,
+            "confirmed_quantity": 500,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "pcs",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-001",
+            "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-001; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-002",
+            "source_project_id": "PRJ-DEMO-001",
+            "material_id": "MAT-DEMO-002",
+            "origin_document_row_id": "ROW-DEMO-003",
+            "declared_quantity": 250,
+            "confirmed_quantity": 250,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "pcs",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-29",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-002",
+            "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-003; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-003",
+            "source_project_id": "PRJ-DEMO-001",
+            "material_id": "MAT-DEMO-003",
+            "origin_document_row_id": "ROW-DEMO-005",
+            "declared_quantity": 1000,
+            "confirmed_quantity": 1000,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "pcs",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-003",
+            "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-005; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-004",
+            "source_project_id": "PRJ-DEMO-001",
+            "material_id": "MAT-DEMO-004",
+            "origin_document_row_id": "ROW-DEMO-007",
+            "declared_quantity": "144.5",
+            "confirmed_quantity": "144.5",
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "m",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-004",
+            "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-007; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-005",
+            "source_project_id": "PRJ-DEMO-001",
+            "material_id": "MAT-DEMO-005",
+            "origin_document_row_id": "ROW-DEMO-009",
+            "declared_quantity": 60,
+            "confirmed_quantity": null,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "m",
+            "surplus_status": "POTENTIAL",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-005",
+            "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-009; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-006",
+            "source_project_id": "PRJ-DEMO-001",
+            "material_id": "MAT-DEMO-006",
+            "origin_document_row_id": "ROW-DEMO-011",
+            "declared_quantity": "1500.5",
+            "confirmed_quantity": "1500.5",
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "kg",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-006",
+            "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-011; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-007",
+            "source_project_id": "PRJ-DEMO-001",
+            "material_id": "MAT-DEMO-007",
+            "origin_document_row_id": "ROW-DEMO-013",
+            "declared_quantity": 60,
+            "confirmed_quantity": 60,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "bag",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-007",
+            "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-013; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-008",
+            "source_project_id": "PRJ-DEMO-001",
+            "material_id": "MAT-DEMO-008",
+            "origin_document_row_id": "ROW-DEMO-015",
+            "declared_quantity": 300,
+            "confirmed_quantity": 300,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "m2",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-008",
+            "material_owner_label": "Meridian Civil Works Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-015; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-009",
+            "source_project_id": "PRJ-DEMO-003",
+            "material_id": "MAT-DEMO-001",
+            "origin_document_row_id": "ROW-DEMO-017",
+            "declared_quantity": 200,
+            "confirmed_quantity": 200,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "pcs",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-009",
+            "material_owner_label": "Orchard Civil Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-017; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-010",
+            "source_project_id": "PRJ-DEMO-003",
+            "material_id": "MAT-DEMO-003",
+            "origin_document_row_id": "ROW-DEMO-019",
+            "declared_quantity": 300,
+            "confirmed_quantity": 300,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "pcs",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-010",
+            "material_owner_label": "Orchard Civil Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-019; no real inspection"
+            ]
+          },
+          {
+            "id": "SUP-DEMO-011",
+            "source_project_id": "PRJ-DEMO-003",
+            "material_id": "MAT-DEMO-004",
+            "origin_document_row_id": "ROW-DEMO-021",
+            "declared_quantity": 60,
+            "confirmed_quantity": 60,
+            "reserved_active_quantity": 0,
+            "transferred_out_quantity": 0,
+            "unit": "m",
+            "surplus_status": "CONFIRMED",
+            "condition": "UNUSED",
+            "available_from": "2026-10-04",
+            "available_until": "2026-12-23",
+            "batch_or_lot_code": "LOT-DEMO-011",
+            "material_owner_label": "Orchard Civil Sdn. Bhd.",
+            "evidence_refs": [
+              "Demo register release ROW-DEMO-021; no real inspection"
+            ]
+          }
+        ],
+        "demand_requests": [
+          {
+            "id": "DEM-DEMO-001",
+            "destination_project_id": "PRJ-DEMO-002",
+            "material_id": "MAT-DEMO-001",
+            "origin_document_row_id": "ROW-DEMO-002",
+            "required_quantity": 300,
+            "fulfilled_quantity": 0,
+            "unit": "pcs",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-002",
+            "destination_project_id": "PRJ-DEMO-002",
+            "material_id": "MAT-DEMO-002",
+            "origin_document_row_id": "ROW-DEMO-004",
+            "required_quantity": 100,
+            "fulfilled_quantity": 0,
+            "unit": "pcs",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-003",
+            "destination_project_id": "PRJ-DEMO-002",
+            "material_id": "MAT-DEMO-003",
+            "origin_document_row_id": "ROW-DEMO-006",
+            "required_quantity": 400,
+            "fulfilled_quantity": 0,
+            "unit": "pcs",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-004",
+            "destination_project_id": "PRJ-DEMO-002",
+            "material_id": "MAT-DEMO-004",
+            "origin_document_row_id": "ROW-DEMO-008",
+            "required_quantity": "96.5",
+            "fulfilled_quantity": 0,
+            "unit": "m",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-005",
+            "destination_project_id": "PRJ-DEMO-002",
+            "material_id": "MAT-DEMO-005",
+            "origin_document_row_id": "ROW-DEMO-010",
+            "required_quantity": 48,
+            "fulfilled_quantity": 0,
+            "unit": "m",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-006",
+            "destination_project_id": "PRJ-DEMO-002",
+            "material_id": "MAT-DEMO-006",
+            "origin_document_row_id": "ROW-DEMO-012",
+            "required_quantity": "750.5",
+            "fulfilled_quantity": 0,
+            "unit": "kg",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-007",
+            "destination_project_id": "PRJ-DEMO-002",
+            "material_id": "MAT-DEMO-007",
+            "origin_document_row_id": "ROW-DEMO-014",
+            "required_quantity": 40,
+            "fulfilled_quantity": 0,
+            "unit": "bag",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-008",
+            "destination_project_id": "PRJ-DEMO-002",
+            "material_id": "MAT-DEMO-008",
+            "origin_document_row_id": "ROW-DEMO-016",
+            "required_quantity": 200,
+            "fulfilled_quantity": 0,
+            "unit": "m2",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-009",
+            "destination_project_id": "PRJ-DEMO-004",
+            "material_id": "MAT-DEMO-001",
+            "origin_document_row_id": "ROW-DEMO-018",
+            "required_quantity": 200,
+            "fulfilled_quantity": 0,
+            "unit": "pcs",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-010",
+            "destination_project_id": "PRJ-DEMO-004",
+            "material_id": "MAT-DEMO-003",
+            "origin_document_row_id": "ROW-DEMO-020",
+            "required_quantity": 300,
+            "fulfilled_quantity": 0,
+            "unit": "pcs",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          },
+          {
+            "id": "DEM-DEMO-011",
+            "destination_project_id": "PRJ-DEMO-004",
+            "material_id": "MAT-DEMO-004",
+            "origin_document_row_id": "ROW-DEMO-022",
+            "required_quantity": 60,
+            "fulfilled_quantity": 0,
+            "unit": "m",
+            "needed_from": "2026-10-09",
+            "required_by": "2026-11-23",
+            "request_status": "OPEN",
+            "is_outstanding_need_confirmed": true
+          }
+        ],
+        "route_distances": [
+          {
+            "id": "RTE-DEMO-001",
+            "from_project_id": "PRJ-DEMO-001",
+            "to_project_id": "PRJ-DEMO-002",
+            "distance_km": 25.0,
+            "assumption_type": "SIMULATED_ROAD_DISTANCE",
+            "transport_mode": "ROAD_FREIGHT",
+            "is_synthetic": true
+          },
+          {
+            "id": "RTE-DEMO-002",
+            "from_project_id": "PRJ-DEMO-001",
+            "to_project_id": "PRJ-DEMO-003",
+            "distance_km": 8.0,
+            "assumption_type": "SIMULATED_ROAD_DISTANCE",
+            "transport_mode": "ROAD_FREIGHT",
+            "is_synthetic": true
+          },
+          {
+            "id": "RTE-DEMO-003",
+            "from_project_id": "PRJ-DEMO-001",
+            "to_project_id": "PRJ-DEMO-004",
+            "distance_km": 35.0,
+            "assumption_type": "SIMULATED_ROAD_DISTANCE",
+            "transport_mode": "ROAD_FREIGHT",
+            "is_synthetic": true
+          },
+          {
+            "id": "RTE-DEMO-004",
+            "from_project_id": "PRJ-DEMO-002",
+            "to_project_id": "PRJ-DEMO-003",
+            "distance_km": 30.0,
+            "assumption_type": "SIMULATED_ROAD_DISTANCE",
+            "transport_mode": "ROAD_FREIGHT",
+            "is_synthetic": true
+          },
+          {
+            "id": "RTE-DEMO-005",
+            "from_project_id": "PRJ-DEMO-002",
+            "to_project_id": "PRJ-DEMO-004",
+            "distance_km": 18.0,
+            "assumption_type": "SIMULATED_ROAD_DISTANCE",
+            "transport_mode": "ROAD_FREIGHT",
+            "is_synthetic": true
+          },
+          {
+            "id": "RTE-DEMO-006",
+            "from_project_id": "PRJ-DEMO-003",
+            "to_project_id": "PRJ-DEMO-004",
+            "distance_km": 28.0,
+            "assumption_type": "SIMULATED_ROAD_DISTANCE",
+            "transport_mode": "ROAD_FREIGHT",
+            "is_synthetic": true
+          }
+        ],
+        "optimisation_runs": [],
+        "allocation_proposals": [],
+        "transfers": [],
+        "transfer_events": [],
+        "emission_factors": [
+          {
+            "id": "EF-DEMO-001-NEW_MATERIAL_PRODUCTION",
+            "factor_type": "NEW_MATERIAL_PRODUCTION",
+            "material_id": "MAT-DEMO-001",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.75,
+            "unit": "kgCO2e/pcs",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-001-PROCESSING",
+            "factor_type": "PROCESSING",
+            "material_id": "MAT-DEMO-001",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.02,
+            "unit": "kgCO2e/pcs",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-002-NEW_MATERIAL_PRODUCTION",
+            "factor_type": "NEW_MATERIAL_PRODUCTION",
+            "material_id": "MAT-DEMO-002",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.95,
+            "unit": "kgCO2e/pcs",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-002-PROCESSING",
+            "factor_type": "PROCESSING",
+            "material_id": "MAT-DEMO-002",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.02,
+            "unit": "kgCO2e/pcs",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-003-NEW_MATERIAL_PRODUCTION",
+            "factor_type": "NEW_MATERIAL_PRODUCTION",
+            "material_id": "MAT-DEMO-003",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.55,
+            "unit": "kgCO2e/pcs",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-003-PROCESSING",
+            "factor_type": "PROCESSING",
+            "material_id": "MAT-DEMO-003",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.02,
+            "unit": "kgCO2e/pcs",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-004-NEW_MATERIAL_PRODUCTION",
+            "factor_type": "NEW_MATERIAL_PRODUCTION",
+            "material_id": "MAT-DEMO-004",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 2.4,
+            "unit": "kgCO2e/m",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-004-PROCESSING",
+            "factor_type": "PROCESSING",
+            "material_id": "MAT-DEMO-004",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.03,
+            "unit": "kgCO2e/m",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-005-NEW_MATERIAL_PRODUCTION",
+            "factor_type": "NEW_MATERIAL_PRODUCTION",
+            "material_id": "MAT-DEMO-005",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 2.0,
+            "unit": "kgCO2e/m",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-005-PROCESSING",
+            "factor_type": "PROCESSING",
+            "material_id": "MAT-DEMO-005",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.03,
+            "unit": "kgCO2e/m",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-006-NEW_MATERIAL_PRODUCTION",
+            "factor_type": "NEW_MATERIAL_PRODUCTION",
+            "material_id": "MAT-DEMO-006",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 1.8,
+            "unit": "kgCO2e/kg",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-006-PROCESSING",
+            "factor_type": "PROCESSING",
+            "material_id": "MAT-DEMO-006",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.01,
+            "unit": "kgCO2e/kg",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-007-NEW_MATERIAL_PRODUCTION",
+            "factor_type": "NEW_MATERIAL_PRODUCTION",
+            "material_id": "MAT-DEMO-007",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 40.0,
+            "unit": "kgCO2e/bag",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-007-PROCESSING",
+            "factor_type": "PROCESSING",
+            "material_id": "MAT-DEMO-007",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.2,
+            "unit": "kgCO2e/bag",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-008-NEW_MATERIAL_PRODUCTION",
+            "factor_type": "NEW_MATERIAL_PRODUCTION",
+            "material_id": "MAT-DEMO-008",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.6,
+            "unit": "kgCO2e/m2",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-008-PROCESSING",
+            "factor_type": "PROCESSING",
+            "material_id": "MAT-DEMO-008",
+            "material_category": null,
+            "transport_mode": null,
+            "value": 0.01,
+            "unit": "kgCO2e/m2",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          },
+          {
+            "id": "EF-DEMO-FREIGHT",
+            "factor_type": "TRANSPORT",
+            "material_id": null,
+            "material_category": null,
+            "transport_mode": "ROAD_FREIGHT",
+            "value": 0.12,
+            "unit": "kgCO2e/t-km",
+            "source_label": "Illustrative demo assumption",
+            "source_url": null,
+            "geography": "Fictional Malaysian demonstration",
+            "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+            "version": "demo-v1",
+            "valid_from": "2025-10-24",
+            "is_demo_factor": true
+          }
+        ],
+        "impact_assessments": [],
+        "as_of": "2026-10-09",
+        "factor_dataset_version": "demo-v1"
+      },
+      "inputs_snapshot_hash": "c7a26f0a121086ba67bfe18df67ee14b77ab1c145c0dc347a67ae56c8dfedbc6",
+      "factor_dataset_version": "demo-v1",
+      "solver_status": "SUCCEEDED",
+      "assumptions": {
+        "method": "Manually authored fictional transfer history, not an executed solver",
+        "synthetic": true
+      }
+    }
+  ],
+  "allocation_proposals": [
+    {
+      "id": "ALC-DEMO-001",
+      "run_id": "RUN-DEMO-HISTORY",
+      "supply_offer_id": "SUP-DEMO-001",
+      "demand_request_id": "DEM-DEMO-001",
+      "proposed_quantity": 100,
+      "unit": "pcs",
+      "compatibility_result": "ELIGIBLE",
+      "status": "SELECTED",
+      "reason_codes": [
+        "DEMO_HISTORY"
+      ],
+      "created_at": "2026-10-10T09:00:00+08:00"
+    },
+    {
+      "id": "ALC-DEMO-002",
+      "run_id": "RUN-DEMO-HISTORY",
+      "supply_offer_id": "SUP-DEMO-003",
+      "demand_request_id": "DEM-DEMO-003",
+      "proposed_quantity": 200,
+      "unit": "pcs",
+      "compatibility_result": "ELIGIBLE",
+      "status": "SELECTED",
+      "reason_codes": [
+        "DEMO_HISTORY"
+      ],
+      "created_at": "2026-10-10T09:00:00+08:00"
+    },
+    {
+      "id": "ALC-DEMO-003",
+      "run_id": "RUN-DEMO-HISTORY",
+      "supply_offer_id": "SUP-DEMO-004",
+      "demand_request_id": "DEM-DEMO-004",
+      "proposed_quantity": 24,
+      "unit": "m",
+      "compatibility_result": "ELIGIBLE",
+      "status": "SELECTED",
+      "reason_codes": [
+        "DEMO_HISTORY"
+      ],
+      "created_at": "2026-10-10T09:00:00+08:00"
+    },
+    {
+      "id": "ALC-DEMO-004",
+      "run_id": "RUN-DEMO-HISTORY",
+      "supply_offer_id": "SUP-DEMO-007",
+      "demand_request_id": "DEM-DEMO-007",
+      "proposed_quantity": 10,
+      "unit": "bag",
+      "compatibility_result": "ELIGIBLE",
+      "status": "SELECTED",
+      "reason_codes": [
+        "DEMO_HISTORY"
+      ],
+      "created_at": "2026-10-10T09:00:00+08:00"
+    },
+    {
+      "id": "ALC-DEMO-005",
+      "run_id": "RUN-DEMO-HISTORY",
+      "supply_offer_id": "SUP-DEMO-006",
+      "demand_request_id": "DEM-DEMO-006",
+      "proposed_quantity": 100,
+      "unit": "kg",
+      "compatibility_result": "ELIGIBLE",
+      "status": "SELECTED",
+      "reason_codes": [
+        "DEMO_HISTORY"
+      ],
+      "created_at": "2026-10-10T09:00:00+08:00"
+    }
+  ],
+  "transfers": [
+    {
+      "id": "TRF-DEMO-001",
+      "proposal_id": "ALC-DEMO-001",
+      "approved_quantity": 100,
+      "reserved_quantity": 0,
+      "dispatched_quantity": 100,
+      "received_quantity": 100,
+      "actually_used_quantity": 100,
+      "status": "REUSED",
+      "source_confirmation_status": "CONFIRMED",
+      "destination_confirmation_status": "CONFIRMED",
+      "requested_at": "2026-10-11T09:00:00+08:00",
+      "delivered_at": "2026-10-14T09:00:00+08:00",
+      "reuse_confirmed_at": "2026-10-15T09:00:00+08:00",
+      "notes": "Fictional demo history. Received unused remainder stays committed for later use."
+    },
+    {
+      "id": "TRF-DEMO-002",
+      "proposal_id": "ALC-DEMO-002",
+      "approved_quantity": 200,
+      "reserved_quantity": 200,
+      "dispatched_quantity": 0,
+      "received_quantity": 0,
+      "actually_used_quantity": 0,
+      "status": "RESERVED",
+      "source_confirmation_status": "CONFIRMED",
+      "destination_confirmation_status": "CONFIRMED",
+      "requested_at": "2026-10-11T09:00:00+08:00",
+      "delivered_at": null,
+      "reuse_confirmed_at": null,
+      "notes": "Fictional demo history. Received unused remainder stays committed for later use."
+    },
+    {
+      "id": "TRF-DEMO-003",
+      "proposal_id": "ALC-DEMO-003",
+      "approved_quantity": 24,
+      "reserved_quantity": 0,
+      "dispatched_quantity": 24,
+      "received_quantity": 0,
+      "actually_used_quantity": 0,
+      "status": "IN_TRANSIT",
+      "source_confirmation_status": "CONFIRMED",
+      "destination_confirmation_status": "CONFIRMED",
+      "requested_at": "2026-10-11T09:00:00+08:00",
+      "delivered_at": null,
+      "reuse_confirmed_at": null,
+      "notes": "Fictional demo history. Received unused remainder stays committed for later use."
+    },
+    {
+      "id": "TRF-DEMO-004",
+      "proposal_id": "ALC-DEMO-004",
+      "approved_quantity": 10,
+      "reserved_quantity": 0,
+      "dispatched_quantity": 10,
+      "received_quantity": 10,
+      "actually_used_quantity": 0,
+      "status": "RECEIVED",
+      "source_confirmation_status": "CONFIRMED",
+      "destination_confirmation_status": "CONFIRMED",
+      "requested_at": "2026-10-11T09:00:00+08:00",
+      "delivered_at": "2026-10-14T09:00:00+08:00",
+      "reuse_confirmed_at": null,
+      "notes": "Fictional demo history. Received unused remainder stays committed for later use."
+    },
+    {
+      "id": "TRF-DEMO-005",
+      "proposal_id": "ALC-DEMO-005",
+      "approved_quantity": 100,
+      "reserved_quantity": 0,
+      "dispatched_quantity": 100,
+      "received_quantity": 100,
+      "actually_used_quantity": 50,
+      "status": "REUSED",
+      "source_confirmation_status": "CONFIRMED",
+      "destination_confirmation_status": "CONFIRMED",
+      "requested_at": "2026-10-11T09:00:00+08:00",
+      "delivered_at": "2026-10-14T09:00:00+08:00",
+      "reuse_confirmed_at": "2026-10-15T09:00:00+08:00",
+      "notes": "Fictional demo history. Received unused remainder stays committed for later use."
+    }
+  ],
+  "transfer_events": [
+    {
+      "id": "EVT-DEMO-001",
+      "transfer_id": "TRF-DEMO-001",
+      "event_type": "REQUESTED",
+      "occurred_at": "2026-10-11T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 0,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-002",
+      "transfer_id": "TRF-DEMO-001",
+      "event_type": "APPROVED",
+      "occurred_at": "2026-10-11T10:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-003",
+      "transfer_id": "TRF-DEMO-001",
+      "event_type": "RESERVED",
+      "occurred_at": "2026-10-11T11:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-004",
+      "transfer_id": "TRF-DEMO-001",
+      "event_type": "DISPATCHED",
+      "occurred_at": "2026-10-12T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-005",
+      "transfer_id": "TRF-DEMO-001",
+      "event_type": "RECEIVED",
+      "occurred_at": "2026-10-14T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-006",
+      "transfer_id": "TRF-DEMO-001",
+      "event_type": "USED",
+      "occurred_at": "2026-10-15T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-007",
+      "transfer_id": "TRF-DEMO-002",
+      "event_type": "REQUESTED",
+      "occurred_at": "2026-10-11T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 0,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-008",
+      "transfer_id": "TRF-DEMO-002",
+      "event_type": "APPROVED",
+      "occurred_at": "2026-10-11T10:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 200,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-009",
+      "transfer_id": "TRF-DEMO-002",
+      "event_type": "RESERVED",
+      "occurred_at": "2026-10-11T11:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 200,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-010",
+      "transfer_id": "TRF-DEMO-003",
+      "event_type": "REQUESTED",
+      "occurred_at": "2026-10-11T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 0,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-011",
+      "transfer_id": "TRF-DEMO-003",
+      "event_type": "APPROVED",
+      "occurred_at": "2026-10-11T10:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 24,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-012",
+      "transfer_id": "TRF-DEMO-003",
+      "event_type": "RESERVED",
+      "occurred_at": "2026-10-11T11:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 24,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-013",
+      "transfer_id": "TRF-DEMO-003",
+      "event_type": "DISPATCHED",
+      "occurred_at": "2026-10-12T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 24,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-014",
+      "transfer_id": "TRF-DEMO-004",
+      "event_type": "REQUESTED",
+      "occurred_at": "2026-10-11T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 0,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-015",
+      "transfer_id": "TRF-DEMO-004",
+      "event_type": "APPROVED",
+      "occurred_at": "2026-10-11T10:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 10,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-016",
+      "transfer_id": "TRF-DEMO-004",
+      "event_type": "RESERVED",
+      "occurred_at": "2026-10-11T11:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 10,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-017",
+      "transfer_id": "TRF-DEMO-004",
+      "event_type": "DISPATCHED",
+      "occurred_at": "2026-10-12T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 10,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-018",
+      "transfer_id": "TRF-DEMO-004",
+      "event_type": "RECEIVED",
+      "occurred_at": "2026-10-14T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 10,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-019",
+      "transfer_id": "TRF-DEMO-005",
+      "event_type": "REQUESTED",
+      "occurred_at": "2026-10-11T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 0,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-020",
+      "transfer_id": "TRF-DEMO-005",
+      "event_type": "APPROVED",
+      "occurred_at": "2026-10-11T10:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-021",
+      "transfer_id": "TRF-DEMO-005",
+      "event_type": "RESERVED",
+      "occurred_at": "2026-10-11T11:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-022",
+      "transfer_id": "TRF-DEMO-005",
+      "event_type": "DISPATCHED",
+      "occurred_at": "2026-10-12T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-023",
+      "transfer_id": "TRF-DEMO-005",
+      "event_type": "RECEIVED",
+      "occurred_at": "2026-10-14T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 100,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    },
+    {
+      "id": "EVT-DEMO-024",
+      "transfer_id": "TRF-DEMO-005",
+      "event_type": "USED",
+      "occurred_at": "2026-10-15T09:00:00+08:00",
+      "actor_label": "Demo operator",
+      "payload": {
+        "quantity": 50,
+        "synthetic": true
+      },
+      "evidence_ref": "Fictional seed event; no physical evidence"
+    }
+  ],
+  "emission_factors": [
+    {
+      "id": "EF-DEMO-001-NEW_MATERIAL_PRODUCTION",
+      "factor_type": "NEW_MATERIAL_PRODUCTION",
+      "material_id": "MAT-DEMO-001",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.75,
+      "unit": "kgCO2e/pcs",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-001-PROCESSING",
+      "factor_type": "PROCESSING",
+      "material_id": "MAT-DEMO-001",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.02,
+      "unit": "kgCO2e/pcs",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-002-NEW_MATERIAL_PRODUCTION",
+      "factor_type": "NEW_MATERIAL_PRODUCTION",
+      "material_id": "MAT-DEMO-002",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.95,
+      "unit": "kgCO2e/pcs",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-002-PROCESSING",
+      "factor_type": "PROCESSING",
+      "material_id": "MAT-DEMO-002",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.02,
+      "unit": "kgCO2e/pcs",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-003-NEW_MATERIAL_PRODUCTION",
+      "factor_type": "NEW_MATERIAL_PRODUCTION",
+      "material_id": "MAT-DEMO-003",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.55,
+      "unit": "kgCO2e/pcs",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-003-PROCESSING",
+      "factor_type": "PROCESSING",
+      "material_id": "MAT-DEMO-003",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.02,
+      "unit": "kgCO2e/pcs",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-004-NEW_MATERIAL_PRODUCTION",
+      "factor_type": "NEW_MATERIAL_PRODUCTION",
+      "material_id": "MAT-DEMO-004",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 2.4,
+      "unit": "kgCO2e/m",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-004-PROCESSING",
+      "factor_type": "PROCESSING",
+      "material_id": "MAT-DEMO-004",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.03,
+      "unit": "kgCO2e/m",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-005-NEW_MATERIAL_PRODUCTION",
+      "factor_type": "NEW_MATERIAL_PRODUCTION",
+      "material_id": "MAT-DEMO-005",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 2.0,
+      "unit": "kgCO2e/m",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-005-PROCESSING",
+      "factor_type": "PROCESSING",
+      "material_id": "MAT-DEMO-005",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.03,
+      "unit": "kgCO2e/m",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-006-NEW_MATERIAL_PRODUCTION",
+      "factor_type": "NEW_MATERIAL_PRODUCTION",
+      "material_id": "MAT-DEMO-006",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 1.8,
+      "unit": "kgCO2e/kg",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-006-PROCESSING",
+      "factor_type": "PROCESSING",
+      "material_id": "MAT-DEMO-006",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.01,
+      "unit": "kgCO2e/kg",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-007-NEW_MATERIAL_PRODUCTION",
+      "factor_type": "NEW_MATERIAL_PRODUCTION",
+      "material_id": "MAT-DEMO-007",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 40.0,
+      "unit": "kgCO2e/bag",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-007-PROCESSING",
+      "factor_type": "PROCESSING",
+      "material_id": "MAT-DEMO-007",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.2,
+      "unit": "kgCO2e/bag",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-008-NEW_MATERIAL_PRODUCTION",
+      "factor_type": "NEW_MATERIAL_PRODUCTION",
+      "material_id": "MAT-DEMO-008",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.6,
+      "unit": "kgCO2e/m2",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-008-PROCESSING",
+      "factor_type": "PROCESSING",
+      "material_id": "MAT-DEMO-008",
+      "material_category": null,
+      "transport_mode": null,
+      "value": 0.01,
+      "unit": "kgCO2e/m2",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    },
+    {
+      "id": "EF-DEMO-FREIGHT",
+      "factor_type": "TRANSPORT",
+      "material_id": null,
+      "material_category": null,
+      "transport_mode": "ROAD_FREIGHT",
+      "value": 0.12,
+      "unit": "kgCO2e/t-km",
+      "source_label": "Illustrative demo assumption",
+      "source_url": null,
+      "geography": "Fictional Malaysian demonstration",
+      "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+      "version": "demo-v1",
+      "valid_from": "2025-10-24",
+      "is_demo_factor": true
+    }
+  ],
+  "impact_assessments": [
+    {
+      "id": "IMP-DEMO-001",
+      "basis": "ACTUAL_CONFIRMED_USE",
+      "proposal_id": null,
+      "transfer_id": "TRF-DEMO-001",
+      "quantity_assessed": 100,
+      "unit": "pcs",
+      "baseline_description": "Hypothetical displacement of functionally equivalent new procurement, synthetic baseline; no official inventory deduction.",
+      "avoided_production_kgco2e": 75.0,
+      "additional_transport_kgco2e": 0.75,
+      "additional_processing_kgco2e": 2.0,
+      "net_avoided_kgco2e": 72.25,
+      "factor_ids": [
+        "EF-DEMO-001-NEW_MATERIAL_PRODUCTION",
+        "EF-DEMO-FREIGHT",
+        "EF-DEMO-001-PROCESSING"
+      ],
+      "assumptions": {
+        "synthetic": true,
+        "moved_quantity": 100,
+        "processed_quantity": 100,
+        "mass_kg_per_unit": 2.5,
+        "distance_km": 25.0,
+        "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+        "handling_allocation": "ALL_MOVED_UNITS"
+      },
+      "calculation_status": "DEMO",
+      "calculated_at": "2026-10-16T09:00:00+08:00"
+    },
+    {
+      "id": "IMP-DEMO-005",
+      "basis": "ACTUAL_CONFIRMED_USE",
+      "proposal_id": null,
+      "transfer_id": "TRF-DEMO-005",
+      "quantity_assessed": 50,
+      "unit": "kg",
+      "baseline_description": "Hypothetical displacement of functionally equivalent new procurement, synthetic baseline; no official inventory deduction.",
+      "avoided_production_kgco2e": 90.0,
+      "additional_transport_kgco2e": 0.3,
+      "additional_processing_kgco2e": 1.0,
+      "net_avoided_kgco2e": 88.7,
+      "factor_ids": [
+        "EF-DEMO-006-NEW_MATERIAL_PRODUCTION",
+        "EF-DEMO-FREIGHT",
+        "EF-DEMO-006-PROCESSING"
+      ],
+      "assumptions": {
+        "synthetic": true,
+        "moved_quantity": 100,
+        "processed_quantity": 100,
+        "mass_kg_per_unit": 1.0,
+        "distance_km": 25.0,
+        "lifecycle_boundary": "Hypothetical production substitution; extra road freight and per-piece handling. Excludes baseline freight/disposal, credits and official inventory.",
+        "handling_allocation": "ALL_MOVED_UNITS"
+      },
+      "calculation_status": "DEMO",
+      "calculated_at": "2026-10-16T09:00:00+08:00"
+    }
+  ]
+}

@@ -18,6 +18,10 @@ def render():
             elif '=' in spec:
                 scalar, values=spec.split('=',1); enums[scalar]=values.split(',')
             else: scalar={'str':'String','int':'Int','float':'Float','bool':'Boolean','json':'Any','array':'[String!]','date':'Date','timestamp':'Timestamp'}[spec]
+            # Runtime quantities use exact integer millionths. Seed JSON stays
+            # in ordinary units; the Python adapter owns encoding/decoding.
+            if spec == 'int': scalar='Int64'
+            if scalar in ('Unit', 'Category'): scalar='String'
             suffix='' if optional else '!'
             unique=' @unique' if (entity=='projects' and name=='code') or (entity=='transfers' and name=='proposal_id') else ''
             lines.append(f'  {gql}: {scalar}{suffix} @col(name: "{name}"){unique}')
@@ -206,7 +210,7 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
   $proposals: [AllocationProposal_Data!]! @allow(fields: "{proposal_fields}", maxCount: 1000)
   $assessments: [ImpactAssessment_Data!]! @allow(fields: "{saved_impact_fields}", maxCount: 1000)
   $heads: [ImpactAssessmentHead_Data!]! @allow(fields: "{head_fields}", maxCount: 1000)
-  $operations: [OptimisationRunOperation_Data!]! @allow(fields: "id requestFingerprint runId", maxCount: 2)
+  $operations: [OptimisationRunOperation_Data!]! @allow(fields: "id requestFingerprint runId", maxCount: 3)
 ) @auth(level: NO_ACCESS) @transaction {{
   optimisationRun_insertMany(data: $runs)
   allocationProposal_insertMany(data: $proposals)
@@ -464,7 +468,16 @@ type ImpactCalculationOperation @table(name: "impact_calculation_operations", ke
     deletes.insert(0, '  impactAssessmentHead_deleteMany(all: true)')
     deletes.insert(0, '  impactCalculationOperation_deleteMany(all: true)')
     operations.append('mutation ClearBaseline @auth(level: NO_ACCESS) @transaction {\n'+'\n'.join(deletes)+'\n}')
-    return schema,'# Administrative connector operations. Not public application APIs.\n\n'+'\n\n'.join(operations)+'\n'
+    from terra.intake_provider import render_intake
+    intake_schema, intake_operations = render_intake()
+    from terra.publication_provider import render_publication, guard_operational_operations
+    publication_schema, publication_operations = render_publication()
+    operations = guard_operational_operations(operations)
+    from terra.runtime_provider import render_runtime, exact_scalars
+    runtime_schema, runtime_ops = render_runtime()
+    from terra.transfer_runtime_provider import extend_transfer_runtime
+    from terra.workspace_provider import extend_workspace
+    return extend_workspace(*extend_transfer_runtime(exact_scalars(schema+intake_schema+publication_schema+runtime_schema), exact_scalars('# Administrative connector operations. Not public application APIs.\n\n'+'\n\n'.join(operations)+'\n'+intake_operations+publication_operations+runtime_ops)))
 
 if __name__=='__main__':
     a,b=render()

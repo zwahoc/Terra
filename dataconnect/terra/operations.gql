@@ -21,6 +21,7 @@ query ListProjects @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertProjects($rows: [Project_Data!]! @allow(fields: "id code name township location startDate targetEndDate status managingOrganisation", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   project_upsertMany(data: $rows)
 }
 
@@ -29,6 +30,7 @@ query ListMaterials @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertMaterials($rows: [Material_Data!]! @allow(fields: "id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   material_upsertMany(data: $rows)
 }
 
@@ -37,6 +39,7 @@ query ListDocuments @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertDocuments($rows: [Document_Data!]! @allow(fields: "id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   document_upsertMany(data: $rows)
 }
 
@@ -45,6 +48,7 @@ query ListExtractedRows @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertExtractedRows($rows: [ExtractedRow_Data!]! @allow(fields: "id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   extractedRow_upsertMany(data: $rows)
 }
 
@@ -53,6 +57,7 @@ query ListSupplyOffers @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertSupplyOffers($rows: [SupplyOffer_Data!]! @allow(fields: "id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   supplyOffer_upsertMany(data: $rows)
 }
 
@@ -61,6 +66,7 @@ query ListDemandRequests @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertDemandRequests($rows: [DemandRequest_Data!]! @allow(fields: "id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   demandRequest_upsertMany(data: $rows)
 }
 
@@ -69,6 +75,7 @@ query ListRouteDistances @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertRouteDistances($rows: [RouteDistance_Data!]! @allow(fields: "id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   routeDistance_upsertMany(data: $rows)
 }
 
@@ -77,6 +84,7 @@ query ListOptimisationRuns @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertOptimisationRuns($rows: [OptimisationRun_Data!]! @allow(fields: "id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   optimisationRun_upsertMany(data: $rows)
 }
 
@@ -85,6 +93,7 @@ query ListAllocationProposals @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertAllocationProposals($rows: [AllocationProposal_Data!]! @allow(fields: "id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   allocationProposal_upsertMany(data: $rows)
 }
 
@@ -93,6 +102,7 @@ query ListTransfers @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertTransfers($rows: [Transfer_Data!]! @allow(fields: "id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   transfer_upsertMany(data: $rows)
 }
 
@@ -101,6 +111,7 @@ query ListTransferEvents @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertTransferEvents($rows: [TransferEvent_Data!]! @allow(fields: "id transferId eventType occurredAt actorLabel payload evidenceRef", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   transferEvent_upsertMany(data: $rows)
 }
 
@@ -109,6 +120,7 @@ query ListEmissionFactors @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertEmissionFactors($rows: [EmissionFactor_Data!]! @allow(fields: "id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   emissionFactor_upsertMany(data: $rows)
 }
 
@@ -117,17 +129,18 @@ query ListImpactAssessments @auth(level: NO_ACCESS) {
 }
 
 mutation UpsertImpactAssessments($rows: [ImpactAssessment_Data!]! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt", maxCount: 5000)) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   impactAssessment_upsertMany(data: $rows)
 }
 
 query GetTransferApprovalState($transferId: String!, $operationId: String!, $eventId: String!) @auth(level: NO_ACCESS) {
-  transfer(id: $transferId) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes proposal { id proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId } }
+  transfer(id: $transferId) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes proposal { id runId proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId } }
   transferApprovalOperation(id: $operationId) { id requestFingerprint transferId eventId approvedQuantity sourceConfirmationStatus destinationConfirmationStatus actorLabel evidenceRef occurredAt }
   transferEvent(id: $eventId) { id transferId eventType occurredAt actorLabel payload evidenceRef }
 }
 
 query GetTransferRequestState($proposalId: String!, $operationId: String!, $transferId: String!, $eventId: String!) @auth(level: NO_ACCESS) {
-  allocationProposal(id: $proposalId) { id proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId }
+  allocationProposal(id: $proposalId) { id runId proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId }
   transfers(where: {proposalId: {eq: $proposalId}}, limit: 2) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
   transferRequestOperation(id: $operationId) { id requestFingerprint proposalId transferId eventId actorLabel evidenceRef occurredAt }
   transfer(id: $transferId) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
@@ -143,10 +156,11 @@ mutation CreateTransferRequest(
   $actorLabel: String!
   $evidenceRef: String
   $notes: String
-  $approvedQuantity: Int!
+  $approvedQuantity: Int64!
   $eventPayload: Any!
   $occurredAt: Timestamp!
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   query @redact
     @check(expr: "response.query.allocationProposal != null", message: "PROPOSAL_NOT_FOUND")
     @check(expr: "(response.query.allocationProposal.status == 'PROPOSED' || response.query.allocationProposal.status == 'SELECTED') && response.query.allocationProposal.compatibilityResult == 'ELIGIBLE'", message: "PROPOSAL_NOT_REQUESTABLE") {
@@ -196,6 +210,7 @@ mutation PersistOptimisationRun(
   $assessments: [ImpactAssessment_Data!]! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt", maxCount: 1000)
   $heads: [ImpactAssessmentHead_Data!]! @allow(fields: "id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt", maxCount: 1000)
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   optimisationRun_insert(data: $run)
   allocationProposal_insertMany(data: $proposals)
   impactAssessment_insertMany(data: $assessments)
@@ -208,8 +223,9 @@ mutation PersistOptimisationComparison(
   $proposals: [AllocationProposal_Data!]! @allow(fields: "id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt", maxCount: 1000)
   $assessments: [ImpactAssessment_Data!]! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt", maxCount: 1000)
   $heads: [ImpactAssessmentHead_Data!]! @allow(fields: "id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt", maxCount: 1000)
-  $operations: [OptimisationRunOperation_Data!]! @allow(fields: "id requestFingerprint runId", maxCount: 2)
+  $operations: [OptimisationRunOperation_Data!]! @allow(fields: "id requestFingerprint runId", maxCount: 3)
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   optimisationRun_insertMany(data: $runs)
   allocationProposal_insertMany(data: $proposals)
   impactAssessment_insertMany(data: $assessments)
@@ -222,7 +238,7 @@ mutation ApproveTransfer(
   $operationId: String!
   $requestFingerprint: String!
   $eventId: String!
-  $approvedQuantity: Int!
+  $approvedQuantity: Int64!
   $sourceConfirmationStatus: Confirmation!
   $destinationConfirmationStatus: Confirmation!
   $actorLabel: String!
@@ -230,6 +246,7 @@ mutation ApproveTransfer(
   $eventPayload: Any!
   $occurredAt: Timestamp!
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   query
     @redact
     @check(expr: "response.query.transfer != null", message: "TRANSFER_NOT_FOUND")
@@ -272,7 +289,7 @@ mutation ApproveTransfer(
 }
 
 query GetTransferWorkflowState($transferId: String!, $operationId: String!, $eventId: String!) @auth(level: NO_ACCESS) {
-  transfer(id: $transferId) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes proposal { id proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId supplyOffer { id sourceProjectId materialId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil } demandRequest { id destinationProjectId materialId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed } } }
+  transfer(id: $transferId) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes proposal { id runId proposedQuantity unit compatibilityResult status supplyOfferId demandRequestId supplyOffer { id sourceProjectId materialId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil } demandRequest { id destinationProjectId materialId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed } } }
   transferWorkflowOperation(id: $operationId) { id operationType requestFingerprint transferId eventId quantity reason actorLabel evidenceRef occurredAt }
   transferEvent(id: $eventId) { id transferId eventType occurredAt actorLabel payload evidenceRef }
 }
@@ -314,9 +331,10 @@ mutation PersistForecastImpactAssessment(
   $calculatedAt: Timestamp!
   $assessment: ImpactAssessment_Data! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt")
   $proposalId: String!
-  $expectedQuantity: Int!
-  $expectedUnit: Unit!
+  $expectedQuantity: Int64!
+  $expectedUnit: String!
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   allocationProposal_updateMany(where: {id: {eq: $proposalId} proposedQuantity: {eq: $expectedQuantity} unit: {eq: $expectedUnit}}, data: {proposedQuantity: $expectedQuantity}) @check(expr: "this == 1", message: "IMPACT_SOURCE_STALE")
   impactAssessment_insert(data: $assessment)
   impactAssessmentHead_updateMany(where: {id: {eq: $scopeId} revision: {eq: $expectedRevision}}, data: {currentAssessmentId: $assessmentId revision: $newRevision inputFingerprint: $inputFingerprint updatedAt: $calculatedAt}) @check(expr: "this == 1", message: "IMPACT_REVISION_STALE")
@@ -334,11 +352,12 @@ mutation PersistActualImpactAssessment(
   $calculatedAt: Timestamp!
   $assessment: ImpactAssessment_Data! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt")
   $transferId: String!
-  $expectedUsedQuantity: Int!
-  $expectedDispatchedQuantity: Int!
-  $expectedReceivedQuantity: Int!
+  $expectedUsedQuantity: Int64!
+  $expectedDispatchedQuantity: Int64!
+  $expectedReceivedQuantity: Int64!
   $expectedReuseConfirmedAt: Timestamp!
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   transfer_updateMany(where: {id: {eq: $transferId} actuallyUsedQuantity: {eq: $expectedUsedQuantity} dispatchedQuantity: {eq: $expectedDispatchedQuantity} receivedQuantity: {eq: $expectedReceivedQuantity} reuseConfirmedAt: {eq: $expectedReuseConfirmedAt}}, data: {actuallyUsedQuantity: $expectedUsedQuantity}) @check(expr: "this == 1", message: "IMPACT_SOURCE_STALE")
   impactAssessment_insert(data: $assessment)
   impactAssessmentHead_updateMany(where: {id: {eq: $scopeId} revision: {eq: $expectedRevision}}, data: {currentAssessmentId: $assessmentId revision: $newRevision inputFingerprint: $inputFingerprint updatedAt: $calculatedAt}) @check(expr: "this == 1", message: "IMPACT_REVISION_STALE")
@@ -350,7 +369,7 @@ mutation ReserveTransfer(
   $operationId: String!
   $requestFingerprint: String!
   $eventId: String!
-  $quantity: Int!
+  $quantity: Int64!
   $actorLabel: String!
   $evidenceRef: String
   $eventPayload: Any!
@@ -358,7 +377,10 @@ mutation ReserveTransfer(
   $operationDate: Date!
   $supplyOfferId: String!
   $demandRequestId: String!
+  $matchingScopes: [MatchingScope_Data!]! = [] @allow(fields: "id token status generationId payload", maxCount: 100)
+  $impactIntents: [ImpactRefreshIntent_Data!]! = [] @allow(fields: "id token status payload", maxCount: 100)
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   transferWorkflowOperation_insert(data: {
     id: $operationId operationType: "RESERVE" requestFingerprint: $requestFingerprint
     transferId: $transferId eventId: $eventId quantity: $quantity
@@ -385,6 +407,8 @@ mutation ReserveTransfer(
     id: $eventId transferId: $transferId eventType: RESERVED occurredAt: $occurredAt
     actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
   })
+  matchingScope_upsertMany(data: $matchingScopes)
+  impactRefreshIntent_upsertMany(data: $impactIntents)
 }
 
 mutation DispatchTransfer(
@@ -392,7 +416,7 @@ mutation DispatchTransfer(
   $operationId: String!
   $requestFingerprint: String!
   $eventId: String!
-  $quantity: Int!
+  $quantity: Int64!
   $actorLabel: String!
   $evidenceRef: String
   $eventPayload: Any!
@@ -400,7 +424,10 @@ mutation DispatchTransfer(
   $operationDate: Date!
   $supplyOfferId: String!
   $demandRequestId: String!
+  $matchingScopes: [MatchingScope_Data!]! = [] @allow(fields: "id token status generationId payload", maxCount: 100)
+  $impactIntents: [ImpactRefreshIntent_Data!]! = [] @allow(fields: "id token status payload", maxCount: 100)
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   transferWorkflowOperation_insert(data: {
     id: $operationId operationType: "DISPATCH" requestFingerprint: $requestFingerprint
     transferId: $transferId eventId: $eventId quantity: $quantity
@@ -420,6 +447,8 @@ mutation DispatchTransfer(
     id: $eventId transferId: $transferId eventType: DISPATCHED occurredAt: $occurredAt
     actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
   })
+  matchingScope_upsertMany(data: $matchingScopes)
+  impactRefreshIntent_upsertMany(data: $impactIntents)
 }
 
 mutation ReceiveTransfer(
@@ -427,7 +456,7 @@ mutation ReceiveTransfer(
   $operationId: String!
   $requestFingerprint: String!
   $eventId: String!
-  $quantity: Int!
+  $quantity: Int64!
   $actorLabel: String!
   $evidenceRef: String
   $eventPayload: Any!
@@ -435,7 +464,10 @@ mutation ReceiveTransfer(
   $operationDate: Date!
   $supplyOfferId: String!
   $demandRequestId: String!
+  $matchingScopes: [MatchingScope_Data!]! = [] @allow(fields: "id token status generationId payload", maxCount: 100)
+  $impactIntents: [ImpactRefreshIntent_Data!]! = [] @allow(fields: "id token status payload", maxCount: 100)
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   transferWorkflowOperation_insert(data: {
     id: $operationId operationType: "RECEIVE" requestFingerprint: $requestFingerprint
     transferId: $transferId eventId: $eventId quantity: $quantity
@@ -453,6 +485,8 @@ mutation ReceiveTransfer(
     id: $eventId transferId: $transferId eventType: RECEIVED occurredAt: $occurredAt
     actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
   })
+  matchingScope_upsertMany(data: $matchingScopes)
+  impactRefreshIntent_upsertMany(data: $impactIntents)
 }
 
 mutation ConfirmTransferUse(
@@ -460,7 +494,7 @@ mutation ConfirmTransferUse(
   $operationId: String!
   $requestFingerprint: String!
   $eventId: String!
-  $quantity: Int!
+  $quantity: Int64!
   $actorLabel: String!
   $evidenceRef: String
   $eventPayload: Any!
@@ -470,9 +504,12 @@ mutation ConfirmTransferUse(
   $demandRequestId: String!
   $notes: String
   $demandStatus: RequestStatus!
-  $previousUsedQuantity: Int!
-  $newUsedQuantity: Int!
+  $previousUsedQuantity: Int64!
+  $newUsedQuantity: Int64!
+  $matchingScopes: [MatchingScope_Data!]! = [] @allow(fields: "id token status generationId payload", maxCount: 100)
+  $impactIntents: [ImpactRefreshIntent_Data!]! = [] @allow(fields: "id token status payload", maxCount: 100)
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   transferWorkflowOperation_insert(data: {
     id: $operationId operationType: "CONFIRM_USE" requestFingerprint: $requestFingerprint
     transferId: $transferId eventId: $eventId quantity: $quantity
@@ -493,6 +530,8 @@ mutation ConfirmTransferUse(
     id: $eventId transferId: $transferId eventType: USED occurredAt: $occurredAt
     actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
   })
+  matchingScope_upsertMany(data: $matchingScopes)
+  impactRefreshIntent_upsertMany(data: $impactIntents)
 }
 
 mutation CancelTransfer(
@@ -500,7 +539,7 @@ mutation CancelTransfer(
   $operationId: String!
   $requestFingerprint: String!
   $eventId: String!
-  $quantity: Int!
+  $quantity: Int64!
   $actorLabel: String!
   $evidenceRef: String
   $eventPayload: Any!
@@ -510,7 +549,10 @@ mutation CancelTransfer(
   $demandRequestId: String!
   $reason: String!
   $notes: String
+  $matchingScopes: [MatchingScope_Data!]! = [] @allow(fields: "id token status generationId payload", maxCount: 100)
+  $impactIntents: [ImpactRefreshIntent_Data!]! = [] @allow(fields: "id token status payload", maxCount: 100)
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   transferWorkflowOperation_insert(data: {
     id: $operationId operationType: "CANCEL" requestFingerprint: $requestFingerprint
     transferId: $transferId eventId: $eventId quantity: $quantity reason: $reason
@@ -531,6 +573,8 @@ mutation CancelTransfer(
     id: $eventId transferId: $transferId eventType: CANCELLED occurredAt: $occurredAt
     actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef
   })
+  matchingScope_upsertMany(data: $matchingScopes)
+  impactRefreshIntent_upsertMany(data: $impactIntents)
 }
 
 mutation ImportBaseline(
@@ -550,6 +594,7 @@ mutation ImportBaseline(
   $demandCommitmentBalances: [DemandCommitmentBalance_Data!]! @allow(fields: "demandRequestId committedQuantity", maxCount: 5000)
   $impactAssessmentHeads: [ImpactAssessmentHead_Data!]! @allow(fields: "id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt", maxCount: 5000)
 ) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
   project_upsertMany(data: $projects)
   material_upsertMany(data: $materials)
   document_upsertMany(data: $documents)
@@ -568,6 +613,16 @@ mutation ImportBaseline(
 }
 
 mutation ClearBaseline @auth(level: NO_ACCESS) @transaction {
+  impactRefreshIntent_deleteMany(all: true)
+  matchingScope_deleteMany(all: true)
+  matchingGeneration_deleteMany(all: true)
+  runtimeAudit_deleteMany(all: true)
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_GUARD_MISSING")
+  ingestionPublication_deleteMany(all: true)
+  supersededRecord_deleteMany(all: true)
+  projectStockHead_deleteMany(all: true)
+  projectMaterialRecord_deleteMany(all: true)
+  registeredMaterial_deleteMany(all: true)
   impactCalculationOperation_deleteMany(all: true)
   impactAssessmentHead_deleteMany(all: true)
   transferApprovalOperation_deleteMany(all: true)
@@ -588,4 +643,652 @@ mutation ClearBaseline @auth(level: NO_ACCESS) @transaction {
   document_deleteMany(all: true)
   material_deleteMany(all: true)
   project_deleteMany(all: true)
+}
+
+
+query GetIngestionBatch($id: String!) @auth(level: NO_ACCESS) {
+  ingestionBatch(id: $id) { id revision payload }
+}
+
+mutation CreateIngestionBatch($id: String!, $revision: Int!, $revisionId: String!, $payload: Any!) @auth(level: NO_ACCESS) @transaction {
+  ingestionBatch_insert(data: {id: $id revision: $revision payload: $payload})
+  ingestionRevision_insert(data: {id: $revisionId batchId: $id revision: $revision payload: $payload})
+}
+
+mutation UpdateIngestionBatch($id: String!, $expectedRevision: Int!, $revision: Int!, $revisionId: String!, $payload: Any!) @auth(level: NO_ACCESS) @transaction {
+  ingestionBatch_updateMany(where: {id: {eq: $id} revision: {eq: $expectedRevision}}, data: {revision: $revision payload: $payload})
+    @check(expr: "this == 1 && vars.revision == vars.expectedRevision + 1", message: "INGESTION_STALE_REVISION")
+  ingestionRevision_insert(data: {id: $revisionId batchId: $id revision: $revision payload: $payload})
+}
+
+query GetIntakeProject($id: String!) @auth(level: NO_ACCESS) {
+  project(id: $id) { id code name township location startDate targetEndDate status managingOrganisation }
+}
+
+query GetIntakeMaterial($id: String!) @auth(level: NO_ACCESS) {
+  material(id: $id) { id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic }
+}
+
+query PageIntakeProjects($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: projects(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id code name township location startDate targetEndDate status managingOrganisation }
+}
+
+query PageIntakeMaterials($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: materials(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic }
+}
+
+query PageIntakeDocuments($after: String!, $limit: Int!, $projectId: String!) @auth(level: NO_ACCESS) {
+  records: documents(where: {_and: [{id: {gt: $after}}, {projectId: {eq: $projectId}}]}, orderBy: {id: ASC}, limit: $limit) { id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated }
+}
+
+query PageIntakeExtractedRows($after: String!, $limit: Int!, $projectId: String!) @auth(level: NO_ACCESS) {
+  records: extractedRows(where: {_and: [{id: {gt: $after}}, {document: {projectId: {eq: $projectId}}}]}, orderBy: {id: ASC}, limit: $limit) { id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated }
+}
+
+query PageIntakeSupplyOffers($after: String!, $limit: Int!, $projectId: String!) @auth(level: NO_ACCESS) {
+  records: supplyOffers(where: {_and: [{id: {gt: $after}}, {sourceProjectId: {eq: $projectId}}]}, orderBy: {id: ASC}, limit: $limit) { id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs }
+}
+
+query PageIntakeDemandRequests($after: String!, $limit: Int!, $projectId: String!) @auth(level: NO_ACCESS) {
+  records: demandRequests(where: {_and: [{id: {gt: $after}}, {destinationProjectId: {eq: $projectId}}]}, orderBy: {id: ASC}, limit: $limit) { id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+}
+
+query PageIntakeAllocationProposals($after: String!, $limit: Int!, $projectId: String!) @auth(level: NO_ACCESS) {
+  records: allocationProposals(where: {_and: [{id: {gt: $after}}, {_or: [{supplyOffer: {sourceProjectId: {eq: $projectId}}}, {demandRequest: {destinationProjectId: {eq: $projectId}}}]}]}, orderBy: {id: ASC}, limit: $limit) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+}
+
+query PageIntakeTransfers($after: String!, $limit: Int!, $projectId: String!) @auth(level: NO_ACCESS) {
+  records: transfers(where: {_and: [{id: {gt: $after}}, {proposal: {_or: [{supplyOffer: {sourceProjectId: {eq: $projectId}}}, {demandRequest: {destinationProjectId: {eq: $projectId}}}]}}]}, orderBy: {id: ASC}, limit: $limit) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+}
+
+query PageIntakeDemandCommitments($after: String!, $limit: Int!, $projectId: String!) @auth(level: NO_ACCESS) {
+  records: demandCommitmentBalances(where: {_and: [{demandRequestId: {gt: $after}}, {demandRequest: {destinationProjectId: {eq: $projectId}}}]}, orderBy: {demandRequestId: ASC}, limit: $limit) { demandRequestId committedQuantity }
+}
+
+
+query GetOperationalVersion @auth(level: NO_ACCESS) { operationalVersion(id: "GLOBAL") { revision } }
+
+query GetPublicationState @auth(level: NO_ACCESS) {
+  operationalVersion(id: "GLOBAL") { revision }
+  projects(limit: 1000, orderBy: {id: ASC}) { id code name township location startDate targetEndDate status managingOrganisation }
+  materials(limit: 1000, orderBy: {id: ASC}) { id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic }
+  documents(limit: 1000, orderBy: {id: ASC}) { id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated }
+  extractedRows(limit: 1000, orderBy: {id: ASC}) { id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated }
+  supplyOffers(limit: 1000, orderBy: {id: ASC}) { id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs }
+  demandRequests(limit: 1000, orderBy: {id: ASC}) { id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+  routeDistances(limit: 1000, orderBy: {id: ASC}) { id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic }
+  optimisationRuns(limit: 1000, orderBy: {id: ASC}) { id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions }
+  allocationProposals(limit: 1000, orderBy: {id: ASC}) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+  transfers(limit: 1000, orderBy: {id: ASC}) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+  transferEvents(limit: 1000, orderBy: {id: ASC}) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+  emissionFactors(limit: 1000, orderBy: {id: ASC}) { id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor }
+  impactAssessments(limit: 1000, orderBy: {id: ASC}) { id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt }
+  registeredMaterials(limit: 1000, orderBy: {id: ASC}) { id payload }
+  projectMaterialRecords(limit: 1000, orderBy: {id: ASC}) { id projectId materialId payload }
+  supersededRecords(limit: 1000, orderBy: {id: ASC}) { id projectId successorId }
+  projectStockHeads(limit: 1000, orderBy: {id: ASC}) { id projectId materialId payload }
+}
+
+query GetPublicationReceipt($id: String!) @auth(level: NO_ACCESS) {
+  ingestionPublication(id: $id) { id batchId requestKey requestFingerprint receipt handoffStatus handoffPayload }
+}
+
+mutation InitializeOperationalVersion @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_insert(data: {id: "GLOBAL" revision: 0})
+}
+
+mutation RecordPublicationHandoff($id: String!) @auth(level: NO_ACCESS) @transaction {
+  ingestionPublication_updateMany(where: {id: {eq: $id} handoffStatus: {eq: "PENDING"}}, data: {handoffStatus: "RECORDED_STUB"})
+}
+
+mutation PublishIngestionBatch(
+  $id: String!
+  $batchId: String!
+  $expectedBatchRevision: Int!
+  $revision: Int!
+  $revisionId: String!
+  $batchPayload: Any!
+  $expectedOperationalRevision: Int!
+  $expected: Any!
+  $requestKey: String!
+  $requestFingerprint: String!
+  $receipt: Any!
+  $handoff: Any!
+  $handoffStatus: String!
+  $projects: [Project_Data!]! @allow(fields: "id code name township location startDate targetEndDate status managingOrganisation", maxCount: 5000)
+  $materials: [Material_Data!]! @allow(fields: "id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic", maxCount: 5000)
+  $documents: [Document_Data!]! @allow(fields: "id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated", maxCount: 5000)
+  $extractedRows: [ExtractedRow_Data!]! @allow(fields: "id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated", maxCount: 5000)
+  $supplyOffers: [SupplyOffer_Data!]! @allow(fields: "id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs", maxCount: 5000)
+  $demandRequests: [DemandRequest_Data!]! @allow(fields: "id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed", maxCount: 5000)
+  $registeredMaterials: [RegisteredMaterial_Data!]! @allow(fields: "id payload", maxCount: 5000)
+  $projectMaterialRecords: [ProjectMaterialRecord_Data!]! @allow(fields: "id projectId materialId payload", maxCount: 5000)
+  $supersededRecords: [SupersededRecord_Data!]! @allow(fields: "id projectId successorId", maxCount: 5000)
+  $projectStockHeads: [ProjectStockHead_Data!]! @allow(fields: "id projectId materialId payload", maxCount: 5000)
+  $impactIntents: [ImpactRefreshIntent_Data!]! = [] @allow(fields: "id token status payload",maxCount: 10000)
+  $projectUpdates: [Project_Data!]! @allow(fields: "id code name township location startDate targetEndDate status managingOrganisation",maxCount: 5000)
+  $masterAudits: [RuntimeAudit_Data!]! @allow(fields: "id kind payload",maxCount: 5000)
+  $matchingScopes: [MatchingScope_Data!]! @allow(fields: "id token status generationId payload",maxCount: 5000)
+  $closedOfferIds: [String!]!
+  $closedDemandIds: [String!]!
+  $demandBalances: [DemandCommitmentBalance_Data!]! @allow(fields: "demandRequestId committedQuantity", maxCount: 5000)
+) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedOperationalRevision}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "PUBLICATION_CONTEXT_STALE")
+  query @redact
+    @check(expr: "size(response.query.projects) == size(vars.expected.projects) && response.query.projects.all(row, vars.expected.projects.exists(prior, prior.id == row.id && row.id == prior.id && row.code == prior.code && row.name == prior.name && row.township == prior.township && row.location == prior.location && (row.startDate == null && prior.startDate == null || row.startDate != null && prior.startDate != null && row.startDate == timestamp(prior.startDate + 'T00:00:00Z')) && (row.targetEndDate == null && prior.targetEndDate == null || row.targetEndDate != null && prior.targetEndDate != null && row.targetEndDate == timestamp(prior.targetEndDate + 'T00:00:00Z')) && row.status == prior.status && row.managingOrganisation == prior.managingOrganisation))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.materials) == size(vars.expected.materials) && response.query.materials.all(row, vars.expected.materials.exists(prior, prior.id == row.id && row.id == prior.id && row.category == prior.category && row.canonicalName == prior.canonicalName && row.specifications == prior.specifications && row.standardUnit == prior.standardUnit && row.massKgPerUnit == prior.massKgPerUnit && row.massSource == prior.massSource && row.referenceCode == prior.referenceCode && row.isSynthetic == prior.isSynthetic))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.documents) == size(vars.expected.documents) && response.query.documents.all(row, vars.expected.documents.exists(prior, prior.id == row.id && row.id == prior.id && row.projectId == prior.projectId && row.documentType == prior.documentType && row.displayFilename == prior.displayFilename && row.fileUri == prior.fileUri && row.fileHash == prior.fileHash && row.sourceAvailability == prior.sourceAvailability && row.processingStatus == prior.processingStatus && (row.recordedAt == null && prior.recordedAt == null || row.recordedAt != null && prior.recordedAt != null && row.recordedAt == timestamp(prior.recordedAt)) && row.isSimulated == prior.isSimulated))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.extractedRows) == size(vars.expected.extractedRows) && response.query.extractedRows.all(row, vars.expected.extractedRows.exists(prior, prior.id == row.id && row.id == prior.id && row.documentId == prior.documentId && row.sourceLocator == prior.sourceLocator && row.rawDescription == prior.rawDescription && row.rawQuantity == prior.rawQuantity && row.rawUnit == prior.rawUnit && row.parsedFields == prior.parsedFields && row.suggestedMaterialId == prior.suggestedMaterialId && row.confidenceScore == prior.confidenceScore && row.reviewStatus == prior.reviewStatus && row.reviewMode == prior.reviewMode && row.isSimulated == prior.isSimulated))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.supplyOffers) == size(vars.expected.supplyOffers) && response.query.supplyOffers.all(row, vars.expected.supplyOffers.exists(prior, prior.id == row.id && row.id == prior.id && row.sourceProjectId == prior.sourceProjectId && row.materialId == prior.materialId && row.originDocumentRowId == prior.originDocumentRowId && row.declaredQuantity == int(prior.declaredQuantity) && (row.confirmedQuantity == null && prior.confirmedQuantity == null || row.confirmedQuantity != null && prior.confirmedQuantity != null && row.confirmedQuantity == int(prior.confirmedQuantity)) && row.reservedActiveQuantity == int(prior.reservedActiveQuantity) && row.transferredOutQuantity == int(prior.transferredOutQuantity) && row.unit == prior.unit && row.surplusStatus == prior.surplusStatus && row.condition == prior.condition && (row.availableFrom == null && prior.availableFrom == null || row.availableFrom != null && prior.availableFrom != null && row.availableFrom == timestamp(prior.availableFrom + 'T00:00:00Z')) && (row.availableUntil == null && prior.availableUntil == null || row.availableUntil != null && prior.availableUntil != null && row.availableUntil == timestamp(prior.availableUntil + 'T00:00:00Z')) && row.batchOrLotCode == prior.batchOrLotCode && row.materialOwnerLabel == prior.materialOwnerLabel && row.evidenceRefs == prior.evidenceRefs))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.demandRequests) == size(vars.expected.demandRequests) && response.query.demandRequests.all(row, vars.expected.demandRequests.exists(prior, prior.id == row.id && row.id == prior.id && row.destinationProjectId == prior.destinationProjectId && row.materialId == prior.materialId && row.originDocumentRowId == prior.originDocumentRowId && row.requiredQuantity == int(prior.requiredQuantity) && row.fulfilledQuantity == int(prior.fulfilledQuantity) && row.unit == prior.unit && (row.neededFrom == null && prior.neededFrom == null || row.neededFrom != null && prior.neededFrom != null && row.neededFrom == timestamp(prior.neededFrom + 'T00:00:00Z')) && (row.requiredBy == null && prior.requiredBy == null || row.requiredBy != null && prior.requiredBy != null && row.requiredBy == timestamp(prior.requiredBy + 'T00:00:00Z')) && row.requestStatus == prior.requestStatus && row.isOutstandingNeedConfirmed == prior.isOutstandingNeedConfirmed))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.routeDistances) == size(vars.expected.routeDistances) && response.query.routeDistances.all(row, vars.expected.routeDistances.exists(prior, prior.id == row.id && row.id == prior.id && row.fromProjectId == prior.fromProjectId && row.toProjectId == prior.toProjectId && row.distanceKm == prior.distanceKm && row.assumptionType == prior.assumptionType && row.transportMode == prior.transportMode && row.isSynthetic == prior.isSynthetic))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.optimisationRuns) == size(vars.expected.optimisationRuns) && response.query.optimisationRuns.all(row, vars.expected.optimisationRuns.exists(prior, prior.id == row.id && row.id == prior.id && (row.createdAt == null && prior.createdAt == null || row.createdAt != null && prior.createdAt != null && row.createdAt == timestamp(prior.createdAt)) && row.objective == prior.objective && row.inputsSnapshotHash == prior.inputsSnapshotHash && row.inputSnapshot == prior.inputSnapshot && row.factorDatasetVersion == prior.factorDatasetVersion && row.solverStatus == prior.solverStatus && row.assumptions == prior.assumptions))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.allocationProposals) == size(vars.expected.allocationProposals) && response.query.allocationProposals.all(row, vars.expected.allocationProposals.exists(prior, prior.id == row.id && row.id == prior.id && row.runId == prior.runId && row.supplyOfferId == prior.supplyOfferId && row.demandRequestId == prior.demandRequestId && row.proposedQuantity == int(prior.proposedQuantity) && row.unit == prior.unit && row.compatibilityResult == prior.compatibilityResult && row.status == prior.status && row.reasonCodes == prior.reasonCodes && (row.createdAt == null && prior.createdAt == null || row.createdAt != null && prior.createdAt != null && row.createdAt == timestamp(prior.createdAt))))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.transfers) == size(vars.expected.transfers) && response.query.transfers.all(row, vars.expected.transfers.exists(prior, prior.id == row.id && row.id == prior.id && row.proposalId == prior.proposalId && row.approvedQuantity == int(prior.approvedQuantity) && row.reservedQuantity == int(prior.reservedQuantity) && row.dispatchedQuantity == int(prior.dispatchedQuantity) && row.receivedQuantity == int(prior.receivedQuantity) && row.actuallyUsedQuantity == int(prior.actuallyUsedQuantity) && row.status == prior.status && row.sourceConfirmationStatus == prior.sourceConfirmationStatus && row.destinationConfirmationStatus == prior.destinationConfirmationStatus && (row.requestedAt == null && prior.requestedAt == null || row.requestedAt != null && prior.requestedAt != null && row.requestedAt == timestamp(prior.requestedAt)) && (row.deliveredAt == null && prior.deliveredAt == null || row.deliveredAt != null && prior.deliveredAt != null && row.deliveredAt == timestamp(prior.deliveredAt)) && (row.reuseConfirmedAt == null && prior.reuseConfirmedAt == null || row.reuseConfirmedAt != null && prior.reuseConfirmedAt != null && row.reuseConfirmedAt == timestamp(prior.reuseConfirmedAt)) && row.notes == prior.notes))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.transferEvents) == size(vars.expected.transferEvents) && response.query.transferEvents.all(row, vars.expected.transferEvents.exists(prior, prior.id == row.id && row.id == prior.id && row.transferId == prior.transferId && row.eventType == prior.eventType && (row.occurredAt == null && prior.occurredAt == null || row.occurredAt != null && prior.occurredAt != null && row.occurredAt == timestamp(prior.occurredAt)) && row.actorLabel == prior.actorLabel && row.payload == prior.payload && row.evidenceRef == prior.evidenceRef))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.emissionFactors) == size(vars.expected.emissionFactors) && response.query.emissionFactors.all(row, vars.expected.emissionFactors.exists(prior, prior.id == row.id && row.id == prior.id && row.factorType == prior.factorType && row.materialId == prior.materialId && row.materialCategory == prior.materialCategory && row.transportMode == prior.transportMode && row.value == prior.value && row.unit == prior.unit && row.sourceLabel == prior.sourceLabel && row.sourceUrl == prior.sourceUrl && row.geography == prior.geography && row.lifecycleBoundary == prior.lifecycleBoundary && row.version == prior.version && (row.validFrom == null && prior.validFrom == null || row.validFrom != null && prior.validFrom != null && row.validFrom == timestamp(prior.validFrom + 'T00:00:00Z')) && row.isDemoFactor == prior.isDemoFactor))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "size(response.query.impactAssessments) == size(vars.expected.impactAssessments) && response.query.impactAssessments.all(row, vars.expected.impactAssessments.exists(prior, prior.id == row.id && row.id == prior.id && row.basis == prior.basis && row.proposalId == prior.proposalId && row.transferId == prior.transferId && row.quantityAssessed == int(prior.quantityAssessed) && row.unit == prior.unit && row.baselineDescription == prior.baselineDescription && row.avoidedProductionKgco2E == prior.avoidedProductionKgco2E && row.additionalTransportKgco2E == prior.additionalTransportKgco2E && row.additionalProcessingKgco2E == prior.additionalProcessingKgco2E && row.netAvoidedKgco2E == prior.netAvoidedKgco2E && row.factorIds == prior.factorIds && row.assumptions == prior.assumptions && row.calculationStatus == prior.calculationStatus && (row.calculatedAt == null && prior.calculatedAt == null || row.calculatedAt != null && prior.calculatedAt != null && row.calculatedAt == timestamp(prior.calculatedAt))))", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "response.query.registeredMaterials == vars.expected.registeredMaterials", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "response.query.projectMaterialRecords == vars.expected.projectMaterialRecords", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "response.query.supersededRecords == vars.expected.supersededRecords", message: "PUBLICATION_CONTEXT_STALE")
+    @check(expr: "response.query.projectStockHeads == vars.expected.projectStockHeads", message: "PUBLICATION_CONTEXT_STALE") {
+  projects(limit: 1000, orderBy: {id: ASC}) { id code name township location startDate targetEndDate status managingOrganisation }
+  materials(limit: 1000, orderBy: {id: ASC}) { id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic }
+  documents(limit: 1000, orderBy: {id: ASC}) { id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated }
+  extractedRows(limit: 1000, orderBy: {id: ASC}) { id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated }
+  supplyOffers(limit: 1000, orderBy: {id: ASC}) { id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs }
+  demandRequests(limit: 1000, orderBy: {id: ASC}) { id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+  routeDistances(limit: 1000, orderBy: {id: ASC}) { id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic }
+  optimisationRuns(limit: 1000, orderBy: {id: ASC}) { id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions }
+  allocationProposals(limit: 1000, orderBy: {id: ASC}) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+  transfers(limit: 1000, orderBy: {id: ASC}) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+  transferEvents(limit: 1000, orderBy: {id: ASC}) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+  emissionFactors(limit: 1000, orderBy: {id: ASC}) { id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor }
+  impactAssessments(limit: 1000, orderBy: {id: ASC}) { id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt }
+  registeredMaterials(limit: 1000, orderBy: {id: ASC}) { id payload }
+  projectMaterialRecords(limit: 1000, orderBy: {id: ASC}) { id projectId materialId payload }
+  supersededRecords(limit: 1000, orderBy: {id: ASC}) { id projectId successorId }
+  projectStockHeads(limit: 1000, orderBy: {id: ASC}) { id projectId materialId payload }
+  }
+  ingestionBatch_updateMany(where: {id: {eq: $batchId} revision: {eq: $expectedBatchRevision}}, data: {revision: $revision payload: $batchPayload}) @check(expr: "this == 1", message: "INGESTION_STALE_REVISION")
+  project_insertMany(data: $projects)
+  material_insertMany(data: $materials)
+  document_insertMany(data: $documents)
+  extractedRow_insertMany(data: $extractedRows)
+  supplyOffer_insertMany(data: $supplyOffers)
+  demandRequest_insertMany(data: $demandRequests)
+  registeredMaterial_insertMany(data: $registeredMaterials)
+  projectMaterialRecord_insertMany(data: $projectMaterialRecords)
+  supersededRecord_insertMany(data: $supersededRecords)
+  projectStockHead_upsertMany(data: $projectStockHeads)
+  project_upsertMany(data: $projectUpdates)
+  runtimeAudit_insertMany(data: $masterAudits)
+  impactRefreshIntent_upsertMany(data: $impactIntents)
+  matchingScope_upsertMany(data: $matchingScopes)
+  supplyOffer_updateMany(where: {id: {in: $closedOfferIds}}, data: {surplusStatus: CLOSED})
+  demandRequest_updateMany(where: {id: {in: $closedDemandIds}}, data: {requestStatus: CANCELLED})
+  demandCommitmentBalance_insertMany(data: $demandBalances)
+  ingestionPublication_insert(data: {id: $id batchId: $batchId requestKey: $requestKey requestFingerprint: $requestFingerprint receipt: $receipt handoffStatus: $handoffStatus handoffPayload: $handoff})
+  ingestionRevision_insert(data: {id: $revisionId batchId: $batchId revision: $revision payload: $batchPayload})
+}
+
+query PageRegisteredMaterials($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: registeredMaterials(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id payload }
+}
+
+query GetRegisteredMaterial($id: String!) @auth(level: NO_ACCESS) {
+  registeredMaterial(id: $id) { id payload }
+}
+
+query PagePublishedMaterialRecords($projectId: String!, $after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: projectMaterialRecords(where: {_and: [{projectId: {eq: $projectId}}, {id: {gt: $after}}]}, orderBy: {id: ASC}, limit: $limit) { id projectId materialId payload }
+}
+
+query PageSupersededRecords($projectId: String!, $after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: supersededRecords(where: {_and: [{projectId: {eq: $projectId}}, {id: {gt: $after}}]}, orderBy: {id: ASC}, limit: $limit) { id projectId successorId }
+}
+
+query PageProjectStockHeads($projectId: String!, $after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: projectStockHeads(where: {_and: [{projectId: {eq: $projectId}}, {id: {gt: $after}}]}, orderBy: {id: ASC}, limit: $limit) { id projectId materialId payload }
+}
+
+query GetQuantityEncoding @auth(level: NO_ACCESS) { quantityEncoding(id: "GLOBAL") { version } }
+mutation InitializeExactQuantities @auth(level: NO_ACCESS) @transaction {
+  query @redact @check(expr: "size(response.query.supplyOffers) == 0 && size(response.query.demandRequests) == 0 && size(response.query.transfers) == 0", message: "EXACT_ENCODING_REQUIRES_EMPTY_DATABASE") {
+    supplyOffers(limit: 1) { id }
+    demandRequests(limit: 1) { id }
+    transfers(limit: 1) { id }
+  }
+  quantityEncoding_insert(data: {id: "GLOBAL" version: "millionths-v1"})
+}
+query GetMatchingScope($id: String!) @auth(level: NO_ACCESS) { matchingScope(id: $id) { id token status generationId payload } }
+query GetMatchingGeneration($id: String!) @auth(level: NO_ACCESS) { matchingGeneration(id: $id) { id materialId fingerprint payload } }
+query GetRuntimeAudit($id: String!) @auth(level: NO_ACCESS) { runtimeAudit(id: $id) { id kind payload } }
+query PageMatchingScopes($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: matchingScopes(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id token status generationId payload }
+}
+query PageMatchingPublications($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: ingestionPublications(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id handoffStatus handoffPayload }
+}
+mutation DirtyMatchingScope($id: String!, $token: String!, $expectedRevision: Int!) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1",message: "MATCHING_INPUT_STALE")
+  matchingScope_upsert(data: {id: $id token: $token status: "PENDING" generationId: null payload: {}})
+}
+mutation FailMatchingScope($id: String!, $token: String!, $payload: Any!) @auth(level: NO_ACCESS) @transaction {
+  matchingScope_updateMany(where: {id: {eq: $id} token: {eq: $token}},data: {status: "FAILED" payload: $payload})
+}
+mutation FinishMatchingPublication($id: String!, $payload: Any!) @auth(level: NO_ACCESS) @transaction {
+  ingestionPublication_update(id: $id,data: {handoffStatus: "COMPLETED" handoffPayload: $payload})
+}
+query PageRuntimeProjects($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: projects(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id code name township location startDate targetEndDate status managingOrganisation }
+}
+query PageRuntimeMaterials($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: materials(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic }
+}
+query PageRuntimeDocuments($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: documents(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated }
+}
+query PageRuntimeExtractedRows($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: extractedRows(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated }
+}
+query PageRuntimeSupplyOffers($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: supplyOffers(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs }
+}
+query PageRuntimeDemandRequests($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: demandRequests(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+}
+query PageRuntimeRouteDistances($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: routeDistances(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic }
+}
+query PageRuntimeOptimisationRuns($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: optimisationRuns(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions }
+}
+query PageRuntimeAllocationProposals($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: allocationProposals(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+}
+query PageRuntimeTransfers($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: transfers(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+}
+query PageRuntimeTransferEvents($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: transferEvents(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+}
+query PageRuntimeEmissionFactors($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: emissionFactors(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor }
+}
+query PageRuntimeImpactAssessments($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: impactAssessments(where: {id: {gt: $after}},orderBy: {id: ASC},limit: $limit) { id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt }
+}
+mutation CommitMatchingGeneration(
+  $id: String!, $materialId: String!, $token: String!, $fingerprint: String!, $payload: Any!, $expectedRevision: Int!
+  $runs: [OptimisationRun_Data!]! @allow(fields: "id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions",maxCount: 10000)
+  $proposals: [AllocationProposal_Data!]! @allow(fields: "id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt",maxCount: 5000)
+  $assessments: [ImpactAssessment_Data!]! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt",maxCount: 5000)
+  $heads: [ImpactAssessmentHead_Data!]! @allow(fields: "id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt",maxCount: 5000)
+  $operations: [OptimisationRunOperation_Data!]! @allow(fields: "id requestFingerprint runId",maxCount: 3)
+) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1",message: "MATCHING_INPUT_STALE")
+  matchingScope_updateMany(where: {id: {eq: $materialId} token: {eq: $token} status: {in: ["PENDING","FAILED"]}},data: {status: "CURRENT" generationId: $id payload: {}}) @check(expr: "this == 1 && size(vars.runs) == 3",message: "MATCHING_SCOPE_STALE")
+  optimisationRun_insertMany(data: $runs)
+  allocationProposal_insertMany(data: $proposals)
+  impactAssessment_insertMany(data: $assessments)
+  impactAssessmentHead_insertMany(data: $heads)
+  optimisationRunOperation_insertMany(data: $operations)
+  matchingGeneration_insert(data: {id: $id materialId: $materialId fingerprint: $fingerprint payload: $payload})
+}
+mutation ConfirmRuntimeInputs(
+ $expectedRevision: Int!, $auditId: String!, $kind: String!, $payload: Any!
+ $projects: [Project_Data!]! @allow(fields: "id code name township location startDate targetEndDate status managingOrganisation",maxCount: 100)
+ $materials: [Material_Data!]! @allow(fields: "id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic",maxCount: 100)
+ $routes: [RouteDistance_Data!]! @allow(fields: "id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic",maxCount: 100)
+ $scopes: [MatchingScope_Data!]! @allow(fields: "id token status generationId payload",maxCount: 5000)
+ $impactIntents: [ImpactRefreshIntent_Data!]! = [] @allow(fields: "id token status payload", maxCount: 10000)
+) @auth(level: NO_ACCESS) @transaction {
+ operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1",message: "RUNTIME_INPUT_STALE")
+ project_upsertMany(data: $projects)
+ material_upsertMany(data: $materials)
+ routeDistance_upsertMany(data: $routes)
+ matchingScope_upsertMany(data: $scopes)
+ runtimeAudit_insert(data: {id: $auditId kind: $kind payload: $payload})
+ impactRefreshIntent_upsertMany(data: $impactIntents)
+}
+mutation ProveCombinedTransferReservation(
+ $expectedRevision: Int!, $generationId: String!, $materialId: String!, $proposalId: String!, $transferId: String!,
+ $operationId: String!, $requestFingerprint: String!, $approvalEventId: String!, $eventId: String!,
+ $quantity: Int64!, $actorLabel: String!, $evidenceRef: String, $occurredAt: Timestamp!, $operationDate: Date!, $arrivalDate: Date!,
+ $supplyOfferId: String!, $demandRequestId: String!, $eventPayload: Any!
+) @auth(level: NO_ACCESS) @transaction {
+ operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1",message: "CONFIRMATION_CONTEXT_STALE")
+ initialScope: query @redact
+  @check(expr: "response.initialScope.matchingScope != null && response.initialScope.matchingScope.status == 'CURRENT' && response.initialScope.matchingScope.generationId == vars.generationId",message: "RECOMMENDATION_SUPERSEDED") {
+  matchingScope(id: $materialId) { status generationId }
+ }
+ allocationProposal_updateMany(where: {id: {eq: $proposalId} status: {in: [PROPOSED,SELECTED]} compatibilityResult: {eq: ELIGIBLE} proposedQuantity: {ge: $quantity}},data: {status: SELECTED}) @check(expr: "this == 1 && vars.quantity > 0",message: "PROPOSAL_NOT_CONFIRMABLE")
+ transfer_insert(data: {id: $transferId proposalId: $proposalId approvedQuantity: $quantity reservedQuantity: $quantity dispatchedQuantity: 0 receivedQuantity: 0 actuallyUsedQuantity: 0 status: RESERVED sourceConfirmationStatus: CONFIRMED destinationConfirmationStatus: CONFIRMED requestedAt: $occurredAt})
+ supplyOffer_update(id: $supplyOfferId,data: {reservedActiveQuantity_update: {inc: $quantity}})
+ demandCommitmentBalance_update(key: {demandRequestId: $demandRequestId},data: {committedQuantity_update: {inc: $quantity}})
+ query @redact
+  @check(expr: "response.query.transfer.proposal.supplyOfferId == vars.supplyOfferId && response.query.transfer.proposal.demandRequestId == vars.demandRequestId && response.query.transfer.proposal.run.assumptions.matching_generation == vars.generationId",message: "PROPOSAL_NOT_CONFIRMABLE")
+  @check(expr: "response.query.supplyOffer.materialId == vars.materialId && response.query.demandRequest.materialId == vars.materialId && response.query.supplyOffer.unit == response.query.demandRequest.unit && response.query.supplyOffer.unit == response.query.transfer.proposal.unit",message: "MATERIAL_UNIT_MISMATCH")
+  @check(expr: "response.query.supplyOffer.surplusStatus == 'CONFIRMED' && response.query.supplyOffer.condition == 'UNUSED' && response.query.supplyOffer.confirmedQuantity != null && response.query.supplyOffer.reservedActiveQuantity + response.query.supplyOffer.transferredOutQuantity <= response.query.supplyOffer.confirmedQuantity",message: "SOURCE_STOCK_UNAVAILABLE")
+  @check(expr: "response.query.demandRequest.requestStatus == 'OPEN' && response.query.demandRequest.isOutstandingNeedConfirmed && response.query.demandRequest.fulfilledQuantity + response.query.demandCommitmentBalance.committedQuantity <= response.query.demandRequest.requiredQuantity",message: "DEMAND_UNAVAILABLE")
+  @check(expr: "response.query.supplyOffer.availableFrom <= vars.operationDate && (response.query.supplyOffer.availableUntil == null || response.query.supplyOffer.availableUntil >= vars.operationDate) && response.query.demandRequest.neededFrom <= vars.operationDate && vars.arrivalDate >= vars.operationDate && vars.arrivalDate <= response.query.demandRequest.requiredBy",message: "TRANSFER_DATE_INELIGIBLE") {
+  transfer(id: $transferId) { proposal { unit supplyOfferId demandRequestId run { assumptions } } }
+  supplyOffer(id: $supplyOfferId) { materialId unit surplusStatus condition confirmedQuantity reservedActiveQuantity transferredOutQuantity availableFrom availableUntil }
+  demandRequest(id: $demandRequestId) { materialId unit requiredQuantity fulfilledQuantity neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+  demandCommitmentBalance(key: {demandRequestId: $demandRequestId}) { committedQuantity }
+ }
+ approvalEvent: transferEvent_insert(data: {id: $approvalEventId transferId: $transferId eventType: APPROVED occurredAt: $occurredAt actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef})
+ transferEvent_insert(data: {id: $eventId transferId: $transferId eventType: RESERVED occurredAt: $occurredAt actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef})
+ transferWorkflowOperation_insert(data: {id: $operationId operationType: "APPROVE_RESERVE" requestFingerprint: $requestFingerprint transferId: $transferId eventId: $eventId quantity: $quantity actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt})
+ impactAssessmentHead_insert(data: {id_expr: "'ACTUAL_CONFIRMED_USE:' + vars.transferId" basis: ACTUAL_CONFIRMED_USE transferId: $transferId revision: 0})
+ matchingScope_update(id: $materialId,data: {token: $operationId status: "PENDING" generationId: null payload: {}})
+}
+
+mutation ConfirmTransferReservation(
+ $expectedRevision: Int!, $generationId: String!, $materialId: String!, $proposalId: String!, $transferId: String!,
+ $operationId: String!, $requestFingerprint: String!, $approvalEventId: String!, $eventId: String!,
+ $quantity: Int64!, $actorLabel: String!, $evidenceRef: String, $occurredAt: Timestamp!, $operationDate: Date!, $arrivalDate: Date!,
+ $supplyOfferId: String!, $demandRequestId: String!, $eventPayload: Any!
+) @auth(level: NO_ACCESS) @transaction {
+ operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1",message: "CONFIRMATION_CONTEXT_STALE")
+ initialScope: query @redact
+  @check(expr: "response.initialScope.matchingScope != null && response.initialScope.matchingScope.status == 'CURRENT' && response.initialScope.matchingScope.generationId == vars.generationId",message: "RECOMMENDATION_SUPERSEDED") {
+  matchingScope(id: $materialId) { status generationId }
+ }
+ allocationProposal_updateMany(where: {id: {eq: $proposalId} status: {in: [PROPOSED,SELECTED]} compatibilityResult: {eq: ELIGIBLE} proposedQuantity: {ge: $quantity}},data: {status: SELECTED}) @check(expr: "this == 1 && vars.quantity > 0",message: "PROPOSAL_NOT_CONFIRMABLE")
+ transfer_insert(data: {id: $transferId proposalId: $proposalId approvedQuantity: $quantity reservedQuantity: $quantity dispatchedQuantity: 0 receivedQuantity: 0 actuallyUsedQuantity: 0 status: RESERVED sourceConfirmationStatus: CONFIRMED destinationConfirmationStatus: CONFIRMED requestedAt: $occurredAt})
+ supplyOffer_update(id: $supplyOfferId,data: {reservedActiveQuantity_update: {inc: $quantity}})
+ demandCommitmentBalance_update(key: {demandRequestId: $demandRequestId},data: {committedQuantity_update: {inc: $quantity}})
+ query @redact
+  @check(expr: "response.query.transfer.proposal.supplyOfferId == vars.supplyOfferId && response.query.transfer.proposal.demandRequestId == vars.demandRequestId && response.query.transfer.proposal.run.assumptions.matching_generation == vars.generationId",message: "PROPOSAL_NOT_CONFIRMABLE")
+  @check(expr: "response.query.supplyOffer.materialId == vars.materialId && response.query.demandRequest.materialId == vars.materialId && response.query.supplyOffer.unit == response.query.demandRequest.unit && response.query.supplyOffer.unit == response.query.transfer.proposal.unit",message: "MATERIAL_UNIT_MISMATCH")
+  @check(expr: "response.query.supplyOffer.surplusStatus == 'CONFIRMED' && response.query.supplyOffer.condition == 'UNUSED' && response.query.supplyOffer.confirmedQuantity != null && response.query.supplyOffer.reservedActiveQuantity + response.query.supplyOffer.transferredOutQuantity <= response.query.supplyOffer.confirmedQuantity",message: "SOURCE_STOCK_UNAVAILABLE")
+  @check(expr: "response.query.demandRequest.requestStatus == 'OPEN' && response.query.demandRequest.isOutstandingNeedConfirmed && response.query.demandRequest.fulfilledQuantity + response.query.demandCommitmentBalance.committedQuantity <= response.query.demandRequest.requiredQuantity",message: "DEMAND_UNAVAILABLE")
+  @check(expr: "response.query.supplyOffer.availableFrom <= vars.operationDate && (response.query.supplyOffer.availableUntil == null || response.query.supplyOffer.availableUntil >= vars.operationDate) && response.query.demandRequest.neededFrom <= vars.operationDate && vars.arrivalDate >= vars.operationDate && vars.arrivalDate <= response.query.demandRequest.requiredBy",message: "TRANSFER_DATE_INELIGIBLE") {
+  transfer(id: $transferId) { proposal { unit supplyOfferId demandRequestId run { assumptions } } }
+  supplyOffer(id: $supplyOfferId) { materialId unit surplusStatus condition confirmedQuantity reservedActiveQuantity transferredOutQuantity availableFrom availableUntil }
+  demandRequest(id: $demandRequestId) { materialId unit requiredQuantity fulfilledQuantity neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+  demandCommitmentBalance(key: {demandRequestId: $demandRequestId}) { committedQuantity }
+ }
+ approvalEvent: transferEvent_insert(data: {id: $approvalEventId transferId: $transferId eventType: APPROVED occurredAt: $occurredAt actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef})
+ transferEvent_insert(data: {id: $eventId transferId: $transferId eventType: RESERVED occurredAt: $occurredAt actorLabel: $actorLabel payload: $eventPayload evidenceRef: $evidenceRef})
+ transferWorkflowOperation_insert(data: {id: $operationId operationType: "APPROVE_RESERVE" requestFingerprint: $requestFingerprint transferId: $transferId eventId: $eventId quantity: $quantity actorLabel: $actorLabel evidenceRef: $evidenceRef occurredAt: $occurredAt})
+ impactAssessmentHead_insert(data: {id_expr: "'ACTUAL_CONFIRMED_USE:' + vars.transferId" basis: ACTUAL_CONFIRMED_USE transferId: $transferId revision: 0})
+ matchingScope_update(id: $materialId,data: {token: $operationId status: "PENDING" generationId: null payload: {}})
+}
+
+mutation PersistCurrentActualImpact(
+  $scopeId: String!
+  $operationId: String!
+  $requestFingerprint: String!
+  $assessmentId: String!
+  $expectedRevision: Int!
+  $newRevision: Int!
+  $inputFingerprint: String!
+  $calculatedAt: Timestamp!
+  $assessment: ImpactAssessment_Data! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt")
+  $transferId: String!
+  $expectedUsedQuantity: Int64!
+  $expectedDispatchedQuantity: Int64!
+  $expectedReceivedQuantity: Int64!
+  $expectedReuseConfirmedAt: Timestamp!
+  $expectedOperationalRevision: Int!
+  $intentToken: String!
+  $intentPayload: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedOperationalRevision}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "IMPACT_INPUT_STALE")
+  impactRefreshIntent_updateMany(where: {id: {eq: $transferId} token: {eq: $intentToken} status: {in: ["PENDING","FAILED"]}},data: {status: "COMPLETED" payload: $intentPayload}) @check(expr: "this == 1", message: "IMPACT_INTENT_STALE")
+  transfer_updateMany(where: {id: {eq: $transferId} actuallyUsedQuantity: {eq: $expectedUsedQuantity} dispatchedQuantity: {eq: $expectedDispatchedQuantity} receivedQuantity: {eq: $expectedReceivedQuantity} reuseConfirmedAt: {eq: $expectedReuseConfirmedAt}}, data: {actuallyUsedQuantity: $expectedUsedQuantity}) @check(expr: "this == 1", message: "IMPACT_SOURCE_STALE")
+  impactAssessment_insert(data: $assessment)
+  impactAssessmentHead_updateMany(where: {id: {eq: $scopeId} revision: {eq: $expectedRevision}}, data: {currentAssessmentId: $assessmentId revision: $newRevision inputFingerprint: $inputFingerprint updatedAt: $calculatedAt}) @check(expr: "this == 1", message: "IMPACT_REVISION_STALE")
+  impactCalculationOperation_insert(data: {id: $operationId requestFingerprint: $requestFingerprint scopeId: $scopeId assessmentId: $assessmentId})
+}
+
+mutation EnqueueImpactPolicyRefresh($id: String!, $token: String!, $payload: Any!, $expectedOperationalRevision: Int!) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedOperationalRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "IMPACT_INPUT_STALE")
+  impactRefreshIntent_upsert(data: {id: $id token: $token status: "PENDING" payload: $payload})
+}
+mutation ReactivateMatchingGeneration($id: String!, $materialId: String!, $token: String!, $fingerprint: String!, $expectedRevision: Int!) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "MATCHING_INPUT_STALE")
+  query @redact @check(expr: "response.query.matchingGeneration.materialId == vars.materialId && response.query.matchingGeneration.fingerprint == vars.fingerprint",message: "MATCHING_INPUT_STALE") {
+    matchingGeneration(id: $id) { materialId fingerprint }
+  }
+  matchingScope_updateMany(where: {id: {eq: $materialId} token: {eq: $token} status: {eq: "PENDING"}},data: {status: "CURRENT" generationId: $id payload: {}}) @check(expr: "this == 1",message: "MATCHING_SCOPE_STALE")
+}
+query PageImpactIntents($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: impactRefreshIntents(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id token status payload }
+}
+query GetImpactIntent($id: String!) @auth(level: NO_ACCESS) { impactRefreshIntent(id: $id) { id token status payload } }
+mutation SetImpactIntent($id: String!, $token: String!, $status: String!, $payload: Any!) @auth(level: NO_ACCESS) @transaction {
+  impactRefreshIntent_upsert(data: {id: $id token: $token status: $status payload: $payload})
+}
+mutation FinishImpactIntent($id: String!, $token: String!, $status: String!, $payload: Any!, $expectedOperationalRevision: Int!) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedOperationalRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "IMPACT_INPUT_STALE")
+  impactRefreshIntent_updateMany(where: {id: {eq: $id} token: {eq: $token}},data: {status: $status payload: $payload}) @check(expr: "this == 1", message: "IMPACT_INTENT_STALE")
+}
+
+query GetCutoverBatchHeads @auth(level: NO_ACCESS) { ingestionBatches(limit: 1000, orderBy: {id: ASC}) { id revision } }
+query GetWorkspaceIdentity @auth(level: NO_ACCESS) { workspaceIdentity(id: "GLOBAL") { epoch createdAt } }
+mutation InitializeWorkspaceIdentity($epoch: String!, $createdAt: Timestamp!) @auth(level: NO_ACCESS) @transaction {
+  workspaceIdentity_insert(data: {id: "GLOBAL" epoch: $epoch createdAt: $createdAt})
+}
+query PageArchiveProject($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: projects(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id code name township location startDate targetEndDate status managingOrganisation }
+}
+query PageArchiveMaterial($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: materials(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic }
+}
+query PageArchiveDocument($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: documents(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated }
+}
+query PageArchiveExtractedRow($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: extractedRows(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated }
+}
+query PageArchiveSupplyOffer($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: supplyOffers(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs }
+}
+query PageArchiveDemandRequest($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: demandRequests(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed }
+}
+query PageArchiveRouteDistance($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: routeDistances(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic }
+}
+query PageArchiveOptimisationRun($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: optimisationRuns(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions }
+}
+query PageArchiveAllocationProposal($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: allocationProposals(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt }
+}
+query PageArchiveTransfer($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: transfers(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes }
+}
+query PageArchiveTransferEvent($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: transferEvents(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id transferId eventType occurredAt actorLabel payload evidenceRef }
+}
+query PageArchiveEmissionFactor($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: emissionFactors(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor }
+}
+query PageArchiveImpactAssessment($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: impactAssessments(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt }
+}
+query PageArchiveTransferApprovalOperation($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: transferApprovalOperations(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id requestFingerprint transferId eventId approvedQuantity sourceConfirmationStatus destinationConfirmationStatus actorLabel evidenceRef occurredAt }
+}
+query PageArchiveTransferWorkflowOperation($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: transferWorkflowOperations(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id operationType requestFingerprint transferId eventId quantity reason actorLabel evidenceRef occurredAt }
+}
+query PageArchiveTransferRequestOperation($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: transferRequestOperations(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id requestFingerprint proposalId transferId eventId actorLabel evidenceRef occurredAt }
+}
+query PageArchiveOptimisationRunOperation($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: optimisationRunOperations(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id requestFingerprint runId }
+}
+query PageArchiveDemandCommitmentBalance($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: demandCommitmentBalances(where: {demandRequestId: {gt: $after}}, orderBy: {demandRequestId: ASC}, limit: $limit) { demandRequestId committedQuantity }
+}
+query PageArchiveImpactAssessmentHead($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: impactAssessmentHeads(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt }
+}
+query PageArchiveImpactCalculationOperation($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: impactCalculationOperations(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id requestFingerprint scopeId assessmentId }
+}
+query PageArchiveIngestionBatch($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: ingestionBatches(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id revision payload }
+}
+query PageArchiveIngestionRevision($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: ingestionRevisions(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id batchId revision payload }
+}
+query PageArchiveOperationalVersion($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: operationalVersions(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id revision }
+}
+query PageArchiveRegisteredMaterial($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: registeredMaterials(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id payload }
+}
+query PageArchiveProjectMaterialRecord($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: projectMaterialRecords(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id projectId materialId payload }
+}
+query PageArchiveProjectStockHead($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: projectStockHeads(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id projectId materialId payload }
+}
+query PageArchiveSupersededRecord($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: supersededRecords(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id projectId successorId }
+}
+query PageArchiveIngestionPublication($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: ingestionPublications(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id batchId requestKey requestFingerprint receipt handoffStatus handoffPayload }
+}
+query PageArchiveQuantityEncoding($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: quantityEncodings(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id version }
+}
+query PageArchiveMatchingScope($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: matchingScopes(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id token status generationId payload }
+}
+query PageArchiveMatchingGeneration($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: matchingGenerations(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id materialId fingerprint payload }
+}
+query PageArchiveRuntimeAudit($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: runtimeAudits(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id kind payload }
+}
+query PageArchiveImpactRefreshIntent($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: impactRefreshIntents(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id token status payload }
+}
+query PageArchiveWorkspaceIdentity($after: String!, $limit: Int!) @auth(level: NO_ACCESS) {
+  records: workspaceIdentities(where: {id: {gt: $after}}, orderBy: {id: ASC}, limit: $limit) { id epoch createdAt }
+}
+mutation ResetLocalWorkspace($expectedOperationalRevision: Int!, $expectedBatches: Any!) @auth(level: NO_ACCESS) @transaction {
+  cutoverGuard: operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedOperationalRevision}},data: {revision_update: {inc: 1}}) @check(expr: "this == 1",message: "CUTOVER_CONTEXT_STALE")
+  cutoverHeads: query @redact @check(expr: "size(response.cutoverHeads.ingestionBatches) < 1000 && size(response.cutoverHeads.ingestionBatches) == size(vars.expectedBatches.batches) && response.cutoverHeads.ingestionBatches.all(row, vars.expectedBatches.batches.exists(prior, prior.id == row.id && int(prior.revision) == row.revision))",message: "CUTOVER_DRAFTS_CHANGED") {
+    ingestionBatches(limit: 1000) { id revision }
+  }
+
+  impactRefreshIntent_deleteMany(all: true)
+  matchingScope_deleteMany(all: true)
+  matchingGeneration_deleteMany(all: true)
+  runtimeAudit_deleteMany(all: true)
+  ingestionPublication_deleteMany(all: true)
+  supersededRecord_deleteMany(all: true)
+  projectStockHead_deleteMany(all: true)
+  projectMaterialRecord_deleteMany(all: true)
+  registeredMaterial_deleteMany(all: true)
+  impactCalculationOperation_deleteMany(all: true)
+  impactAssessmentHead_deleteMany(all: true)
+  transferApprovalOperation_deleteMany(all: true)
+  optimisationRunOperation_deleteMany(all: true)
+  transferRequestOperation_deleteMany(all: true)
+  transferWorkflowOperation_deleteMany(all: true)
+  demandCommitmentBalance_deleteMany(all: true)
+  impactAssessment_deleteMany(all: true)
+  transferEvent_deleteMany(all: true)
+  transfer_deleteMany(all: true)
+  allocationProposal_deleteMany(all: true)
+  optimisationRun_deleteMany(all: true)
+  emissionFactor_deleteMany(all: true)
+  routeDistance_deleteMany(all: true)
+  demandRequest_deleteMany(all: true)
+  supplyOffer_deleteMany(all: true)
+  extractedRow_deleteMany(all: true)
+  document_deleteMany(all: true)
+  material_deleteMany(all: true)
+  project_deleteMany(all: true)
+  ingestionRevision_deleteMany(all: true)
+  ingestionBatch_deleteMany(all: true)
+  workspaceIdentity_deleteMany(all: true)
+}
+mutation ImportDemoWorkspace(
+  $projects: [Project_Data!]! @allow(fields: "id code name township location startDate targetEndDate status managingOrganisation", maxCount: 5000)
+  $materials: [Material_Data!]! @allow(fields: "id category canonicalName specifications standardUnit massKgPerUnit massSource referenceCode isSynthetic", maxCount: 5000)
+  $documents: [Document_Data!]! @allow(fields: "id projectId documentType displayFilename fileUri fileHash sourceAvailability processingStatus recordedAt isSimulated", maxCount: 5000)
+  $extractedRows: [ExtractedRow_Data!]! @allow(fields: "id documentId sourceLocator rawDescription rawQuantity rawUnit parsedFields suggestedMaterialId confidenceScore reviewStatus reviewMode isSimulated", maxCount: 5000)
+  $supplyOffers: [SupplyOffer_Data!]! @allow(fields: "id sourceProjectId materialId originDocumentRowId declaredQuantity confirmedQuantity reservedActiveQuantity transferredOutQuantity unit surplusStatus condition availableFrom availableUntil batchOrLotCode materialOwnerLabel evidenceRefs", maxCount: 5000)
+  $demandRequests: [DemandRequest_Data!]! @allow(fields: "id destinationProjectId materialId originDocumentRowId requiredQuantity fulfilledQuantity unit neededFrom requiredBy requestStatus isOutstandingNeedConfirmed", maxCount: 5000)
+  $routeDistances: [RouteDistance_Data!]! @allow(fields: "id fromProjectId toProjectId distanceKm assumptionType transportMode isSynthetic", maxCount: 5000)
+  $emissionFactors: [EmissionFactor_Data!]! @allow(fields: "id factorType materialId materialCategory transportMode value unit sourceLabel sourceUrl geography lifecycleBoundary version validFrom isDemoFactor", maxCount: 5000)
+  $optimisationRuns: [OptimisationRun_Data!]! @allow(fields: "id createdAt objective inputsSnapshotHash inputSnapshot factorDatasetVersion solverStatus assumptions", maxCount: 5000)
+  $allocationProposals: [AllocationProposal_Data!]! @allow(fields: "id runId supplyOfferId demandRequestId proposedQuantity unit compatibilityResult status reasonCodes createdAt", maxCount: 5000)
+  $transfers: [Transfer_Data!]! @allow(fields: "id proposalId approvedQuantity reservedQuantity dispatchedQuantity receivedQuantity actuallyUsedQuantity status sourceConfirmationStatus destinationConfirmationStatus requestedAt deliveredAt reuseConfirmedAt notes", maxCount: 5000)
+  $transferEvents: [TransferEvent_Data!]! @allow(fields: "id transferId eventType occurredAt actorLabel payload evidenceRef", maxCount: 5000)
+  $impactAssessments: [ImpactAssessment_Data!]! @allow(fields: "id basis proposalId transferId quantityAssessed unit baselineDescription avoidedProductionKgco2E additionalTransportKgco2E additionalProcessingKgco2E netAvoidedKgco2E factorIds assumptions calculationStatus calculatedAt", maxCount: 5000)
+  $demandCommitmentBalances: [DemandCommitmentBalance_Data!]! @allow(fields: "demandRequestId committedQuantity", maxCount: 5000)
+  $impactAssessmentHeads: [ImpactAssessmentHead_Data!]! @allow(fields: "id basis proposalId transferId currentAssessmentId revision inputFingerprint updatedAt", maxCount: 5000)
+  $expectedRevision: Int!
+  $epoch: String!
+  $createdAt: Timestamp!
+  $receipt: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  operationalVersion_updateMany(where: {id: {eq: "GLOBAL"} revision: {eq: $expectedRevision}}, data: {revision_update: {inc: 1}}) @check(expr: "this == 1", message: "DEMO_WORKSPACE_CHANGED")
+  empty: query @redact @check(expr: "size(response.empty.projects) == 0 && size(response.empty.materials) == 0 && size(response.empty.documents) == 0 && size(response.empty.extractedRows) == 0 && size(response.empty.supplyOffers) == 0 && size(response.empty.demandRequests) == 0 && size(response.empty.routeDistances) == 0 && size(response.empty.optimisationRuns) == 0 && size(response.empty.allocationProposals) == 0 && size(response.empty.transfers) == 0 && size(response.empty.transferEvents) == 0 && size(response.empty.emissionFactors) == 0 && size(response.empty.impactAssessments) == 0 && size(response.empty.transferApprovalOperations) == 0 && size(response.empty.transferWorkflowOperations) == 0 && size(response.empty.transferRequestOperations) == 0 && size(response.empty.optimisationRunOperations) == 0 && size(response.empty.demandCommitmentBalances) == 0 && size(response.empty.impactAssessmentHeads) == 0 && size(response.empty.impactCalculationOperations) == 0 && size(response.empty.ingestionBatches) == 0 && size(response.empty.ingestionRevisions) == 0 && size(response.empty.registeredMaterials) == 0 && size(response.empty.projectMaterialRecords) == 0 && size(response.empty.projectStockHeads) == 0 && size(response.empty.supersededRecords) == 0 && size(response.empty.ingestionPublications) == 0 && size(response.empty.matchingScopes) == 0 && size(response.empty.matchingGenerations) == 0 && size(response.empty.runtimeAudits) == 0 && size(response.empty.impactRefreshIntents) == 0 && size(response.empty.workspaceIdentities) == 0", message: "DEMO_REQUIRES_EMPTY_WORKSPACE") {
+    projects(limit: 1) { id }
+    materials(limit: 1) { id }
+    documents(limit: 1) { id }
+    extractedRows(limit: 1) { id }
+    supplyOffers(limit: 1) { id }
+    demandRequests(limit: 1) { id }
+    routeDistances(limit: 1) { id }
+    optimisationRuns(limit: 1) { id }
+    allocationProposals(limit: 1) { id }
+    transfers(limit: 1) { id }
+    transferEvents(limit: 1) { id }
+    emissionFactors(limit: 1) { id }
+    impactAssessments(limit: 1) { id }
+    transferApprovalOperations(limit: 1) { id }
+    transferWorkflowOperations(limit: 1) { id }
+    transferRequestOperations(limit: 1) { id }
+    optimisationRunOperations(limit: 1) { id }
+    demandCommitmentBalances(limit: 1) { demandRequestId }
+    impactAssessmentHeads(limit: 1) { id }
+    impactCalculationOperations(limit: 1) { id }
+    ingestionBatches(limit: 1) { id }
+    ingestionRevisions(limit: 1) { id }
+    registeredMaterials(limit: 1) { id }
+    projectMaterialRecords(limit: 1) { id }
+    projectStockHeads(limit: 1) { id }
+    supersededRecords(limit: 1) { id }
+    ingestionPublications(limit: 1) { id }
+    matchingScopes(limit: 1) { id }
+    matchingGenerations(limit: 1) { id }
+    runtimeAudits(limit: 1) { id }
+    impactRefreshIntents(limit: 1) { id }
+    workspaceIdentities(limit: 1) { id }
+  }
+  encoding: query @redact @check(expr: "response.encoding.quantityEncoding != null && response.encoding.quantityEncoding.version == 'millionths-v1'", message: "DEMO_REQUIRES_EXACT_QUANTITIES") {
+    quantityEncoding(id: "GLOBAL") { version }
+  }
+
+  project_upsertMany(data: $projects)
+  material_upsertMany(data: $materials)
+  document_upsertMany(data: $documents)
+  extractedRow_upsertMany(data: $extractedRows)
+  supplyOffer_upsertMany(data: $supplyOffers)
+  demandRequest_upsertMany(data: $demandRequests)
+  routeDistance_upsertMany(data: $routeDistances)
+  emissionFactor_upsertMany(data: $emissionFactors)
+  optimisationRun_upsertMany(data: $optimisationRuns)
+  allocationProposal_upsertMany(data: $allocationProposals)
+  transfer_upsertMany(data: $transfers)
+  transferEvent_upsertMany(data: $transferEvents)
+  impactAssessment_upsertMany(data: $impactAssessments)
+  demandCommitmentBalance_upsertMany(data: $demandCommitmentBalances)
+  impactAssessmentHead_upsertMany(data: $impactAssessmentHeads)
+  workspaceIdentity_insert(data: {id: "GLOBAL" epoch: $epoch createdAt: $createdAt})
+  runtimeAudit_insert(data: {id: "DEMO-WORKSPACE-BOOTSTRAP" kind: "DEMO_BOOTSTRAP" payload: $receipt})
 }

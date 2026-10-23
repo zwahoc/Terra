@@ -66,7 +66,9 @@ class ComparisonTests(unittest.TestCase):
             result = preview_comparison(self.records, planning_date=self.input.planning_date,
                                          factor_dataset_version='demo-v1')
         self.assertEqual(calculator.call_count, 1)
-        left, right = result['alternatives']
+        left, deadline, right = result['alternatives']
+        self.assertEqual(deadline['plan']['objective'], 'EARLIEST_DEADLINE')
+        self.assertEqual(deadline['carbon_context_id'], left['carbon_context_id'])
         self.assertEqual(left['allocation_snapshot_hash'], right['allocation_snapshot_hash'])
         self.assertEqual(left['carbon_context_id'], right['carbon_context_id'])
         self.assertEqual(left['plan']['total_proposed_quantity'], 4480)
@@ -78,7 +80,7 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(repo.reads, 1)
         self.assertEqual(len(repo.commands), 1)
         command = repo.commands[0]
-        self.assertEqual(len(command['runs']), 2)
+        self.assertEqual(len(command['runs']), 3)
         self.assertEqual(command['runs'][0]['inputSnapshot'], command['runs'][1]['inputSnapshot'])
         for run in command['runs']:
             self.assertEqual(run['inputsSnapshotHash'], sha(run['inputSnapshot']))
@@ -96,7 +98,7 @@ class ComparisonTests(unittest.TestCase):
             self.assertEqual(head['revision'], 1)
         self.assertEqual(repo.records, self.records)
         self.assertEqual(set(command), {'runs', 'operations', 'proposals', 'assessments', 'heads'})
-        self.assertEqual(len(result['data']['alternatives']), 2)
+        self.assertEqual(len(result['data']['alternatives']), 3)
 
     def test_retry_and_different_input_conflict(self):
         from dataclasses import replace
@@ -131,13 +133,13 @@ class ComparisonTests(unittest.TestCase):
         with patch('backend.app.routes.impact._preview_records', return_value=self.records):
             status, _, payload = asyncio.run(request('POST', '/api/optimisation-comparisons/preview', body=body))
         self.assertEqual(status, 200, payload)
-        self.assertEqual(len(json.loads(payload)['data']['alternatives']), 2)
+        self.assertEqual(len(json.loads(payload)['data']['alternatives']), 3)
         with patch('backend.app.services.optimisation_comparison_service.OptimisationRepository',
                    return_value=ComparisonRepository(self.records)):
             status, _, payload = asyncio.run(request('POST', '/api/optimisation-comparisons', body={
                 **body, 'idempotency_key': 'http-compare', 'actor_label': 'Demo operator'}))
         self.assertEqual(status, 201, payload)
-        self.assertEqual(len(json.loads(payload)['data']['alternatives']), 2)
+        self.assertEqual(len(json.loads(payload)['data']['alternatives']), 3)
 
 
 if __name__ == '__main__':

@@ -1,168 +1,77 @@
-# Terra transfer workflow API and Postman guide
+# Transfer API and lifecycle
 
-This local milestone implements transfer work from approval through confirmed
-use. All records and writes use Terra's loopback-only SQL Connect
-emulator. JSON records are never a fallback; response metadata still identifies
-the immutable synthetic baseline.
+The normal workflow confirms and reserves an individual current proposal in one atomic command. Approval of an ingestion file is a separate action. All routes use the loopback FastAPI boundary and named SQL Connect transactions; JSON files are not a live operational fallback.
 
-## Quantity and transition contract
+## Read and preview
 
-The supported path is `APPROVED -> RESERVED -> IN_TRANSIT -> RECEIVED ->
-REUSED`. `APPROVED` and `RESERVED` may instead become `CANCELLED`; cancellation
-after dispatch is rejected.
+| Method/path | Purpose |
+|---|---|
+| GET /api/transfers | List persisted transfers |
+| GET /api/transfers/{transfer_id} | Read one transfer |
+| GET /api/transfers/{transfer_id}/events | Inspect immutable event history |
+| GET /api/supply-offers/{offer_id} | Read source/available quantity context |
+| GET /api/demand-requests/{demand_id} | Read requirement/fulfilment/incoming commitments |
+| GET /api/allocation-proposals/{proposal_id}/confirmation-preview | Read fresh chosen-quantity timing, revision and forecast |
 
-Reservation, dispatch, and receipt have no quantity field. Reservation holds
-the full `approved_quantity` once. Dispatch reads the current
-`reserved_quantity` from the emulator and moves all of it atomically. Receipt
-reads the current `dispatched_quantity` and confirms all of it arrived. A
-supplied dispatch or receipt `quantity` is explicitly rejected with HTTP 422
-rather than ignored. Each confirm-use request contains one positive integer
-increment, capped by `received_quantity - actually_used_quantity`. Confirm-use
-can be repeated with a new idempotency key; the transfer remains `REUSED` and
-the stored used quantity and demand counters increase exactly once per request.
+Preview query fields are quantity and generation_id. The result includes proposal/generation IDs, original/chosen quantity, expected_revision, unit, confirmable, earliest_start, arrival_date and chosen-quantity forecast. It creates no transfer/hold. Frontend automatic preview after quantity changes does not imply approval.
 
-One full receipt is an intentional MVP restriction: this endpoint cannot record
-a partial or missing delivery. Disposition of a partially used remainder remains
-undefined. An approved-but-not-used remainder stays in
-`committed_incoming_quantity`; `REUSED` confirms only the used quantity. No
-return or release is invented. Legacy/runtime rows with partial dispatch or
-partial receipt state are not rewritten; a new operation is rejected pending
-an explicit resolution policy, preserving all existing quantities.
+Only eligible current-generation source/recipient pairs can proceed. A disappearing pair is not replaced by another automatically. Confirmation checks date/dependency currency even if a previous preview was valid. Earliest reservation/dispatch is on/after planning date, source available_from and recipient needed_from, with arrival before required_by and dispatch inside source availability.
 
-Every write stores an operation fingerprint and event atomically. An identical
-retry returns HTTP 200 with `replayed: true`; changed input with the same
-`idempotency_key` returns HTTP 409.
+## Combined confirmation/reservation
 
-## Start, reset, and common Postman settings
+`POST /api/allocation-proposals/{proposal_id}/confirm`
 
-**Timing integration resolved on 17 October 2026:** reservation requires its operation
-date to be inside demand needed_from/required_by, in both the service and atomic
-connector check. Member 3 now waits until needed_from before planned dispatch,
-then adds lead time and checks the receipt deadline. See the
-[timing decision and example](MEMBER_3_4_CARBON_COOPERATION.md#reservation-timing-resolved-on-17-october-2026).
-Member 4's reservation validation remains in effect.
+| Field | Contract |
+|---|---|
+| quantity | Positive exact integer/decimal-string value, no more than the current proposed cap; catalogue granularity applies |
+| generation_id | Current selected material generation, returned by matching |
+| expected_revision | Fresh revision returned by preview |
+| actor_label | Nonempty workflow audit label, not an authenticated account |
+| idempotency_key | Stable key for this command and unchanged retries |
+| evidence_ref | Optional operator evidence reference |
 
-From `D:\Terra`, use separate terminals:
+The transaction rechecks proposal/identity/specification/unit/release/condition/traceability, source and recipient budgets, suitability confirmation, timing and expected revision/generation. It creates a RESERVED transfer, approval/reservation events, coupled holds, forecast provenance and required current-head/matching state together. It does not dispatch anything.
 
-```powershell
-npm run emulator
-npm run seed
-npm run dev:backend
+The operator explicitly confirms suitability/release/recipient/quantity. Reducing quantity requires a fresh preview. Increasing beyond the proposal or changing recipient requires recalculation. To change a reserved quantity, cancel before dispatch and confirm a fresh recommendation; do not amend a hold in place.
+
+Response data contains transfer, event, supply_offer, demand_request, idempotency_key and replayed. Changed input with an existing key fails; duplicate/late/stale writes cannot double reserve. A lost response requires saved-result lookup/same-command identity rather than blindly changing preview inputs and issuing another command.
+
+## Physical actions
+
+The base body is actor_label, idempotency_key and optional evidence_ref. The server reads current quantities; callers cannot send new counters.
+
+| POST path | Additional fields | Allowed effect |
+|---|---|---|
+| /api/transfers/{id}/dispatch | None | RESERVED: move the full active reservation into dispatched quantity; hold decreases once |
+| /api/transfers/{id}/receive | None | IN_TRANSIT: confirm the full dispatched quantity received |
+| /api/transfers/{id}/confirm-use | quantity | RECEIVED/REUSED: add a positive exact use increment, no greater than received-minus-used |
+| /api/transfers/{id}/cancel | reason | Pre-dispatch only: release source and recipient holds once, record cancellation |
+
+```text
+RESERVED → IN_TRANSIT → RECEIVED → REUSED
+    ↘ CANCELLED                ↖ further valid use increments
 ```
 
-Reset runtime changes with:
+No extra Reserve click is required after combined confirmation. Full dispatch/full receipt are the current physical contract. Partial shipment, shortage, return/damage/discard or post-dispatch reversal resolution is not implemented; do not mark incomplete arrival as full receipt.
 
-```powershell
-npm run seed:reset -- --confirm demo-terra-local
-npm run seed:verify
-```
+Used≤received≤dispatched≤approved≤proposed and reserved+dispatched≤approved. Incoming commitments persist until actual use/pre-dispatch cancellation. Received-but-unused material stays with the recipient and may be used later; it is not automatically returned or re-offered. Transfer notes preserve operator text; event payloads/quantity fields record current/historical residuals.
 
-In Postman use Authorization `No Auth`, header `Content-Type: application/json`,
-raw JSON bodies, and base URL `http://127.0.0.1:8000`. Use a new idempotency key
-for every different write; retain a key only to test an identical replay.
+## Impact and navigation
 
-`TRF-001` / `ALC-007` is verified on 2026-10-13: `SUP-011` and `DEM-010`
-have matching `MAT-018`/`pcs`, eligible confirmed states, date windows covering
-the test date, and 250 pcs capacity. The sequence below uses 200 pcs.
+Use commits physical facts and an impact-refresh intent atomically. Automatic assessment processing creates a new current immutable revision when needed. Pending/failed carbon processing does not undo use and excludes stale current figures from reporting. Retry impact does not repeat a physical-use command.
 
-## Complete positive sequence
+The UI opens the exact reserved delivery and can navigate from it to the corresponding project/transfer report. Sidebar entry opens a fresh delivery list, while contextual Back returns to the list. Buttons and navigation never replace server guards.
 
-Approve: `POST /api/transfers/TRF-001/approve`
+## Legacy compatibility
 
-```json
-{"approved_quantity":200,"source_confirmation_status":"CONFIRMED","destination_confirmation_status":"CONFIRMED","actor_label":"Demo operator","idempotency_key":"postman-trf001-approve-001","evidence_ref":"SYNTHETIC Postman approval"}
-```
+The following remain for historical/unmarked proposals/requests, not new automatically generated plans:
 
-Reserve the complete approved quantity: `POST /api/transfers/TRF-001/reserve`
+- POST /api/allocation-proposals/{proposal_id}/approve: request-only creation of a REQUESTED transfer, no holds.
+- POST /api/transfers/{transfer_id}/approve: validates approved_quantity and source/destination confirmation states, no reservation.
+- POST /api/transfers/{transfer_id}/reserve: reserves the full legacy approved amount with coupled current checks.
 
-```json
-{"actor_label":"Demo operator","idempotency_key":"postman-trf001-reserve-001","evidence_ref":"SYNTHETIC Postman reservation"}
-```
+Current generated proposals reject the request-only route with COMBINED_CONFIRMATION_REQUIRED. REQUESTED/APPROVED records retain original history and are never silently promoted. The legacy approve request uses positive strict integer approved_quantity, confirmation states, actor_label/idempotency_key/evidence_ref; it is not the broad-unit current confirmation DTO.
 
-Dispatch: `POST /api/transfers/TRF-001/dispatch`
+## Sources and verification
 
-```json
-{"actor_label":"Demo operator","idempotency_key":"postman-trf001-dispatch-001","evidence_ref":"SYNTHETIC Postman dispatch"}
-```
-
-Immediately after dispatch, GET read-back shows transfer status `IN_TRANSIT`,
-`reserved_quantity: 0`, and `dispatched_quantity: 200`; `SUP-011` shows
-`reserved_active_quantity: 0` and `transferred_out_quantity: 200`. The
-`DISPATCHED` event payload contains `quantity: 200`. `DEM-010` still has its
-200-unit incoming commitment and is not fulfilled by dispatch.
-
-Receive: `POST /api/transfers/TRF-001/receive`
-
-```json
-{"actor_label":"Demo operator","idempotency_key":"postman-trf001-receive-001","evidence_ref":"SYNTHETIC Postman full receipt"}
-```
-
-Immediately after receipt, GET read-back shows transfer status `RECEIVED`,
-`received_quantity: 200`, `actually_used_quantity: 0`, and a non-null
-`delivered_at` timestamp with an offset. Source counters are unchanged from
-dispatch. `DEM-010` remains unfulfilled with a 200-unit incoming commitment,
-and the single `RECEIVED` event payload contains `quantity: 200`. Receipt does
-not confirm use.
-
-Confirm use (this example uses the complete quantity in one request):
-`POST /api/transfers/TRF-001/confirm-use`
-
-```json
-{"quantity":200,"actor_label":"Demo operator","idempotency_key":"postman-trf001-use-001","evidence_ref":"SYNTHETIC Postman use confirmation"}
-```
-
-Each response is HTTP 200 with Terra's `{data, meta, error}` envelope. `data`
-contains `transfer`, the appended `event`, current `supply_offer`, current
-`demand_request`, `idempotency_key`, and `replayed`. Final expectations are:
-
-- transfer `REUSED`; approved/dispatched/received/used 200; reserved 0;
-- `SUP-011`: reserved active 0, transferred out 200;
-- `DEM-010`: fulfilled 200, committed incoming 0, uncommitted 50;
-- events: `REQUESTED, APPROVED, RESERVED, DISPATCHED, RECEIVED, USED`.
-
-Read back with `GET /api/transfers/TRF-001`, `GET
-/api/transfers/TRF-001/events`, `GET /api/supply-offers/SUP-011`, and `GET
-/api/demand-requests/DEM-010`.
-
-To verify repeated partial use instead, reset and run the same workflow, then
-confirm 120 pcs with key `postman-trf001-use-part-001` and 50 pcs with key
-`postman-trf001-use-part-002`. Read-back must show 170 used, 170 fulfilled,
-30 committed incoming, 80 uncommitted demand, and two `USED` events carrying
-increments 120 and 50. A later actual-impact calculation intentionally has an
-undefined processing allocation while used quantity is below the 200 pcs moved.
-
-## Replay, negative, cancellation, and availability tests
-
-Repeat a successful body unchanged: expect 200, `replayed: true`, and no extra
-event/counter change. Reuse its key after changing an accepted input (such as
-actor, reason, evidence, or confirm-use quantity): expect 409
-`IDEMPOTENCY_KEY_REUSED`.
-
-- Adding `"quantity": 200` to a dispatch or receipt body produces HTTP 422
-  `REQUEST_VALIDATION_ERROR`; both quantities are server-derived.
-- Zero/decimal/string/missing confirm-use quantities produce 422 DTO errors (or
-  400 for a service-level invalid quantity).
-- A zero/inconsistent reservation, a second dispatch with a new key, or an
-  already partially dispatched row is HTTP 409. A zero dispatch, remaining
-  reservation, prior/partial receipt, or second receipt with a new key is also
-  HTTP 409. Use above received is HTTP 400. Other wrong stages and unavailable
-  stock/demand/dates are HTTP 409.
-- Unknown transfer IDs are HTTP 404.
-- Stop the emulator but leave FastAPI running: expect HTTP 503 and no snapshot
-  fallback. Restart, reseed, and use fresh keys.
-
-For cancellation, reset/reseed, approve and reserve with fresh keys, then `POST
-/api/transfers/TRF-001/cancel`:
-
-```json
-{"reason":"Synthetic Postman cancellation test","actor_label":"Demo operator","idempotency_key":"postman-trf001-cancel-001","evidence_ref":"SYNTHETIC Postman cancellation"}
-```
-
-Expect `CANCELLED`, one event, and both holds released exactly once. To test the
-boundary, reset and run through dispatch before cancelling; expect HTTP 409 and
-unchanged post-dispatch counters.
-
-HTTP 404 means an unknown ID; 405 means the path exists but not that method;
-500 means provider data/programming or transaction verification failed; 503
-means the emulator is unavailable. Postman `ECONNREFUSED` means FastAPI itself
-is not listening at port 8000.
+[Transfer schemas](../backend/app/schemas/transfers.py), [routes](../backend/app/routes/transfers.py), [confirmation service](../backend/app/services/transfer_confirmation_service.py), [workflow service](../backend/app/services/transfer_workflow_service.py), [generated transaction definitions](../terra/transfer_runtime_provider.py). Tests cover rollback, stale state, source/recipient contention, replay, timing and repeated use; see [requirements/testing](06_REQUIREMENTS_AND_TESTS.md). A configured test is not a claim of fresh cloud/native acceptance.

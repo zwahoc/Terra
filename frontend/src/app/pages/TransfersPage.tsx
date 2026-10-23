@@ -1,82 +1,36 @@
-import { useEffect, useMemo, useState } from "react";
-import StatusBadge, { statusLabel } from "../../components/StatusBadge";
-import { materialName, projectName, terra, transferStages } from "../../data/terra";
-import { advanceTransfer, calculateActualImpact, listTransfers, type Transfer } from "../../lib/terra-api";
-import { EmptyState, PageIntro } from "./page-primitives";
-import "./deliveries-redesign.css";
-import "./workflow-listing.css";
-
-type DeliveryStep = "projects" | "deliveries" | "details";
-const deliveryStatuses: Transfer["status"][] = ["REQUESTED", "RESERVED", "IN_TRANSIT", "RECEIVED", "REUSED"];
-const actions: Partial<Record<Transfer["status"], "reserve" | "dispatch" | "receive" | "confirm-use">> = {
-  REQUESTED: "reserve", RESERVED: "dispatch", IN_TRANSIT: "receive", RECEIVED: "confirm-use",
-};
-
-function Rail({ status }: { status: Transfer["status"] }) {
-  const current = transferStages.indexOf(status);
-  return <div className="terra-rail" aria-label={`Delivery stage: ${statusLabel(status)}`}>
-    {transferStages.map((stage, index) => <span className={index < current ? "is-complete" : index === current ? "is-current" : ""} key={stage}><i>{index < current ? "✓" : index + 1}</i><small>{statusLabel(stage)}</small></span>)}
-  </div>;
-}
-
-export default function TransfersPage({ projectId }: { projectId: string }) {
-  const [transfers, setTransfers] = useState<Transfer[]>([]);
-  const [step, setStep] = useState<DeliveryStep>("projects");
-  const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [selectedId, setSelectedId] = useState("");
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [used, setUsed] = useState("");
-
-  const load = () => {
-    setState("loading");
-    listTransfers().then((rows) => { setTransfers(rows); setState("ready"); }).catch((error: unknown) => {
-      setMessage(error instanceof Error ? error.message : "Transfer data is unavailable."); setState("error");
-    });
-  };
-  useEffect(load, []);
-
-  const deliveryTransfers = useMemo(() => transfers.filter((transfer) => {
-    if (!deliveryStatuses.includes(transfer.status) || (transfer.status === "REQUESTED" && transfer.approved_quantity <= 0)) return false;
-    const proposal = terra.allocation_proposals.find((item) => item.id === transfer.proposal_id);
-    const offer = proposal && terra.supply_offers.find((item) => item.id === proposal.supply_offer_id);
-    const demand = proposal && terra.demand_requests.find((item) => item.id === proposal.demand_request_id);
-    return projectId === "ALL" || offer?.source_project_id === projectId || demand?.destination_project_id === projectId;
-  }), [transfers, projectId]);
-  const projectFor = (transfer: Transfer) => {
-    const proposal = terra.allocation_proposals.find((item) => item.id === transfer.proposal_id);
-    const demand = proposal && terra.demand_requests.find((item) => item.id === proposal.demand_request_id);
-    return demand?.destination_project_id ?? "UNASSIGNED";
-  };
-  const projectIds = useMemo(() => [...new Set(deliveryTransfers.map(projectFor))].sort(), [deliveryTransfers]);
-  const projectTransfers = useMemo(() => deliveryTransfers.filter((transfer) => projectFor(transfer) === selectedProjectId), [deliveryTransfers, selectedProjectId]);
-  const selected = projectTransfers.find((transfer) => transfer.id === selectedId);
-  const proposal = selected && terra.allocation_proposals.find((item) => item.id === selected.proposal_id);
-  const offer = proposal && terra.supply_offers.find((item) => item.id === proposal.supply_offer_id);
-  const demand = proposal && terra.demand_requests.find((item) => item.id === proposal.demand_request_id);
-  const action = selected && actions[selected.status];
-  const maxUse = Math.max(0, (selected?.received_quantity ?? 0) - (selected?.actually_used_quantity ?? 0));
-
-  const openProject = (id: string) => { setSelectedProjectId(id); setSelectedId(""); setStep("deliveries"); };
-  const openDelivery = (id: string) => { setSelectedId(id); setUsed(""); setStep("details"); };
-  const run = async () => {
-    if (!selected || !action) return;
-    setBusy(true); setMessage("");
-    try { await advanceTransfer(selected, action, action === "confirm-use" ? Number(used || maxUse) : undefined); load(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Terra could not complete this action."); setState("ready"); }
-    finally { setBusy(false); }
-  };
-
-  return <>
-    <PageIntro label="DELIVERIES" title="Track each approved material hand-off">Choose a receiving project, then open one approved delivery to follow its hand-off.</PageIntro>
-    {message && <p className="terra-workflow-message" role="status">{message}</p>}
-    {state === "loading" && <EmptyState>Loading deliveries from Terra.</EmptyState>}
-    {state === "error" && <EmptyState>{message}</EmptyState>}
-    {state === "ready" && <section className="terra-delivery-workflow">
-      {step === "projects" && <section className="terra-delivery-workbench"><header><h2>Choose a receiving project</h2><span>Only projects with approved materials ready for delivery are listed.</span></header><div className="terra-delivery-project-list">{projectIds.map((id) => { const projectDeliveries = deliveryTransfers.filter((transfer) => projectFor(transfer) === id); const count = projectDeliveries.length; const approvedQuantity = projectDeliveries.reduce((total, transfer) => total + transfer.approved_quantity, 0); return <button type="button" key={id} onClick={() => openProject(id)}><div><span>{id}</span><strong>{id === "UNASSIGNED" ? "Unassigned project" : projectName(id)}</strong><small>{count} approved delivery {count === 1 ? "record" : "records"} · {approvedQuantity.toLocaleString()} pcs</small></div><b>View deliveries</b></button>; })}</div>{!projectIds.length && <EmptyState>No approved materials are ready for delivery.</EmptyState>}</section>}
-      {step === "deliveries" && <section className="terra-delivery-workbench"><header><button type="button" className="terra-delivery-back" onClick={() => setStep("projects")}>‹ Projects</button><p>{selectedProjectId}</p><h2>{selectedProjectId === "UNASSIGNED" ? "Unassigned project" : projectName(selectedProjectId)}</h2><span>Choose a delivery to view its current hand-off stage.</span></header><div className="terra-delivery-list">{projectTransfers.map((transfer) => { const itemProposal = terra.allocation_proposals.find((item) => item.id === transfer.proposal_id); const itemOffer = itemProposal && terra.supply_offers.find((item) => item.id === itemProposal.supply_offer_id); return <button type="button" key={transfer.id} onClick={() => openDelivery(transfer.id)}><span>{transfer.id}</span><strong>{itemOffer ? materialName(itemOffer.material_id) : "Transfer material"}</strong><small>{statusLabel(transfer.status)} · {transfer.approved_quantity.toLocaleString()} pcs</small><b>View details</b></button>; })}</div>{!projectTransfers.length && <EmptyState>No approved materials are ready for this project.</EmptyState>}</section>}
-      {step === "details" && selected && proposal && offer && demand && <article className="terra-transfer terra-delivery-detail"><header><button type="button" className="terra-delivery-back" onClick={() => setStep("deliveries")}>‹ Deliveries</button><div className="terra-row"><div><p>{selected.id} · {proposal.id}</p><h3>{materialName(offer.material_id)}</h3><small>{projectName(offer.source_project_id)} → {projectName(demand.destination_project_id)}</small></div><StatusBadge status={selected.status} /></div></header><Rail status={selected.status} /><div className="terra-quantities"><span>Requested<b>{selected.approved_quantity}</b></span><span>Held<b>{selected.reserved_quantity}</b></span><span>Sent<b>{selected.dispatched_quantity}</b></span><span>Delivered<b>{selected.received_quantity}</b></span><span>Used<b>{selected.actually_used_quantity}</b></span></div><footer className="terra-transfer-actions">{action === "confirm-use" ? <label>Quantity confirmed used<input type="number" min="1" max={maxUse} value={used || String(maxUse)} onChange={(event) => setUsed(event.target.value)} /></label> : <small>{action ? "Ready for the next delivery action." : selected.status === "REUSED" ? "Actual use is confirmed." : "No further action is available."}</small>}{action ? <button type="button" disabled={busy} onClick={run}>{busy ? "Saving…" : action === "reserve" ? "Reserve requested quantity" : action === "dispatch" ? "Mark as dispatched" : action === "receive" ? "Confirm receipt" : "Confirm actual use"}</button> : selected.status === "REUSED" ? <button type="button" disabled={busy} onClick={async () => { setBusy(true); try { await calculateActualImpact(selected.id); setMessage("Actual-use impact calculated. Open Impact to review it."); } catch (error) { setMessage(error instanceof Error ? error.message : "Impact could not be calculated."); } finally { setBusy(false); } }}>Calculate actual impact</button> : null}</footer></article>}
-    </section>}
-  </>;
+import { useEffect, useRef, useState } from 'react';
+import { materialName, projectName, terra } from '../../data/terra';
+import { advanceTransfer, listTransfers, listImpactIntents, retryImpactUpdates, type Transfer, type ImpactIntent } from '../../lib/terra-api';
+import { subtractQuantity, positiveQuantity, discreteUnit, formatQuantity, compareQuantity } from '../../lib/quantities';
+import { statusLabel } from '../../lib/workspace-presentation';
+import { Empty, ErrorNotice, Feedback, PageHeader, Pagination, ProjectFilter, TechnicalDetails } from '../components-workspace';
+export default function TransfersPage({projectId,onProjectChange,initialTransfer,onMatching,onReport}:{projectId:string;onProjectChange:(id:string)=>void;initialTransfer?:string;onMatching:()=>void;onReport:(project:string,transfer:string)=>void}){
+ const [transfers,setTransfers]=useState<Transfer[]>([]),[intents,setIntents]=useState<ImpactIntent[]>([]),[selectedId,setSelectedId]=useState(initialTransfer||''),[message,setMessage]=useState(''),[error,setError]=useState<unknown>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[connected,setConnected]=useState(false),[used,setUsed]=useState<string|undefined>(),[cancelOpen,setCancelOpen]=useState(false),[cancelConfirmed,setCancelConfirmed]=useState(false),[query,setQuery]=useState(''),[status,setStatus]=useState('all'),[page,setPage]=useState(1);
+ const [readError,setReadError]=useState<unknown>(null);
+ const lock=useRef(false);
+ useEffect(()=>{let active=true;const read=async()=>{try{const [rows,states]=await Promise.all([listTransfers(),listImpactIntents()]);if(active){setTransfers(rows);setIntents(states);setConnected(true);setReadError(null);setLoading(false);}}catch(e){if(active){setReadError(e);setConnected(false);setLoading(false);}}};void read();const t=setInterval(()=>{if(!lock.current)void read();},4000);return()=>{active=false;clearInterval(t);};},[]);
+ const load=async()=>{const [rows,states]=await Promise.all([listTransfers(),listImpactIntents()]);setTransfers(rows);setIntents(states);setConnected(true);};
+ const links=(t:Transfer)=>{const proposal=terra.allocation_proposals.find(p=>p.id===t.proposal_id),offer=proposal&&terra.supply_offers.find(o=>o.id===proposal.supply_offer_id),demand=proposal&&terra.demand_requests.find(d=>d.id===proposal.demand_request_id);return {proposal,offer,demand};};
+ const selected=transfers.find(t=>t.id===selectedId),linked=selected&&links(selected),unit=linked?.proposal?.unit||'',remaining=selected?subtractQuantity(selected.received_quantity,selected.actually_used_quantity):'0';
+ const canUse=!!selected&&['RECEIVED','REUSED'].includes(selected.status)&&positiveQuantity(remaining),next=selected?.status==='RESERVED'?'dispatch':selected?.status==='IN_TRANSIT'?'receive':canUse?'confirm-use':null;
+ const chosenUse=used??remaining;let validUse=false;try{validUse=positiveQuantity(chosenUse)&&compareQuantity(chosenUse,remaining)<=0&&(!discreteUnit(unit)||!chosenUse.includes('.'));}catch{/* Invalid input stays in the field. */}
+ const intent=intents.find(i=>i.id===selectedId);
+ const rows=transfers.filter(t=>{const {offer,demand}=links(t);return (projectId==='ALL'||offer?.source_project_id===projectId||demand?.destination_project_id===projectId)&&(status==='all'||status==='legacy'&&['REQUESTED','APPROVED'].includes(t.status)||t.status===status)&&`${offer?materialName(offer.material_id):''} ${offer?projectName(offer.source_project_id):''} ${demand?projectName(demand.destination_project_id):''}`.toLowerCase().includes(query.toLowerCase());});
+ const pages=Math.max(1,Math.ceil(rows.length/10)),current=Math.min(page,pages);
+ async function act(action:'dispatch'|'receive'|'confirm-use'|'cancel'){if(!selected||lock.current||!connected||action==='confirm-use'&&!validUse)return;lock.current=true;setBusy(true);setMessage('');setError(null);try{await advanceTransfer(selected,action,action==='confirm-use'?chosenUse:undefined,action==='cancel'?'Operator cancelled before dispatch':undefined);setUsed(undefined);setCancelOpen(false);setCancelConfirmed(false);setMessage(action==='confirm-use'?'Actual use saved.':action==='cancel'?'Reservation cancelled.':action==='dispatch'?'Dispatch saved.':'Receipt saved.');await load().catch(()=>{setConnected(false);setError(new Error('Action saved. Refresh Deliveries to load the latest quantities.'));});}catch(e){setError(e);}finally{lock.current=false;setBusy(false);}}
+ const back=()=>{setSelectedId('');setUsed(undefined);setCancelOpen(false);setMessage('');};
+ return <section><PageHeader title={selected?'Delivery details':'Deliveries'} onBack={selectedId?back:undefined} back="Back to deliveries" actions={!selectedId?<ProjectFilter value={projectId} onChange={id=>{onProjectChange(id);setPage(1);}}/>:undefined}/>
+ {!!(error||readError)&&<ErrorNotice error={error||readError}><button disabled={busy} onClick={()=>void load().then(()=>{setError(null);setReadError(null);}).catch(setReadError)}>Retry connection</button></ErrorNotice>}{message&&<Feedback>{message}</Feedback>}{loading&&<p role="status">Loading deliveries…</p>}
+ {!loading&&!selectedId&&<><div className="workspace-toolbar"><label className="workspace-search">Search deliveries<input type="search" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}} placeholder="Material or project"/></label><label>Status<select value={status} onChange={e=>{setStatus(e.target.value);setPage(1);}}><option value="all">All deliveries</option>{['RESERVED','IN_TRANSIT','RECEIVED','REUSED','CANCELLED'].map(s=><option value={s} key={s}>{statusLabel(s)}</option>)}<option value="legacy">Unreserved historical transfers</option></select></label></div><section className="workspace-panel">{rows.slice((current-1)*10,current*10).map(t=>{const {offer,demand,proposal}=links(t);return <button className="workspace-list-row" key={t.id} onClick={()=>{setSelectedId(t.id);setUsed(undefined);setCancelOpen(false);setMessage('');}}><span><strong>{offer?materialName(offer.material_id):'Material unavailable'}</strong><small>{offer&&projectName(offer.source_project_id)} → {demand&&projectName(demand.destination_project_id)}</small></span><b>{formatQuantity(t.approved_quantity)} {proposal?.unit}</b><span className="workspace-badge">{statusLabel(t.status)}</span><span className="workspace-row-action">Open delivery</span></button>;})}{!rows.length&&<Empty action={<button onClick={onMatching}>View matches</button>}>No deliveries match this view.</Empty>}<Pagination page={current} pages={pages} onChange={setPage} count={rows.length}/></section></>}
+ {!loading&&selectedId&&!selected&&<Empty action={<button onClick={back}>View deliveries</button>}>This delivery is not available in the current workspace.</Empty>}
+ {selected&&<section className="workspace-panel"><div className="workspace-section-heading"><h2>{linked?.offer?materialName(linked.offer.material_id):'Material unavailable'}</h2><span className="workspace-badge">{statusLabel(selected.status)}</span></div><p>{linked?.offer&&projectName(linked.offer.source_project_id)} → {linked?.demand&&projectName(linked.demand.destination_project_id)}</p>
+ <ol className="workspace-stage-list" aria-label="Delivery progress">{['RESERVED','IN_TRANSIT','RECEIVED','REUSED'].map((s,i)=>{const now=['RESERVED','IN_TRANSIT','RECEIVED','REUSED'].indexOf(selected.status);return <li key={s} aria-current={now===i?'step':undefined} className={i<=now?'is-complete':''}>{statusLabel(s)}</li>;})}</ol>
+ {next&&<div className="workspace-decision"><h3>{next==='dispatch'?'Ready to dispatch':next==='receive'?'Confirm arrival':'Record actual use'}</h3>{next==='dispatch'?<p>{formatQuantity(selected.reserved_quantity)} {unit} reserved for this delivery.</p>:next==='receive'?<p>Confirm when all {formatQuantity(selected.dispatched_quantity)} {unit} have arrived.</p>:<label>Additional quantity used <span className="workspace-muted">Up to {formatQuantity(remaining)} {unit} received and unused</span><div className="workspace-quantity-input"><input aria-label="Additional quantity used" type="number" inputMode="decimal" min={discreteUnit(unit)?'1':'0.000001'} max={remaining} step={discreteUnit(unit)?'1':'0.000001'} value={chosenUse} disabled={busy} onChange={e=>setUsed(e.target.value)}/><span>{unit}</span></div></label>}<div className="workspace-actions"><button className="workspace-primary" disabled={busy||!connected||next==='confirm-use'&&!validUse} onClick={()=>void act(next)}>{busy?'Saving…':next==='dispatch'?'Dispatch full quantity':next==='receive'?'Confirm full receipt':'Save actual use'}</button>{selected.status==='RESERVED'&&<button className="workspace-danger" disabled={busy} onClick={()=>{setCancelOpen(!cancelOpen);setCancelConfirmed(false);}}>Cancel reservation</button>}</div></div>}
+ {cancelOpen&&selected.status==='RESERVED'&&<section className="workspace-feedback is-warning"><h3>Cancel this reservation?</h3><p>This releases {formatQuantity(selected.reserved_quantity)} {unit} for other transfers.</p><label className="workspace-check"><input type="checkbox" checked={cancelConfirmed} onChange={e=>setCancelConfirmed(e.target.checked)} disabled={busy}/>The material has not been dispatched.</label><div className="workspace-actions"><button className="workspace-danger" disabled={busy||!connected||!cancelConfirmed} onClick={()=>void act('cancel')}>Cancel and release stock</button><button disabled={busy} onClick={()=>setCancelOpen(false)}>Keep reservation</button></div></section>}
+ {['RECEIVED','REUSED'].includes(selected.status)&&<div className="workspace-report-summary"><span>{formatQuantity(selected.actually_used_quantity)} {unit} recorded as used{positiveQuantity(remaining)?` · ${formatQuantity(remaining)} ${unit} still unused`:''}</span><button onClick={()=>onReport(linked?.demand?.destination_project_id||'ALL',selected.id)}>View report</button></div>}
+ {intent?.status==='PENDING'&&<p className="workspace-inline-status" role="status">Updating carbon estimate…</p>}{intent?.status==='FAILED'&&<div className="workspace-feedback is-warning" role="status"><p>Use is saved. The carbon estimate needs a retry.</p><button disabled={busy} onClick={async()=>{setBusy(true);try{await retryImpactUpdates();await load();}catch(e){setError(e);}finally{setBusy(false);}}}>Retry carbon estimate</button></div>}
+ {['REQUESTED','APPROVED'].includes(selected.status)&&<p className="workspace-feedback is-info">This historical transfer has no reservation. Choose a current match to reserve stock.</p>}
+ <details className="workspace-disclosure"><summary>Quantity breakdown</summary><dl className="workspace-quantity-grid">{[['Confirmed',selected.approved_quantity],['Reserved',selected.reserved_quantity],['Dispatched',selected.dispatched_quantity],['Received',selected.received_quantity],['Used',selected.actually_used_quantity]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{formatQuantity(value)} {unit}</dd></div>)}</dl></details><TechnicalDetails values={{'Transfer ID':selected.id,'Proposal ID':selected.proposal_id,'Notes':selected.notes}}/>
+ </section>}
+ </section>;
 }

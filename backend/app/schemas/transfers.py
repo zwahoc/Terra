@@ -1,6 +1,15 @@
 """Typed HTTP contracts for Terra transfer endpoints."""
 
 from typing import Any, Literal
+from decimal import Decimal
+from pydantic import BeforeValidator, PlainSerializer
+from typing import Annotated
+from terra.quantities import amount
+
+def validate_quantity(value):
+    return amount(value)
+
+ExactQuantity = Annotated[Decimal, BeforeValidator(validate_quantity), PlainSerializer(lambda v: int(v) if v == v.to_integral_value() else str(v), return_type=int | str, when_used="json")]
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -35,11 +44,11 @@ class TransferRequestCreateRequest(BaseModel):
 class TransferRecord(BaseModel):
     id: str
     proposal_id: str
-    approved_quantity: int
-    reserved_quantity: int
-    dispatched_quantity: int
-    received_quantity: int
-    actually_used_quantity: int
+    approved_quantity: ExactQuantity
+    reserved_quantity: ExactQuantity
+    dispatched_quantity: ExactQuantity
+    received_quantity: ExactQuantity
+    actually_used_quantity: ExactQuantity
     status: str
     source_confirmation_status: str
     destination_confirmation_status: str
@@ -113,7 +122,7 @@ class TransferReceiveRequest(WorkflowBaseRequest):
 class TransferQuantityRequest(WorkflowBaseRequest):
     """A positive quantity for confirmed use."""
 
-    quantity: int = Field(gt=0, strict=True)
+    quantity: ExactQuantity = Field(gt=0)
 
 
 class TransferCancelRequest(WorkflowBaseRequest):
@@ -124,10 +133,10 @@ class SupplyEffectRecord(BaseModel):
     id: str
     source_project_id: str
     material_id: str
-    declared_quantity: int
-    confirmed_quantity: int | None
-    reserved_active_quantity: int
-    transferred_out_quantity: int
+    declared_quantity: ExactQuantity
+    confirmed_quantity: ExactQuantity | None
+    reserved_active_quantity: ExactQuantity
+    transferred_out_quantity: ExactQuantity
     unit: str
     surplus_status: str
     condition: str
@@ -139,10 +148,10 @@ class DemandEffectRecord(BaseModel):
     id: str
     destination_project_id: str
     material_id: str
-    required_quantity: int
-    fulfilled_quantity: int
-    committed_incoming_quantity: int
-    uncommitted_quantity: int
+    required_quantity: ExactQuantity
+    fulfilled_quantity: ExactQuantity
+    committed_incoming_quantity: ExactQuantity
+    uncommitted_quantity: ExactQuantity
     unit: str
     needed_from: str
     required_by: str
@@ -163,3 +172,8 @@ class TransferWorkflowResponse(BaseModel):
     data: TransferWorkflowData
     meta: DatasetMeta
     error: None = None
+
+class TransferConfirmationRequest(WorkflowBaseRequest):
+    quantity: ExactQuantity = Field(gt=0)
+    generation_id: str = Field(min_length=1, max_length=200)
+    expected_revision: int = Field(ge=0, strict=True)

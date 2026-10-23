@@ -92,16 +92,24 @@ class EligibilityTests(unittest.TestCase):
         dm = replace(dm, specifications={**dm.specifications, 'thickness_mm': 60})
         self.assertIn('MATERIAL_SPEC_MISMATCH', self.evaluate((s, d, sm, dm)).reason_codes)
 
-    def test_missing_critical_spec_requires_review(self):
+    def test_family_field_completeness_does_not_override_shared_reviewed_identity(self):
         s, d, sm, dm = self.pair('SUP-006', 'DEM-006')
         specs = {**sm.specifications, 'grade': None}
         result = self.evaluate((s, d, replace(sm, specifications=specs), replace(dm, specifications=specs)))
-        self.assertEqual(result.compatibility_result, 'REVIEW_REQUIRED')
+        self.assertEqual(result.compatibility_result, 'ELIGIBLE')
 
     def test_explicit_context_spec_requirement(self):
         result = self.evaluate(self.pair('SUP-021', 'DEM-020'),
                                extra_required_spec_fields=('slip_rating',))
         self.assertIn('MATERIAL_SPEC_REVIEW_REQUIRED', result.reason_codes)
+
+    def test_explicit_context_dimensions_still_require_unambiguous_values(self):
+        s, d, sm, dm = self.pair()
+        for value in ('160', 'about 160 mm', '160 mm', 'NaN', '-1', '0', True, None):
+            with self.subTest(value=value):
+                material = replace(sm, category='OPEN_FAMILY', specifications={'diameter_mm': value})
+                result = self.evaluate((s, d, material, material), extra_required_spec_fields=('diameter_mm',))
+                self.assertEqual(result.compatibility_result, 'ELIGIBLE' if value == '160' else 'REVIEW_REQUIRED')
 
     def test_unit_conversion_not_assumed(self):
         pair = self.pair()

@@ -6,13 +6,15 @@ import csv
 import io
 import json
 from typing import Any
+from terra.quantities import json_default
+from backend.app.domain.carbon import assessment_factor_units_valid
 
 from backend.app.repositories.impact_repository import (
     ImpactRepository,
     ImpactRepositoryError,
     ImpactRepositoryUnavailable,
 )
-from backend.app.services.impact_service import ImpactError, ImpactUnavailable, _load
+from backend.app.services.impact_service import ImpactError, ImpactUnavailable, ImpactConflict, _load
 from backend.app.services.transfer_read_service import load_baseline_metadata
 
 
@@ -31,6 +33,9 @@ def impact_export_records(
     project_id: str | None = None, transfer_id: str | None = None,
 ) -> list[dict[str, Any]]:
     repository = repository or ImpactRepository()
+    adapter=getattr(repository,'_adapter',None)
+    guarded=adapter is not None and adapter.execute('GetQuantityEncoding')['quantityEncoding']
+    read_version=adapter.execute('GetOperationalVersion')['operationalVersion'] if guarded else None
     snapshot = _load(repository)
     try:
         current_ids = {
@@ -50,7 +55,13 @@ def impact_export_records(
         row
         for row in snapshot["impact_assessments"]
         if row["basis"] == basis and row["id"] in current_ids
+        and assessment_factor_units_valid(row,snapshot["emission_factors"])
     ]
+    adapter=getattr(repository,'_adapter',None)
+    if adapter is not None and adapter.execute('GetQuantityEncoding')['quantityEncoding']:
+        from backend.app.services.matching_service import pages
+        pending={r['id'] for r in pages(adapter,'PageImpactIntents') if r['status']!='COMPLETED'}
+        assessments=[r for r in assessments if r['transfer_id'] not in pending]
     proposals = _index(snapshot["allocation_proposals"])
     transfers = _index(snapshot["transfers"])
     supplies = _index(snapshot["supply_offers"])
@@ -127,6 +138,8 @@ def impact_export_records(
                 "disclaimer": DISCLAIMER,
             }
         )
+    if guarded and adapter.execute('GetOperationalVersion')['operationalVersion'] != read_version:
+        raise ImpactConflict('IMPACT_INPUT_STALE','Impact changed while exporting. Retry the current export.')
     return [record for record in records if (
         (transfer_id is None or record["transfer_id"] == transfer_id)
         and (project_id is None or project_id in (record["source_project_id"], record["destination_project_id"]))
@@ -173,11 +186,11 @@ def export_csv(basis: str, repository: ImpactRepository | None = None, project_i
                 "additional_processing_kgco2e": components["additional_processing"],
                 "net_avoided_kgco2e": components["net_avoided"],
                 "factor_ids": "|".join(record["factor_ids"]),
-                "factors_json": json.dumps(record["factors"], ensure_ascii=False, sort_keys=True),
-                "assumptions_json": json.dumps(record["assumptions"], ensure_ascii=False, sort_keys=True),
+                "factors_json": json.dumps(record["factors"], ensure_ascii=False, sort_keys=True, default=json_default),
+                "assumptions_json": json.dumps(record["assumptions"], ensure_ascii=False, sort_keys=True, default=json_default),
                 "evidence_references_json": json.dumps(record["evidence_references"], ensure_ascii=False),
                 "missing_data_json": json.dumps(record["missing_data"], ensure_ascii=False),
-                "revision_json": json.dumps(record["revision"], ensure_ascii=False, sort_keys=True),
+                "revision_json": json.dumps(record["revision"], ensure_ascii=False, sort_keys=True, default=json_default),
             }
         )
     return output.getvalue()

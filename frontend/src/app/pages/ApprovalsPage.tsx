@@ -1,57 +1,39 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import StatusBadge from "../../components/StatusBadge";
-import { materialName, projectName, terra } from "../../data/terra";
-import { getPersistedOptimisationRun, type PersistedAllocationProposal } from "../../lib/optimisation-preview";
-import { approveAllocationProposal, listTransfers, type Transfer } from "../../lib/terra-api";
-import "./approvals.css";
-import "./workflow-listing.css";
-
-type ApprovalStep = "projects" | "materials" | "review";
-const projectFor = (proposal: PersistedAllocationProposal) => terra.demand_requests.find((item) => item.id === proposal.demand_request_id)?.destination_project_id ?? "UNASSIGNED";
-
-export default function ApprovalsPage({ runId }: { runId: string }) {
-  const [proposals, setProposals] = useState<PersistedAllocationProposal[]>([]);
-  const [transfers, setTransfers] = useState<Transfer[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [selectedId, setSelectedId] = useState("");
-  const [step, setStep] = useState<ApprovalStep>("projects");
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    if (!runId) { setProposals([]); setTransfers([]); setState("ready"); return; }
-    setState("loading");
-    try {
-      const [savedRun, currentTransfers] = await Promise.all([getPersistedOptimisationRun(runId), listTransfers()]);
-      setProposals(savedRun.proposals); setTransfers(currentTransfers); setState("ready");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Approval proposals are unavailable."); setState("error");
-    }
-  }, [runId]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const requests = useMemo(() => proposals.filter((proposal) => proposal.status === "SELECTED" && proposal.compatibility_result === "ELIGIBLE" && !transfers.some((transfer) => transfer.proposal_id === proposal.id)), [proposals, transfers]);
-  const projectIds = useMemo(() => [...new Set(requests.map(projectFor))], [requests]);
-  const projectRequests = requests.filter((proposal) => projectFor(proposal) === selectedProjectId);
-  const selected = projectRequests.find((proposal) => proposal.id === selectedId) ?? projectRequests[0];
-  const offer = selected && terra.supply_offers.find((item) => item.id === selected.supply_offer_id);
-  const demand = selected && terra.demand_requests.find((item) => item.id === selected.demand_request_id);
-  const stepIndex = ["projects", "materials", "review"].indexOf(step);
-  const openProject = (id: string) => { setSelectedProjectId(id); setSelectedId(requests.find((proposal) => projectFor(proposal) === id)?.id ?? ""); setStep("materials"); };
-  const openReview = (proposalId: string) => { setSelectedId(proposalId); setStep("review"); };
-  const approve = async () => {
-    if (!selected) return;
-    setBusy(true); setMessage("");
-    try {
-      const transfer = await approveAllocationProposal(selected.id);
-      setMessage(`${selected.id} was approved and ${transfer.id} is now requested. Reserve it in Deliveries when ready.`);
-      await load(); setStep("projects");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Terra could not approve this proposal.");
-    } finally { setBusy(false); }
-  };
-
-  return <section className="terra-approval-page"><section className="terra-approval-intro"><p>Approvals</p><h1>Approve matching proposals</h1><span>Work from destination project to material, then confirm one release request.</span></section>{message && <p className="terra-workflow-message" role="status">{message}</p>}{state === "loading" && <section className="terra-approval-detail terra-approval-empty"><h2>Loading proposals</h2></section>}{state === "error" && <section className="terra-approval-detail terra-approval-empty"><h2>Proposals unavailable</h2><p>{message}</p></section>}{state === "ready" && !runId && <section className="terra-approval-detail terra-approval-empty"><h2>No matching plan sent</h2><p>View Approvals from the material details screen after matching.</p></section>}{state === "ready" && runId && <>{step === "projects" && <section className="terra-approval-workbench"><header><h2>Choose a destination project</h2><span>Each project contains only its matching material proposals.</span></header><div className="terra-approval-list" aria-label="Projects awaiting approval">{projectIds.map((id) => { const projectProposals = requests.filter((proposal) => projectFor(proposal) === id); const count = projectProposals.length; const proposedQuantity = projectProposals.reduce((total, proposal) => total + proposal.proposed_quantity, 0); return <button type="button" key={id} onClick={() => openProject(id)}><div><span>{id}</span><strong>{id === "UNASSIGNED" ? "Unassigned project" : projectName(id)}</strong><small>{count} coordinated material {count === 1 ? "proposal" : "proposals"} · {proposedQuantity.toLocaleString()} pcs</small></div><b className="is-pending">View materials</b></button>; })}</div>{!projectIds.length && <section className="terra-approval-detail terra-approval-empty"><h2>No proposals to review</h2><p>All proposals in this matching plan have already created delivery requests.</p></section>}</section>}{step === "materials" && <section className="terra-approval-workbench"><header><button type="button" className="terra-approval-back" onClick={() => setStep("projects")}>‹ Projects</button><p>{selectedProjectId}</p><h2>{selectedProjectId === "UNASSIGNED" ? "Unassigned project" : projectName(selectedProjectId)}</h2><span>Choose the material proposal to review.</span></header><div className="terra-approval-list" aria-label="Material proposals for selected project">{projectRequests.map((proposal) => { const itemOffer = terra.supply_offers.find((item) => item.id === proposal.supply_offer_id); return <button type="button" key={proposal.id} onClick={() => openReview(proposal.id)}><div><span>{proposal.id}</span><strong>{itemOffer ? materialName(itemOffer.material_id) : proposal.supply_offer_id}</strong><small>{proposal.proposed_quantity} {proposal.unit}</small></div><b className="is-pending">Review</b></button>; })}</div></section>}{step === "review" && selected && <section className="terra-approval-detail"><header><div><button type="button" className="terra-approval-back" onClick={() => setStep("materials")}>‹ Materials</button><p>Review proposal</p><h2>{offer ? materialName(offer.material_id) : selected.supply_offer_id}</h2><span>{offer && demand ? `${projectName(offer.source_project_id)} → ${projectName(demand.destination_project_id)}` : `${selected.supply_offer_id} → ${selected.demand_request_id}`}</span></div><StatusBadge status={selected.status} /></header><div className="terra-approval-facts"><article><span>Proposed release</span><b>{selected.proposed_quantity} {selected.unit}</b><small>Saved matching quantity</small></article><article><span>Currently reservable</span><b>{offer ? Math.max(0, (offer.confirmed_quantity ?? 0) - offer.reserved_active_quantity - offer.transferred_out_quantity) : "Checked later"} {offer?.unit ?? ""}</b><small>Rechecked at reservation</small></article><article><span>After approval</span><b>Requested</b><small>Still not reserved</small></article></div><section className="terra-approval-evidence"><div><p>Compatibility</p><h3>Backend-selected match</h3><ul><li>Eligible matching result</li><li>Proposed quantity and unit recorded</li><li>Stock is rechecked before reservation</li></ul></div><div><p>Operator review</p><h3>Confirm before request</h3><ul><li>Material condition</li><li>Source permission</li><li>Proposed quantity</li></ul></div></section><section className="terra-approval-decision"><div><p>Decision</p><h3>Ready for approval</h3><span>Approval atomically creates a requested delivery without reserving stock.</span></div><div className="terra-approval-actions"><button type="button" className="is-primary" disabled={busy} onClick={approve}>{busy ? "Approving…" : `Approve ${selected.proposed_quantity} ${selected.unit}`}</button></div></section></section>}</>}</section>;
+import { useEffect, useRef, useState } from 'react';
+import { materialName, projectName, terra, matching } from '../../data/terra';
+import { getPersistedOptimisationRun, type PersistedAllocationProposal } from '../../lib/optimisation-preview';
+import { listTransfers, previewTransferConfirmation, confirmTransferReservation, type ConfirmationPreview } from '../../lib/terra-api';
+import { discreteUnit, formatQuantity } from '../../lib/quantities';
+import { sameTransfer, matchingDate, type TransferSelection } from '../../lib/matching-presentation';
+import { Empty, ErrorNotice, MissingInputs, PageHeader, TechnicalDetails } from '../components-workspace';
+export default function ApprovalsPage({runId,onMatching,onDelivery,transferSelection,connected=true}:{runId:string;onMatching:()=>void;onDelivery:(id:string)=>void;transferSelection?:TransferSelection;connected?:boolean}){
+ const [proposals,setProposals]=useState<PersistedAllocationProposal[]>([]),[generation,setGeneration]=useState(''),[selectedId,setSelectedId]=useState(''),[quantity,setQuantity]=useState('');
+ const [preview,setPreview]=useState<ConfirmationPreview|null>(null),[loading,setLoading]=useState(true),[checking,setChecking]=useState(false),[busy,setBusy]=useState(false),[confirmed,setConfirmed]=useState(false),[error,setError]=useState<unknown>(null),[retry,setRetry]=useState(0);
+ const [completed,setCompleted]=useState<{id:string;quantity:string;unit:string}|null>(null),[loadRetry,setLoadRetry]=useState(0);
+ const [confirmFailed,setConfirmFailed]=useState(false);
+ const sequence=useRef(0),commandLock=useRef(false);
+ useEffect(()=>{let active=true;setLoading(true);setError(null);setProposals([]);setSelectedId('');setPreview(null);setConfirmed(false);setCompleted(null);if(!runId){setLoading(false);return;}
+  void Promise.all([getPersistedOptimisationRun(runId),listTransfers()]).then(([saved,transfers])=>{if(!active)return;const available=saved.proposals.filter(p=>p.compatibility_result==='ELIGIBLE'&&!transfers.some(t=>t.proposal_id===p.id));setProposals(available);if(transferSelection){const p=available.find(p=>sameTransfer(p,transferSelection));if(p){setSelectedId(p.id);setQuantity(String(p.proposed_quantity));}else setError(new Error('This transfer is no longer available. Choose a current match.'));}setGeneration(String(saved.run.assumptions.matching_generation||''));setLoading(false);}).catch(e=>{if(active){setError(e);setLoading(false);}});return()=>{active=false;};
+ },[runId,transferSelection?.supply_offer_id,transferSelection?.demand_request_id,loadRetry]);
+ const currentPlan=connected&&!!matching?.materials.some(m=>m.status==='CURRENT'&&m.generation?.alternatives.some(a=>a.run_id===runId));
+ const selected=proposals.find(p=>p.id===selectedId),offer=selected&&terra.supply_offers.find(o=>o.id===selected.supply_offer_id),demand=selected&&terra.demand_requests.find(d=>d.id===selected.demand_request_id);
+ useEffect(()=>{const ticket=++sequence.current;if(confirmFailed)return;setPreview(null);setConfirmed(false);setChecking(false);if(!selectedId||!generation||!currentPlan||completed)return;
+  setError(null);setChecking(true);const timer=setTimeout(()=>{void previewTransferConfirmation(selectedId,quantity,generation).then(p=>{if(ticket===sequence.current)setPreview(p);}).catch(e=>{if(ticket===sequence.current)setError(e);}).finally(()=>{if(ticket===sequence.current)setChecking(false);});},350);return()=>{clearTimeout(timer);sequence.current++;};
+ },[selectedId,quantity,generation,currentPlan,retry,completed,confirmFailed]);
+ async function confirm(){if(!preview||!confirmed||busy||checking||!currentPlan||commandLock.current||confirmFailed)return;commandLock.current=true;setBusy(true);setError(null);try{const result=await confirmTransferReservation(preview);setCompleted({id:result.transfer.id,quantity:String(result.transfer.reserved_quantity),unit:preview.unit});}catch(e){setError(e);setConfirmFailed(true);}finally{setBusy(false);commandLock.current=false;}}
+ async function verifySaved(){if(busy||!selected)return;setBusy(true);try{const saved=(await listTransfers()).find(t=>t.proposal_id===selected.id);if(saved)setCompleted({id:saved.id,quantity:String(saved.reserved_quantity),unit:selected.unit});else {setConfirmFailed(false);setError(new Error('No saved reservation was found. Review the current quantity before retrying.'));}}catch(e){setError(e);}finally{setBusy(false);}}
+ return <section><PageHeader title={completed?'Transfer reserved':selected?'Confirm transfer':'Transfer confirmation'} onBack={onMatching} back="Back to matching"/>
+ {completed?<section className="workspace-panel workspace-completion"><h2>{formatQuantity(completed.quantity)} {completed.unit} reserved</h2><p>{offer?materialName(offer.material_id):'Material'} · {offer&&projectName(offer.source_project_id)} → {demand&&projectName(demand.destination_project_id)}</p><div className="workspace-actions"><button className="workspace-primary" onClick={()=>onDelivery(completed.id)}>Open delivery</button><button onClick={onMatching}>Back to matching</button></div><TechnicalDetails values={{'Transfer ID':completed.id}}/></section>:<>
+ {loading&&<p role="status">Loading transfer…</p>}{!!error&&<ErrorNotice error={error}>{confirmFailed?<button disabled={busy} onClick={()=>void verifySaved()}>Check saved reservation</button>:<button onClick={()=>selected?setRetry(n=>n+1):setLoadRetry(n=>n+1)}>Retry check</button>}<button onClick={onMatching}>View current matches</button></ErrorNotice>}
+ {!loading&&!runId&&<Empty action={<button className="workspace-primary" onClick={onMatching}>View matches</button>}>Choose a proposed transfer in Matching.</Empty>}
+ {!loading&&runId&&!currentPlan&&<div className="workspace-feedback is-warning" role="status">{connected?'This plan has changed.':'The current plan cannot be verified while disconnected.'}<button onClick={onMatching}>View current matches</button></div>}
+ {!loading&&!selected&&proposals.length>0&&<section className="workspace-panel"><h2>Choose a transfer</h2>{proposals.map(p=>{const s=terra.supply_offers.find(o=>o.id===p.supply_offer_id),d=terra.demand_requests.find(o=>o.id===p.demand_request_id);return <button className="workspace-list-row" key={p.id} onClick={()=>{setSelectedId(p.id);setQuantity(String(p.proposed_quantity));}}><span><strong>{s?materialName(s.material_id):'Material unavailable'}</strong><small>{s?projectName(s.source_project_id):'Source unavailable'} → {d?projectName(d.destination_project_id):'Recipient unavailable'}</small></span><b>{formatQuantity(p.proposed_quantity)} {p.unit}</b><span className="workspace-row-action">Review transfer</span></button>;})}</section>}
+ {!loading&&runId&&!selected&&!proposals.length&&!error&&<Empty action={<button onClick={onMatching}>View matches</button>}>No available transfers remain in this plan.</Empty>}
+ {selected&&<section className="workspace-panel workspace-confirm-transfer"><h2>{offer?materialName(offer.material_id):'Material unavailable'}</h2><p>{offer&&projectName(offer.source_project_id)} → {demand&&projectName(demand.destination_project_id)}</p><label>Quantity to reserve <span className="workspace-muted">Maximum {formatQuantity(selected.proposed_quantity)} {selected.unit}</span><div className="workspace-quantity-input"><input aria-label="Quantity to reserve" inputMode="decimal" type="number" min={discreteUnit(selected.unit)?'1':'0.000001'} max={String(selected.proposed_quantity)} step={discreteUnit(selected.unit)?'1':'0.000001'} value={quantity} disabled={busy||confirmFailed} onChange={e=>{sequence.current++;setPreview(null);setConfirmed(false);setQuantity(e.target.value);}}/><span>{selected.unit}</span></div></label>
+ {checking&&<p className="workspace-inline-status" role="status">Checking quantity and timing…</p>}
+ {preview&&<><dl className="workspace-quantity-grid"><div><dt>Earliest dispatch</dt><dd>{matchingDate(preview.earliest_start)}</dd></div><div><dt>Expected arrival</dt><dd>{matchingDate(preview.arrival_date)}</dd></div></dl>{preview.forecast.net_avoided_kgco2e===null?<details className="workspace-disclosure"><summary>Carbon estimate unavailable</summary><MissingInputs codes={preview.forecast.missing_data}/></details>:<p>Estimated avoided emissions: {Number(preview.forecast.net_avoided_kgco2e).toLocaleString(undefined,{maximumFractionDigits:2})} kgCO₂e{preview.forecast.calculation_status==='DEMO'?' · demonstration factors':''}</p>}
+ {preview.confirmable?<div className="workspace-decision"><label className="workspace-check"><input type="checkbox" checked={confirmed} disabled={busy||checking||!currentPlan||confirmFailed} onChange={e=>setConfirmed(e.target.checked)}/>I confirm this material is suitable, released by the source and needed by the recipient in the quantity shown.</label><button className="workspace-primary" disabled={busy||checking||!confirmed||!currentPlan||confirmFailed} onClick={()=>void confirm()}>{busy?'Reserving…':`Confirm and reserve ${formatQuantity(preview.chosen_quantity)} ${preview.unit}`}</button></div>:<p className="workspace-feedback is-info">Available for confirmation from {matchingDate(preview.earliest_start)}.</p>}</>}
+ <TechnicalDetails values={{'Proposal ID':selected.id,'Run ID':runId,'Generation':generation}}/>
+ </section>}
+ </>}
+ </section>;
 }

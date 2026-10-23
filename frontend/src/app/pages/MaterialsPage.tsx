@@ -1,77 +1,27 @@
-import { useState } from "react";
-import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import StatusBadge from "../../components/StatusBadge";
-import { supplyViews, terra } from "../../data/terra";
-import { EmptyState, PageIntro } from "./page-primitives";
-import "./inventory.css";
-import "./materials-redesign.css";
-import "./inventory-status-fix.css";
+import { useState } from 'react';
+import { materialName, projectName, supplyViews, terra } from '../../data/terra';
+import { formatQuantity, positiveQuantity } from '../../lib/quantities';
+import { meaningLabel, statusLabel } from '../../lib/workspace-presentation';
+import SupplyGraphics from '../supply-graphics';
+import { Empty, PageHeader, Pagination, ProjectFilter, TechnicalDetails } from '../components-workspace';
 
-export default function MaterialsPage() {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("all");
-  const [availability, setAvailability] = useState<"all" | "ready" | "review">("all");
-  const [inventoryPage, setInventoryPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  const materialFor = (id: string) => terra.materials.find((item) => item.id === id);
-  const rows = supplyViews.map((offer) => ({ ...offer, material: materialFor(offer.material_id) }));
-  const categories = [...new Set(rows.map((row) => row.material?.category ?? "OTHER"))].sort();
-  const shownRows = rows.filter((row) => {
-    const text = `${row.material_name} ${row.id} ${row.project_name} ${row.material?.reference_code ?? ""}`.toLowerCase();
-    return text.includes(query.trim().toLowerCase()) &&
-      (category === "all" || row.material?.category === category) &&
-      (availability === "all" || (availability === "ready" ? row.reservable_quantity > 0 : row.reservable_quantity === 0));
-  });
-  const overview = [
-    { name: "Ready", value: rows.filter((row) => row.reservable_quantity > 0).length, fill: "#5c9a69" },
-    { name: "Held", value: rows.filter((row) => row.reserved_active_quantity > 0).length, fill: "#c4a456" },
-    { name: "Review", value: rows.filter((row) => row.surplus_status !== "CONFIRMED").length, fill: "#8a9f98" },
-  ];
-  const materialMix = categories.map((name) => ({ name: name.replaceAll("_", " "), value: rows.filter((row) => row.material?.category === name).length }));
-  const pageCount = Math.max(1, Math.ceil(shownRows.length / pageSize));
-  const currentPage = Math.min(inventoryPage, pageCount);
-  const paginatedRows = shownRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const ready = overview[0].value;
-  const held = overview[1].value;
-  const review = overview[2].value;
-
-  return (
-    <>
-      <PageIntro label="INVENTORY" title="Material supply">
-        Available, held, and review-required supply.
-      </PageIntro>
-      <section className="terra-inventory-summary" aria-label="Inventory supply overview">
-        <article><span>Material lines</span><b>{rows.length}</b><small>Registered supply records</small></article>
-        <article className="is-ready"><span>Ready to share</span><b>{ready}</b><small>Confirmed and reservable</small></article>
-        <article className="is-held"><span>Currently held</span><b>{held}</b><small>Has an active reservation</small></article>
-        <article><span>Needs review</span><b>{review}</b><small>Not ready for matching</small></article>
-      </section>
-      <section className="terra-inventory-charts">
-        <article>
-          <header><div><p>SUPPLY STATUS</p><h2>What can move next?</h2></div><span>Material lines</span></header>
-          <ResponsiveContainer width="100%" height={210}><BarChart data={overview} margin={{ top: 12, right: 4, left: -24, bottom: 0 }}><XAxis dataKey="name" tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip cursor={{ fill: "#edf2e9" }} /><Bar dataKey="value" radius={[5, 5, 0, 0]}>{overview.map((item) => <Cell key={item.name} fill={item.fill} />)}</Bar></BarChart></ResponsiveContainer>
-        </article>
-        <article>
-          <header><div><p>SUPPLY MIX</p><h2>Material categories</h2></div><span>All supply</span></header>
-          <div className="terra-inventory-donut"><ResponsiveContainer width="100%" height={210}><PieChart><Pie data={materialMix} dataKey="value" nameKey="name" innerRadius={51} outerRadius={78} paddingAngle={3}>{materialMix.map((item, index) => <Cell key={item.name} fill={["#5c9a69", "#c4a456", "#698a9b", "#a47b86", "#7d9875"][index % 5]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer><ul>{materialMix.map((item) => <li key={item.name}><span>{item.name}</span><b>{item.value}</b></li>)}</ul></div>
-        </article>
-      </section>
-      <section className="terra-inventory-table-section">
-        <header><button type="button" className="terra-primary">+ Add material</button></header>
-        <div className="terra-inventory-filters" aria-label="Inventory filters">
-          <label>Search inventory<input value={query} onChange={(event) => { setQuery(event.target.value); setInventoryPage(1); }} placeholder="Search material name, ID or project" /></label>
-          <label>Category<select value={category} onChange={(event) => { setCategory(event.target.value); setInventoryPage(1); }}><option value="all">All categories</option>{categories.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}</select></label>
-          <label>Availability<select value={availability} onChange={(event) => { setAvailability(event.target.value as "all" | "ready" | "review"); setInventoryPage(1); }}><option value="all">All supply</option><option value="ready">Ready to share</option><option value="review">Needs review</option></select></label>
-        </div>
-        <div className="terra-inventory-table-wrap">
-          <div className="terra-inventory-table-scroll">
-          <table className="terra-inventory-table"><thead><tr><th>Material</th><th>Supply ID</th><th>Project</th><th>Category</th><th>Listed</th><th>Held</th><th>Ready now</th><th>Status</th></tr></thead><tbody>{paginatedRows.map((row) => <tr key={row.id}><td><b title={row.material_name}>{row.material_name}</b><small>{row.material?.reference_code ?? row.material_id}</small></td><td>{row.id}</td><td>{row.project_name}</td><td><span className="terra-category-chip">{(row.material?.category ?? "Other").replaceAll("_", " ")}</span></td><td>{row.declared_quantity} {row.unit}</td><td>{row.reserved_active_quantity} {row.unit}</td><td className={row.reservable_quantity > 0 ? "is-ready" : ""}>{row.reservable_quantity} {row.unit}</td><td><StatusBadge status={row.surplus_status} displayLabel={row.surplus_status} /></td></tr>)}</tbody></table>
-          {!shownRows.length && <EmptyState>No inventory lines match these filters.</EmptyState>}
-          </div>
-          <footer className="terra-inventory-pagination" aria-label="Inventory pages"><div className="terra-pagination-actions"><button type="button" disabled={currentPage === 1} onClick={() => setInventoryPage(currentPage - 1)}>← Previous</button><span>Page {currentPage} of {pageCount}</span><button type="button" disabled={currentPage === pageCount} onClick={() => setInventoryPage(currentPage + 1)}>Next →</button></div><i aria-hidden="true" /><label>Rows per page <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setInventoryPage(1); }}><option value="5">5</option><option value="10">10</option><option value="20">20</option></select></label></footer>
-        </div>
-      </section>
-    </>
-  );
+export default function MaterialsPage({onAdd,projectId='ALL',onProjectChange}:{onAdd:()=>void;projectId?:string;onProjectChange:(id:string)=>void}){
+ const [mode,setMode]=useState<'supply'|'evidence'>('supply'),[query,setQuery]=useState(''),[category,setCategory]=useState('all'),[availability,setAvailability]=useState('all'),[historyFilter,setHistoryFilter]=useState('all'),[page,setPage]=useState(1),[size,setSize]=useState(10),[selectedId,setSelectedId]=useState('');
+ const selected=supplyViews.find(s=>s.id===selectedId);
+ const categories=[...new Set(terra.materials.map(m=>m.category))].sort();
+ const material=(id:string)=>terra.materials.find(m=>m.id===id);
+ const textMatches=(text:string)=>text.toLowerCase().includes(query.trim().toLowerCase());
+ const scopeSupply=supplyViews.filter(s=>projectId==='ALL'||s.source_project_id===projectId);
+ const rows=supplyViews.filter(s=>(projectId==='ALL'||s.source_project_id===projectId)&&(category==='all'||material(s.material_id)?.category===category)&&textMatches(`${s.material_name} ${s.project_name} ${material(s.material_id)?.reference_code||''}`)&&(availability==='all'||(availability==='ready'?positiveQuantity(s.reservable_quantity):availability==='held'?positiveQuantity(s.reserved_active_quantity):s.surplus_status!=='CONFIRMED')));
+ const observations=terra.published_records.filter(r=>(selected?r.material_id===selected.material_id&&r.project_id===selected.source_project_id:(projectId==='ALL'||r.project_id===projectId)&&(category==='all'||material(r.material_id)?.category===category)&&textMatches(`${materialName(r.material_id)} ${projectName(r.project_id)} ${r.source.label} ${material(r.material_id)?.reference_code||''}`))&&(historyFilter==='all'||(historyFilter==='current'?r.is_effective:historyFilter==='replaced'?!!r.superseded_by:r.application==='HISTORY_ONLY'&&!r.superseded_by)));
+ const count=mode==='evidence'||selected?observations.length:rows.length,pages=Math.max(1,Math.ceil(count/size)),current=Math.min(page,pages);
+ const evidenceTable=<><div className="workspace-toolbar"><label>Evidence status<select value={historyFilter} onChange={e=>{setHistoryFilter(e.target.value);setPage(1);}}><option value="all">All evidence</option><option value="current">Current contributions</option><option value="history">Supporting history</option><option value="replaced">Replaced observations</option></select></label></div><div className="workspace-table-scroll"><table className="workspace-table"><thead><tr><th>Material / project</th><th>Information</th><th>Quantity</th><th>Evidence status</th><th>Source</th></tr></thead><tbody>{observations.slice((current-1)*size,current*size).map(r=><tr key={r.id}><td><strong>{materialName(r.material_id)}</strong><small>{projectName(r.project_id)}</small></td><td>{meaningLabel(r.record_kind)}</td><td className="workspace-numeric">{r.quantity===null?'No quantity stated':`${formatQuantity(r.quantity)} ${r.unit||''}`}</td><td>{r.superseded_by?'Replaced':r.application==='HISTORY_ONLY'?'Supporting history':r.application==='REPLACE'?'Revised contribution':'Current contribution'}</td><td>{r.source.label}<TechnicalDetails values={{'Observation ID':r.id,'Replaced by':r.superseded_by,'Source type':r.source.kind}}/></td></tr>)}</tbody></table></div>{!observations.length&&<Empty>No evidence matches these filters.</Empty>}<Pagination page={current} pages={pages} onChange={setPage} count={count}/></>;
+ return <section className="restored-inventory"><PageHeader title={selected?selected.material_name:'Inventory'} back="Back to inventory" onBack={selected?()=>{setSelectedId('');setPage(1);setHistoryFilter('all');}:undefined} actions={!selected?<><ProjectFilter value={projectId} onChange={id=>{onProjectChange(id);setPage(1);}}/><button className="workspace-primary" onClick={onAdd}>Add information</button></>:undefined}>{selected&&projectName(selected.source_project_id)}</PageHeader>
+ {selected?<><section className="workspace-panel"><div className="workspace-section-heading"><h2>Released material</h2><span className="workspace-badge">{statusLabel(selected.surplus_status)}</span></div><dl className="workspace-quantity-grid">{[['Confirmed release',selected.confirmed_quantity],['Reserved',selected.reserved_active_quantity],['Dispatched',selected.transferred_out_quantity],['Available to reserve',selected.reservable_quantity]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value===null?'Not confirmed':`${formatQuantity(value)} ${selected.unit}`}</dd></div>)}</dl><p>Available {selected.available_from}{selected.available_until?` to ${selected.available_until}`:''}</p><TechnicalDetails values={{'Supply ID':selected.id,'Material ID':selected.material_id,'Declared quantity':`${selected.declared_quantity} ${selected.unit}`}}/></section><section className="workspace-panel"><h2>Sources and history</h2>{evidenceTable}</section></>:<>
+ {mode==='supply'&&<SupplyGraphics supplies={scopeSupply}/>}
+ <div className="workspace-tabs" role="tablist" aria-label="Inventory view"><button role="tab" aria-selected={mode==='supply'} onClick={()=>{setMode('supply');setPage(1);}}>Released supply</button><button role="tab" aria-selected={mode==='evidence'} onClick={()=>{setMode('evidence');setPage(1);}}>Sources and history</button></div>
+ <div className="workspace-toolbar"><label className="workspace-search">Search<input type="search" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}} placeholder={mode==='supply'?'Material, reference or project':'Material, project or source'}/></label><label>Category<select value={category} onChange={e=>{setCategory(e.target.value);setPage(1);}}><option value="all">All categories</option>{categories.map(c=><option key={c} value={c}>{c.toLowerCase().replaceAll('_',' ')}</option>)}</select></label>{mode==='supply'&&<label>Availability<select value={availability} onChange={e=>{setAvailability(e.target.value);setPage(1);}}><option value="all">All supply</option><option value="ready">Available to reserve</option><option value="held">Reserved</option><option value="review">Needs review</option></select></label>}</div>
+ <section className="workspace-panel">{mode==='evidence'?evidenceTable:<><div className="workspace-section-heading"><h2>Released supply</h2><span>{rows.length} records</span></div><div className="workspace-table-scroll"><table className="workspace-table"><thead><tr><th>Material</th><th>Project</th><th>Confirmed release</th><th>Reserved</th><th>Dispatched</th><th>Available</th><th>Status</th><th>Action</th></tr></thead><tbody>{rows.slice((current-1)*size,current*size).map(s=><tr key={s.id}><td><strong>{s.material_name}</strong>{material(s.material_id)?.reference_code&&<small>{material(s.material_id)?.reference_code}</small>}</td><td>{s.project_name}</td><td className="workspace-numeric">{s.confirmed_quantity===null?'Not confirmed':`${formatQuantity(s.confirmed_quantity)} ${s.unit}`}</td><td className="workspace-numeric">{formatQuantity(s.reserved_active_quantity)} {s.unit}</td><td className="workspace-numeric">{formatQuantity(s.transferred_out_quantity)} {s.unit}</td><td className="workspace-numeric"><strong>{formatQuantity(s.reservable_quantity)} {s.unit}</strong></td><td><span className="workspace-badge">{statusLabel(s.surplus_status)}</span></td><td><button onClick={()=>{setSelectedId(s.id);setPage(1);setHistoryFilter('all');}}>Details</button></td></tr>)}</tbody></table></div>{!rows.length&&<Empty>No released supply matches these filters.</Empty>}<Pagination page={current} pages={pages} onChange={setPage} count={count}/></>}</section><label className="workspace-page-size">Rows per page<select value={size} onChange={e=>{setSize(Number(e.target.value));setPage(1);}}><option>10</option><option>20</option><option>50</option></select></label>
+ </>}
+ </section>;
 }
-

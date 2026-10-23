@@ -11,6 +11,8 @@ import json
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
+from decimal import Decimal
+from terra.quantities import amount, ordinary, json_default
 
 from backend.app.repositories.transfer_repository import (
     TransferRepository,
@@ -26,7 +28,7 @@ from backend.app.services.transfer_read_service import load_baseline_metadata
 class WorkflowInput:
     actor_label: str
     idempotency_key: str
-    quantity: int | None = None
+    quantity: int | Decimal | str | None = None
     reason: str | None = None
     evidence_ref: str | None = None
 
@@ -67,7 +69,7 @@ def _fingerprint(action: str, transfer_id: str, request: WorkflowInput) -> str:
         "evidence_ref": request.evidence_ref,
     }
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
-                                     separators=(",", ":")).encode()).hexdigest()
+                                     separators=(",", ":"),default=json_default).encode()).hexdigest()
 
 
 def _load(repository, transfer_id, operation_id, event_id):
@@ -177,7 +179,7 @@ def _validate(action, request, state, operation_date, repository):
             raise TransferWorkflowInvalid("TRANSFER_CONFIRMATIONS_REQUIRED",
                 "Both transfer confirmations must remain CONFIRMED before dispatch.")
         quantity = transfer["reserved_quantity"]
-        if type(quantity) is not int or quantity <= 0:
+        if quantity <= 0:
             raise TransferWorkflowConflict("DISPATCH_RESERVATION_INVALID",
                 "Dispatch requires a positive current reservation.")
         if transfer["dispatched_quantity"] != 0:
@@ -205,7 +207,7 @@ def _validate(action, request, state, operation_date, repository):
             raise TransferWorkflowInvalid("RECEIPT_QUANTITY_NOT_ACCEPTED",
                 "quantity is not accepted; receipt confirms the full dispatched quantity.")
         quantity = transfer["dispatched_quantity"]
-        if type(quantity) is not int or quantity <= 0:
+        if quantity <= 0:
             raise TransferWorkflowConflict("RECEIPT_DISPATCH_INVALID",
                 "Receipt requires a positive dispatched quantity.")
         if transfer["reserved_quantity"] != 0:
@@ -218,10 +220,11 @@ def _validate(action, request, state, operation_date, repository):
             raise TransferWorkflowConflict("TRANSFER_DATE_INELIGIBLE",
                 "The receipt date is outside the demand window.")
         return quantity
-    quantity = request.quantity
-    if type(quantity) is not int or quantity <= 0:
-        raise TransferWorkflowInvalid("TRANSFER_QUANTITY_INVALID",
-                                      "quantity must be a positive integer.")
+    try:quantity=ordinary(amount(request.quantity,unit_name=proposal['unit']))
+    except ValueError as exc:
+        raise TransferWorkflowInvalid('TRANSFER_QUANTITY_INVALID',str(exc)) from exc
+    if quantity <= 0:
+        raise TransferWorkflowInvalid('TRANSFER_QUANTITY_INVALID','Quantity must be positive.')
     cap = {"confirm_use": "received_quantity"}[action]
     remaining = transfer[cap] - transfer["actually_used_quantity"]
     if quantity > remaining:
@@ -284,7 +287,7 @@ def run_transfer_workflow(transfer_id: str, action: str, request: WorkflowInput,
     quantity = _validate(action, request, state, now.date().isoformat(), repository)
     new_used_quantity = (state.transfer["actually_used_quantity"] + quantity
                          if action == "confirm_use" else 0)
-    residual = state.transfer["approved_quantity"] - new_used_quantity
+    residual = state.transfer["received_quantity"] - new_used_quantity
     payload = {"quantity": quantity, "synthetic": True}
     command = {"transfer_id": transfer_id, "operation_id": operation_id,
         "request_fingerprint": fingerprint, "event_id": event_id, "quantity": quantity,
@@ -298,8 +301,9 @@ def run_transfer_workflow(transfer_id: str, action: str, request: WorkflowInput,
         command["new_used_quantity"] = new_used_quantity
         payload["cumulative_used_quantity"] = new_used_quantity
         payload["unresolved_quantity"] = residual
-        command["notes"] = (f"Unresolved quantity {residual} {state.proposal['unit']} remains "
-            "committed; disposition pending." if residual else state.transfer["notes"])
+        # Current balances are quantity fields, not changing free-text notes.
+        # Keep operator notes intact; the event retains the historical remainder.
+        command["notes"] = state.transfer["notes"]
         command["demand_status"] = ("FULFILLED" if
             state.demand_request["fulfilled_quantity"] + quantity ==
             state.demand_request["required_quantity"] else "OPEN")
@@ -307,6 +311,11 @@ def run_transfer_workflow(transfer_id: str, action: str, request: WorkflowInput,
         command["reason"] = request.reason
         payload["reason"] = request.reason
         command["notes"] = f"Cancelled: {request.reason}"
+    adapter=getattr(repository,'_adapter',None)
+    if adapter is not None and adapter.execute('GetQuantityEncoding')['quantityEncoding']:
+        command['matching_scopes']=[{'id':state.supply_offer['material_id'],'token':operation_id,'status':'PENDING','generationId':None,'payload':{}}]
+        if action=='confirm_use':
+            command['impact_intents']=[{'id':transfer_id,'token':operation_id,'status':'PENDING','payload':{'reason':'Saved actual use','use_operation_id':operation_id}}]
     try:
         repository.run_workflow(_CONFIG[action][1], command)
     except TransferRepositoryUnavailable as exc:

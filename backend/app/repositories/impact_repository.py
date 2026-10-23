@@ -38,6 +38,9 @@ class ImpactRepository:
 
     def snapshot(self) -> dict[str, list[dict[str, Any]]]:
         try:
+            if self._adapter.execute('GetQuantityEncoding')['quantityEncoding']:
+                from backend.app.services.matching_service import current_records
+                return current_records(self._adapter)[0]
             return self._adapter.snapshot()
         except AdapterUnavailableError as exc:
             raise ImpactRepositoryUnavailable("The local emulator is unavailable.") from exc
@@ -155,6 +158,10 @@ class ImpactRepository:
                     "expectedReuseConfirmedAt": command["source_guard"]["reuse_confirmed_at"],
                 }
             )
+        if 'intent_token' in command:
+            operation='PersistCurrentActualImpact'
+            variables.update(expectedOperationalRevision=command['expected_operational_revision'],
+                intentToken=command['intent_token'],intentPayload=command['intent_payload'])
         try:
             self._adapter.execute(operation, variables, write=True)
         except AdapterUnavailableError as exc:

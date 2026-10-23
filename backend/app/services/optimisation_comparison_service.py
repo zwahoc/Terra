@@ -33,7 +33,7 @@ def persist_optimisation_comparison(request, repository=None, clock=None):
     repo = repository or OptimisationRepository()
     inputs = [OptimisationRunInput(objective, request.planning_date, request.factor_dataset_version,
         request.destination_project_id, f'comparison:{request.idempotency_key}:{objective}', request.actor_label)
-        for objective in ('MAX_REUSE', 'MAX_NET_CO2E_AVOIDED')]
+        for objective in ('MAX_REUSE', 'EARLIEST_DEADLINE', 'MAX_NET_CO2E_AVOIDED')]
 
     def saved(replayed):
         alternatives = []

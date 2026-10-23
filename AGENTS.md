@@ -1,47 +1,48 @@
-# Instructions for Codex working on Terra
+# Working on Terra
 
-## Before changing the project
+## Read before changing the project
 
-Read `README.md` and every `docs/00` through `docs/09` file in order. Treat them as the agreed product/domain contract. **`docs/09_ARCHITECTURE_UPDATE.md` is the latest confirmed architecture decision and overrides conflicting architecture, integration and seed-tooling guidance.** Inspect task prompts and other project instructions relevant to the request. Read `legacy/` only for lineage and examples; it contains outdated branding, role/account assumptions, and underspecified schema fields. Preserve historical content and flag unresolved domain contradictions rather than silently guessing.
+Read `README.md`, Documents `docs/00` through `docs/09` in order, then `docs/TERRA_SRS_v1.0.md`. The SRS and approved domain contracts define behaviour. `docs/09_ARCHITECTURE_UPDATE.md` is the architecture authority where older descriptions conflict. Inspect the relevant code and active prompts before editing. Do not infer current requirements from old plans, fixture narratives or archived discussions.
 
-## Current user request boundary
+## Architecture
 
-The local seed baseline and empty React/FastAPI scaffolds are completed and pushed. Native Windows/macOS development tooling has now been implemented, including portable locking, Python/environment launchers, setup commands, UTF-8 data I/O and compatibility tests. The current request authorizes committing and pushing these changes to `origin/main`. Preserve history; never force-push. No WSL requirement. Keep the React page blank and FastAPI free of business routes. Native OS verification must be reported accurately; simulated platform-path tests do not establish a successful Windows emulator run. No new feature implementation is authorized.
+- React/TypeScript/Tailwind → FastAPI → independent Python services/repositories → Python named SQL Connect REST operations.
+- No persistent Node application backend, browser Firebase/admin access, direct PostgreSQL application connection or Supabase replacement.
+- Runtime prompts are `backend/app/prompts/**/*.md`. They are required source assets, not disposable documentation.
+- Generate SQL Connect definitions through `scripts/generate_provider.py`; do not maintain hand-edited schema/operation forks.
+- Operational quantities use exact Decimal/integer values and SQL Int64 millionths under the persisted QuantityEncoding marker. Never initialise that encoding over populated legacy quantities or use Float stock arithmetic.
 
-Keep the local database baseline intact. No Firebase Cloud project, Cloud SQL provisioning, billing, deployment or cloud service-account credentials. Do not add authentication, database access through HTTP routes, raw document assets/parsing, LLM calls, optimisation or carbon/transfer features. Python processing remains independent of FastAPI. Node.js is frontend/Firebase tooling only, never a separate application backend. Stored prompts remain reference material unless separately invoked.
+## Domain safeguards
 
-## Confirmed application architecture
+- AI reads Terra context and creates provisional project/material proposals. No AI approval, publication, transfer or arbitrary SQL/web tools.
+- Preserve source files, original model responses and operator overlays separately. Manual entries never claim document provenance.
+- Each included file/manual submission must be resolved and explicitly approved; publish the complete batch separately and atomically. Prepared recommendations are not human confirmation.
+- Keep stock, local requirement, orders, receipt, potential/confirmed surplus and net demand distinct. Surplus is part of stock; explicit net demand is not reduced by stock twice.
+- Catalogue families/specification attributes are open-ended. Shared reviewed identity and consistent specs/units matter; no hardcoded family whitelist or silent cross-ID equivalence.
+- Matching follows committed relevant changes across all projects for affected materials. Stale recommendations cannot confirm; actual reservations/events survive recommendation replacement.
+- Confirm/reserve each transfer in one atomic operation. Full dispatch and full receipt remain distinct from positive partial/repeated actual use. Change reserved quantities only by pre-dispatch cancel/release/fresh confirmation. No dismissal or partial shipment/return workflow is selected.
+- Actual-use production avoidance uses used quantity; freight/handling use moved quantity. Preserve immutable current-assessment revisions and unknown inputs. No official emissions deduction, verified diversion or carbon-credit claim.
 
-React, TypeScript and Tailwind CSS call Terra's FastAPI endpoints for all application operations. FastAPI validates HTTP requests and orchestrates framework-independent Python services for AI ingestion, material analysis, stock/demand calculation, optimisation, transfers, carbon and exports. Repositories isolate a Python adapter calling documented Firebase Data Connect / SQL Connect REST operations over the PostgreSQL-backed service. Authentication, connector authorization, emulator routing and read/write behavior require an integration proof; do not claim they already work.
+## Preserve the owner's workspace
 
-No persistent Node.js application backend or adapter service is permitted. Node.js is limited to Firebase CLI/build tooling and justified one-off development utilities. Direct PostgreSQL access and Supabase are not the selected integration. No application accounts/login does not permit public privileged writes; keep server credentials private and require a separately agreed access plan for a public demo.
+Normal services use 9399/8000/5173. Do not stop/restart them during an owner recording or test unless requested. Do not reset/reseed, delete `.local/sql-connect-data`, restore historical publications or change workspace/source identity without explicit direction.
 
-## Data and naming conventions
+Preserve publications, working reviews, original uploads/checkpoints, usage accounting, model preference, credentials, canonical seed and private archives. Empty-looking data is not authorisation to seed. Current source/model/test data may evolve as the owner works; never overwrite it with a stale documented snapshot.
 
-- Name = Terra; code/repo examples use `terra`, never `circularflow` for newly created resources.
-- MVP = a single-app/single-operator workflow; no auth/users/roles tables and no user-linked FKs.
-- Use stable **string primary keys** (`PRJ-001`, `MAT-001`, `SUP-001` etc.) throughout the *seed JSON*. Preserve explicit referential integrity. For SQL Connect map them to supported explicit string keys and field names; do not rely on implicit UUID generation when importing these IDs.
-- Seed JSON and Terra HTTP DTO keys follow `snake_case`; SQL Connect `.gql` fields use `camelCase` and may be mapped to database columns using `@col` and explicit table naming. Verify mapping syntax at implementation time.
-- Dates are ISO 8601; timestamps include `+08:00`; currency MYR; carbon in `kgCO2e`.
-- All seed data is synthetic and deterministic; baseline `as_of_date` is `2026-10-12`, independently of documentation revision dates. Each run of the seeder must be idempotent.
+Keep DeepSeek primary and HIGH reasoning unless the owner changes that choice. No unrequested live model call, automatic fallback, billing activation, cloud action, commit or push. Local demonstration-factor setup is not permission to create inventory, demand, approval or transfer facts. Never expose `.env`, private sources, local database or diagnostic captures in Git.
 
-## Inviolable domain rules
+## Testing
 
-1. BOQ ≠ PO ≠ on-hand stock ≠ potential surplus ≠ confirmed transferable surplus.
-2. Unreviewed extracted rows cannot automatically create confirmed offers.
-3. Only `CONFIRMED` surplus with positive, truly reservable stock can be reserved.
-4. A proposed allocation is **not** a reservation and is **not** completed reuse.
-5. Material safety/suitability/ownership still require human confirmation in real use; prototype represents that via status, not fake engineering certification.
-6. Units/specs/dates matter; text similarity alone does not constitute interchangeability.
-7. Reservation, dispatch, receipt and actual use are distinct stages and quantities. Never double-reserve or double-count reused mass/emissions.
-8. Perform coupled stock/status writes atomically; no loose read-then-update across concurrent requests.
-9. All emission factors/assumptions must be versioned and visibly synthetic unless genuinely sourced.
-10. Report avoided emissions separately from official GHG inventory, waste-diversion totals and carbon credits; no live Pantas claims.
+Use scripted/in-memory providers and temporary files for ordinary tests. Database mutation tests use the dedicated disposable 9499 runners; never point destructive tests at9399. Do not enable integration-test flags manually against an active workspace. During owner recording, avoid builds/source edits that trigger reloads and avoid resource-intensive suites unless agreed.
 
-## Implementation/reporting discipline
+Run focused checks appropriate to the change, plus the frontend build for UI changes. Use seed/provider generator `--check` for contract edits. Distinguish scripted/emulator/native/cloud evidence; skipped tests are not passed integration proof. Check final links and fixtures after documentation moves.
 
-- Verify SQL Connect capabilities and syntax against current Firebase docs before emitting `.gql`; the backing PostgreSQL DDL and GraphQL API schema are different layers.
-- Prefer a single seed source of truth in GitHub, deterministic import and `--dry-run` validation; never make the cloud database the sole copy.
-- Use fixtures intentionally designed for negative tests; do not generate universally compatible supply/demand.
-- For documentation work, re-read changed files and check terminology, local links and cross-document contracts. For implementation, run relevant tests. Explain verified vs unverified steps in the handoff, especially if a cloud Firebase project is not configured.
-- Do not commit credentials, service-account files, `.env`, secrets, source procurement documents or personally identifying data.
+## Interface direction
+
+Desktop is the priority. Preserve the earlier Terra forest/sage/ochre theme, graphical summaries/charts and expanding animated sidebar while retaining clearer controls, fresh sidebar entry, explicit resume/back context, exact-item handoffs and readable evidence. Do not launch a full redesign or spend time on mobile without a new request. Backend business changes are not implied by visual work.
+
+## Repository maintenance and new clones
+
+Keep current requirements, API references and setup instructions concise. Archive superseded plans/handoffs and task artifacts privately before removal; verify links and extract any test fixtures first. Documentation work alone does not authorise application changes, service restarts or operational mutations.
+
+New clones may deliberately install the separate public integrated demo with `npm run demo:seed` on an empty emulator. Preserve its atomic empty-workspace guard, exact encoding, workspace epoch and bootstrap receipt. Repeating setup must preserve later work, never replenish stock or rebase existing dates. The canonical regression seed remains unchanged. Never export owner uploads, reviews, SQL data, credentials or model settings as a public seed.

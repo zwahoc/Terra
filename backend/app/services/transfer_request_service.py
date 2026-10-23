@@ -116,6 +116,12 @@ def create_transfer_request(proposal_id: str, request: TransferRequestInput,
     if _replay(state, fingerprint, request.idempotency_key):
         return _response(state, request.idempotency_key, True)
     _validate(state, proposal_id, request)
+    if getattr(repository,'_adapter',None) is not None and state.proposal.get('run_id'):
+        from backend.app.services.matching_service import MatchingService
+        run=repository._adapter.execute('GetOptimisationRun',{'runId':state.proposal['run_id']})['optimisationRun']
+        if run and run['assumptions'].get('matching_generation'):
+            raise TransferRequestConflict('COMBINED_CONFIRMATION_REQUIRED','Use current proposal confirmation to approve and reserve together.')
+        MatchingService(repository._adapter,clock).require_current(state.proposal)
     now = (clock or (lambda: datetime.now(timezone(timedelta(hours=8)))))()
     if now.tzinfo is None or now.utcoffset() is None:
         raise TransferRequestError("TRANSFER_REQUEST_TIME_INVALID",

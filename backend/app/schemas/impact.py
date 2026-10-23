@@ -3,6 +3,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import date
 from typing import Literal
+from backend.app.schemas.transfers import ExactQuantity
 
 
 class ImpactCalculationRequest(BaseModel):
@@ -17,7 +18,7 @@ class ForecastPreviewRequest(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     supply_offer_id: str = Field(min_length=1, max_length=128)
     demand_request_id: str = Field(min_length=1, max_length=128)
-    quantity: int = Field(gt=0, strict=True)
+    quantity: ExactQuantity = Field(gt=0)
     planning_date: date
     factor_dataset_version: str = Field(min_length=1, max_length=128)
 

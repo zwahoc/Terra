@@ -23,7 +23,7 @@ class SeedTests(unittest.TestCase):
         root=Path(__file__).resolve().parents[1];schema,operations=render()
         self.assertEqual(schema,(root/'dataconnect/schema/schema.gql').read_text(encoding='utf-8'))
         self.assertEqual(operations,(root/'dataconnect/terra/operations.gql').read_text(encoding='utf-8'))
-        self.assertNotIn('PUBLIC',operations)
+        self.assertNotRegex(operations,r'@auth\(level:\s*PUBLIC\)')
     def test_scenario_index_ids_resolve(self):
         import re
         root=Path(__file__).resolve().parents[1]
