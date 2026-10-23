@@ -156,6 +156,17 @@ class ReuseReportTests(unittest.TestCase):
 
 
 class ReuseWorkbookTests(unittest.TestCase):
+    def test_summary_scrolls_freely_while_detail_headers_stay_frozen(self):
+        content,_=export_reuse_excel(repository(),clock=lambda:NOW)
+        with ZipFile(BytesIO(content)) as z:
+            summary,_=sheet_rows(z,'Summary')
+            self.assertIsNone(summary.find('s:sheetViews/s:sheetView/s:pane',NS),
+                'Summary must not pin rows 1–24 or leave a tiny scrolling area')
+            for name in ('Transfers','Carbon breakdown','Factors & evidence','Needs attention'):
+                detail,_=sheet_rows(z,name)
+                pane=detail.find('s:sheetViews/s:sheetView/s:pane',NS)
+                self.assertEqual(pane.attrib['ySplit'],'6',name)
+
     def test_workbook_sheets_types_filters_chart_dates_and_preserved_quantities(self):
         content,name=export_reuse_excel(repository(),project_id='PRJ-DEMO-001',clock=lambda:NOW)
         self.assertTrue(name.endswith('.xlsx'));self.assertIn('LG-EW-P1',name)

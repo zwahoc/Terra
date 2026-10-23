@@ -78,7 +78,7 @@ def write_workbook(report):
         ws.set_margins(.3,.3,.4,.4);ws.set_footer('&LTerra material reuse report&RPage &P of &N')
         ws.set_tab_color(FOREST if name=='Summary' else '#91AC92' if name in ('Transfers','Carbon breakdown') else '#B89B64')
         return ws
-    def table(ws,headers,records,start=5,styles=None):
+    def table(ws,headers,records,start=5,styles=None,freeze=True):
         for col,label in enumerate(headers,1):cell(ws,start,col,label,'heading')
         ws.set_row(start,42)
         if not records:
@@ -95,7 +95,8 @@ def write_workbook(report):
                 else:cell(ws,offset,col,value,style)
             ws.set_row(offset,min(409,max(28,lines*14+8)))
         if records:ws.autofilter(start,1,start+len(records),len(headers))
-        ws.freeze_panes(start+1,3);ws.repeat_rows(start,start)
+        if freeze:ws.freeze_panes(start+1,3)
+        ws.repeat_rows(start,start)
         ws.print_area(0,1,start+max(1,len(records)),len(headers))
         return start+1
 
@@ -124,8 +125,7 @@ def write_workbook(report):
     material_rows=[[f'M{i:02} '+r['material']+(f" / {r['role']}" if report['scope']['project_id'] else ''),r['unit'],r['used'],r['dispatched'],r['received'],r['unused'],r['known_mass_tonnes'],
         f"{r['unknown_mass_transfers']} unknown weight" if r['unknown_mass_transfers'] else ''] for i,r in enumerate(report['materials'],1)]
     table(summary,['Material','Unit','Used','Dispatched','Received','Received unused','Known mass (t)','Coverage'],material_rows,start=23,
-        styles={1:'wrap',2:'body',3:'number',4:'number',5:'number',6:'number',7:'number',8:'note'})
-    summary.freeze_panes(24,2)
+        styles={1:'wrap',2:'body',3:'number',4:'number',5:'number',6:'number',7:'number',8:'note'},freeze=False)
 
     transfer_rows=[];carbon_rows=[];reference_rows=[];reference_locations={}
     def reference(ref,section,item,value='',unit_name='',basis='',version='',valid='',locator='',provenance='',technical=''):
